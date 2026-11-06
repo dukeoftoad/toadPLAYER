@@ -1,13 +1,13 @@
 //! Local audio tag reading, cover extraction, and CUE parsing via `toadplayer_core`.
 use crate::cancellation::RequestLease;
 use crate::manager::{ExtensionManager, ExtensionManagerError};
-use toadplayer_core::{cue, tags};
 use serde_json::json;
 use std::collections::BTreeMap;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
+use toadplayer_core::{cue, tags};
 
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 #[uniffi(flat_error)]
@@ -39,7 +39,8 @@ impl ExtensionManager {
         _cache_key: String,
         lease: Option<Arc<RequestLease>>,
     ) -> Result<String, ExtensionManagerError> {
-        read_file_metadata(path, hint, lease).map_err(|e| ExtensionManagerError::Operation(e.to_string()))
+        read_file_metadata(path, hint, lease)
+            .map_err(|e| ExtensionManagerError::Operation(e.to_string()))
     }
 
     pub fn parse_cue_file_json(
@@ -141,8 +142,10 @@ impl ExtensionManager {
         let format = if format == "mp4" { "m4a" } else { &format };
         let cover = tags::extract_cover(&mut file, format, &check)
             .map_err(ExtensionManagerError::Operation)?;
-        let mut out = File::create(&output_path).map_err(|e| ExtensionManagerError::Operation(e.to_string()))?;
-        out.write_all(&cover.data).map_err(|e| ExtensionManagerError::Operation(e.to_string()))
+        let mut out = File::create(&output_path)
+            .map_err(|e| ExtensionManagerError::Operation(e.to_string()))?;
+        out.write_all(&cover.data)
+            .map_err(|e| ExtensionManagerError::Operation(e.to_string()))
     }
 
     pub fn download_cover_to_file_sized(
@@ -152,7 +155,9 @@ impl ExtensionManager {
         _max_dimension: i64,
         _lease: Option<Arc<RequestLease>>,
     ) -> Result<(), ExtensionManagerError> {
-        Err(ExtensionManagerError::Operation("Online cover download is disabled in isolated player".into()))
+        Err(ExtensionManagerError::Operation(
+            "Online cover download is disabled in isolated player".into(),
+        ))
     }
 
     pub fn edit_file_metadata(
@@ -163,29 +168,76 @@ impl ExtensionManager {
     ) -> Result<String, ExtensionManagerError> {
         let check = || check_lease(lease.as_deref());
         check().map_err(ExtensionManagerError::Operation)?;
-        let decoded: Option<BTreeMap<String, Option<String>>> = serde_json::from_str(&metadata_json)
-            .map_err(|error| ExtensionManagerError::Operation(format!("invalid metadata JSON: {error}")))?;
+        let decoded: Option<BTreeMap<String, Option<String>>> =
+            serde_json::from_str(&metadata_json).map_err(|error| {
+                ExtensionManagerError::Operation(format!("invalid metadata JSON: {error}"))
+            })?;
+        let decoded = decoded.unwrap_or_default();
+        // The editor sends `cover_path` next to the text fields: empty keeps
+        // the current artwork, a readable image file replaces it. It names a
+        // file, never a tag, so it must not reach the tag writers as a field.
+        let cover_path = decoded
+            .get("cover_path")
+            .and_then(|path| path.as_deref())
+            .map(|path| path.trim())
+            .filter(|path| !path.is_empty());
+        let cover = match cover_path {
+            None => None,
+            Some(cover_path) => match std::fs::read(cover_path) {
+                Ok(bytes) => Some(bytes),
+                Err(error) => {
+                    return Ok(json!({
+                        "success": false,
+                        "error": format!("cover image could not be read: {error}"),
+                    })
+                    .to_string());
+                }
+            },
+        };
         let fields: BTreeMap<String, String> = decoded
-            .unwrap_or_default()
             .into_iter()
+            .filter(|(key, _)| key != "cover_path")
             .map(|(k, v)| (k, v.unwrap_or_default()))
             .collect();
         let format = tags::library_extension(&path, "");
         let temp_path = format!("{path}.toadplayer_edit_tmp");
         let res = (|| -> Result<(), String> {
-            let mut src = OpenOptions::new().read(true).open(&path).map_err(|e| e.to_string())?;
-            let mut dst = OpenOptions::new().write(true).create(true).truncate(true).open(&temp_path).map_err(|e| e.to_string())?;
+            let mut src = OpenOptions::new()
+                .read(true)
+                .open(&path)
+                .map_err(|e| e.to_string())?;
+            let mut dst = OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(&temp_path)
+                .map_err(|e| e.to_string())?;
             if format == "flac" {
-                tags::rewrite_flac_tags_if_changed(&mut src, &mut dst, &fields, None, &check)?;
+                tags::rewrite_flac_tags_if_changed(
+                    &mut src,
+                    &mut dst,
+                    &fields,
+                    cover.as_deref(),
+                    &check,
+                )?;
             } else {
-                tags::rewrite_audio_tags(&mut src, &mut dst, &format, &fields, None, &check)?;
+                tags::rewrite_audio_tags(
+                    &mut src,
+                    &mut dst,
+                    &format,
+                    &fields,
+                    cover.as_deref(),
+                    &check,
+                )?;
             }
             std::fs::rename(&temp_path, &path).map_err(|e| e.to_string())
         })();
         let _ = std::fs::remove_file(&temp_path);
         match res {
             Ok(()) => Ok(json!({"success": true, "method": "native"}).to_string()),
-            Err(_) => Ok(json!({"success": true, "method": "ffmpeg", "fields": fields}).to_string()),
+            Err(_) => {
+                Ok(json!({"success": true, "method": "ffmpeg", "fields": fields}).to_string())
+            }
         }
     }
 
@@ -234,7 +286,10 @@ pub fn read_file_metadata(
 
 pub(crate) fn check_lease(lease: Option<&RequestLease>) -> Result<(), String> {
     lease.map_or(Ok(()), |lease| {
-        lease.inner.check_active().map_err(|error| error.to_string())
+        lease
+            .inner
+            .check_active()
+            .map_err(|error| error.to_string())
     })
 }
 
@@ -267,7 +322,11 @@ pub(crate) fn open_audio_file(path: &str) -> Result<File, String> {
         options.custom_flags(rustix::fs::OFlags::NONBLOCK.bits() as i32);
     }
     let file = options.open(path).map_err(|error| error.to_string())?;
-    if !file.metadata().map_err(|error| error.to_string())?.is_file() {
+    if !file
+        .metadata()
+        .map_err(|error| error.to_string())?
+        .is_file()
+    {
         return Err("audio tags require a regular file".into());
     }
     Ok(file)

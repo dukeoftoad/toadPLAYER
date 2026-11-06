@@ -97,7 +97,12 @@ class MetadataPersistenceService {
         );
       }
       final saved = await _saveLocal(request);
-      if (saved.failure == null && request.metadata.containsKey('lyrics')) {
+      // Refresh the queue's view of the file after any editor save: lyrics
+      // change the text, a new cover changes the artwork, and both are read
+      // back from the file here.
+      if (saved.failure == null &&
+          (request.metadata.containsKey('lyrics') ||
+              request.selectedCoverPath != null)) {
         await SourceMetadataEvents.instance.publish(request.filePath);
       }
       return saved;

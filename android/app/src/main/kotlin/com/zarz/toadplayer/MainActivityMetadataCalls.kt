@@ -107,7 +107,9 @@ internal suspend fun MainActivity.handleEditFileMetadata(call: MethodCall, resul
                         return@withContext obj.toString()
                         // Note: temp file NOT deleted here - Dart will clean up after FFmpeg + writeTempToSaf
                     }
-                    if (!writeUriFromPath(uri, tempPath)) {
+                    // A failed edit (for example an unreadable cover image) must
+                    // not push the untouched temp copy back into the document.
+                    if (obj.optBoolean("success", true) && !writeUriFromPath(uri, tempPath)) {
                         try { File(tempPath).delete() } catch (_: Exception) {}
                         return@withContext """{"error":"Failed to write metadata back to SAF file"}"""
                     }
