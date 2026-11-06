@@ -14,7 +14,7 @@ case "$PLATFORM" in
 esac
 
 if [[ "$PLATFORM" == "android" ]]; then
-  ANDROID_ABIS_RAW="${TOADPLAYER_RUST_ANDROID_ABIS-arm64-v8a,armeabi-v7a}"
+  ANDROID_ABIS_RAW="${TOADPLAYER_RUST_ANDROID_ABIS:-arm64-v8a,armeabi-v7a}"
   case "$ANDROID_ABIS_RAW" in
     arm64-v8a|armeabi-v7a|arm64-v8a,armeabi-v7a|armeabi-v7a,arm64-v8a) ;;
     *)
@@ -151,6 +151,9 @@ if [[ "$PLATFORM" == "android" ]]; then
   # Keep APS2 rather than RELR, which requires API 28; our minimum is API 24.
   # Fold only identical functions whose addresses are not significant.
   export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-Wl,-z,max-page-size=16384 -C link-arg=-Wl,--pack-dyn-relocs=android -C link-arg=-Wl,--icf=safe"
+  # Stage from a clean dir: a previous run with more ABIs leaves stale
+  # .so files that Gradle would otherwise package into the APK.
+  rm -rf "$CARGO_TARGET_DIR/android/jniLibs"
   for target in "${ANDROID_TARGETS[@]}"; do
     cargo build --locked --release -p toadplayer-mobile --target "$target"
     case "$target" in

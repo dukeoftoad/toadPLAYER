@@ -6,7 +6,11 @@
 # Ignore missing javax.xml.stream (not used on Android)
 -dontwarn javax.xml.stream.**
 
-# The FFmpeg plugin ships its JNI keep rules in its AAR.
+# The FFmpeg plugin claims to ship its JNI keep rules in its AAR, but the
+# dependency is compileOnly here and older artifacts lacked consumer rules;
+# without an explicit keep R8 renames the JNI glue and playback crashes with
+# UnsatisfiedLinkError. Keep everything under the FFmpegKit namespace.
+-keep class com.antonkarpenko.ffmpegkit.** { *; }
 
 # UniFFI/JNA resolves FFI methods and structure fields by their generated names.
 # Preserve the generated Rust bindings used by JNA.

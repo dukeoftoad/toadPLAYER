@@ -39,6 +39,12 @@ val rustAndroidAbis = providers.environmentVariable("TOADPLAYER_RUST_ANDROID_ABI
     .split(",")
 val supportedRustAndroidAbis = setOf("arm64-v8a", "armeabi-v7a")
 val discordSdkEnabled = false
+// CI single-APK builds set TOADPLAYER_UNIVERSAL_APK=false so exactly one
+// split APK is produced; local builds keep the universal APK by default.
+val universalApk = providers.environmentVariable("TOADPLAYER_UNIVERSAL_APK")
+    .orElse("true")
+    .get()
+    .toBoolean()
 require(rustAndroidAbis.size == rustAndroidAbis.toSet().size) {
     "TOADPLAYER_RUST_ANDROID_ABIS must not contain duplicate ABIs"
 }
@@ -166,7 +172,7 @@ android {
             isEnable = true
             reset()
             include(*rustAndroidAbis.toTypedArray())
-            isUniversalApk = true // Also generate universal APK
+            isUniversalApk = universalApk // Also generate universal APK
         }
     }
 }
