@@ -39,6 +39,97 @@ class LibraryGroup {
   });
 }
 
+/// Ways the Songs tab can order its rows. [queue] keeps the play queue's
+/// own order (the default); the others sort the filtered rows, including
+/// search results, on demand.
+enum LibrarySort { queue, title, artist, album, duration }
+
+extension LibrarySortLabel on LibrarySort {
+  String get label => switch (this) {
+    LibrarySort.queue => 'Queue order',
+    LibrarySort.title => 'Title A–Z',
+    LibrarySort.artist => 'Artist A–Z',
+    LibrarySort.album => 'Album A–Z',
+    LibrarySort.duration => 'Longest first',
+  };
+
+  IconData get icon => switch (this) {
+    LibrarySort.queue => Icons.queue_music_outlined,
+    LibrarySort.title => Icons.sort_by_alpha_outlined,
+    LibrarySort.artist => Icons.person_outline,
+    LibrarySort.album => Icons.album_outlined,
+    LibrarySort.duration => Icons.timelapse_outlined,
+  };
+}
+
+/// The Songs tab's chosen order for this session.
+final librarySortProvider = NotifierProvider<LibrarySortNotifier, LibrarySort>(
+  LibrarySortNotifier.new,
+);
+
+class LibrarySortNotifier extends Notifier<LibrarySort> {
+  @override
+  LibrarySort build() => LibrarySort.queue;
+
+  void set(LibrarySort sort) {
+    if (sort != state) state = sort;
+  }
+}
+
+/// Returns [tracks] in [sort]'s order. The queue order returns the list
+/// untouched; every other sort copies first, so callers can keep using the
+/// queue-indexed original.
+List<LibraryTrack> sortLibraryTracks(
+  List<LibraryTrack> tracks,
+  LibrarySort sort,
+) {
+  if (sort == LibrarySort.queue || tracks.length < 2) return tracks;
+  int key(LibraryTrack track) => track.queueIndex;
+  final sorted = [...tracks];
+  switch (sort) {
+    case LibrarySort.queue:
+      return tracks;
+    case LibrarySort.title:
+      sorted.sort(
+        (a, b) => _byLabel(
+          a.item.title.trim().toLowerCase(),
+          b.item.title.trim().toLowerCase(),
+          key(a),
+          key(b),
+        ),
+      );
+    case LibrarySort.artist:
+      sorted.sort(
+        (a, b) => _byLabel(
+          libraryArtistLabel(a.item).toLowerCase(),
+          libraryArtistLabel(b.item).toLowerCase(),
+          key(a),
+          key(b),
+        ),
+      );
+    case LibrarySort.album:
+      sorted.sort(
+        (a, b) => _byLabel(
+          libraryAlbumLabel(a.item).toLowerCase(),
+          libraryAlbumLabel(b.item).toLowerCase(),
+          key(a),
+          key(b),
+        ),
+      );
+    case LibrarySort.duration:
+      sorted.sort((a, b) {
+        final aDuration = a.item.duration ?? Duration.zero;
+        final bDuration = b.item.duration ?? Duration.zero;
+        if (aDuration != bDuration) return bDuration.compareTo(aDuration);
+        return key(a).compareTo(key(b));
+      });
+  }
+  return sorted;
+}
+
+int _byLabel(String a, String b, int aIndex, int bIndex) =>
+    a == b ? aIndex.compareTo(bIndex) : a.compareTo(b);
+
 String libraryArtistLabel(MediaItem item) {
   final artist = item.artist?.trim() ?? '';
   if (artist.isEmpty) return 'Unknown artist';

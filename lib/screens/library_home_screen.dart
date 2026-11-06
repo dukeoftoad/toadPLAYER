@@ -2,6 +2,7 @@
 // (Songs / Artists / Albums / Playlists), and the moved file/queue actions.
 // Replaces the old button-row shell.
 import 'dart:async';
+import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
@@ -9,17 +10,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:toadplayer/controllers/open_audio_controller.dart';
 import 'package:toadplayer/providers/library_collections_provider.dart';
 import 'package:toadplayer/providers/music_player_provider.dart';
-import 'package:toadplayer/screens/equalizer_screen.dart';
+import 'package:toadplayer/providers/settings_provider.dart';
 import 'package:toadplayer/screens/library_detail_screen.dart';
 import 'package:toadplayer/screens/now_playing_screen.dart';
-import 'package:toadplayer/screens/settings/lyrics_settings_page.dart';
-import 'package:toadplayer/screens/settings/playback_settings_page.dart';
+import 'package:toadplayer/screens/settings/settings_screen.dart';
 import 'package:toadplayer/services/audio_file_open_service.dart';
+import 'package:toadplayer/services/platform_bridge.dart';
 import 'package:toadplayer/utils/desktop_platform.dart';
 import 'package:toadplayer/widgets/app_snack_bar.dart';
 import 'package:toadplayer/widgets/cached_cover_image.dart';
 import 'package:toadplayer/widgets/desktop/desktop_player_bar.dart';
 import 'package:toadplayer/widgets/library/library_views.dart';
+import 'package:toadplayer/widgets/lyrics_preview_card.dart';
 import 'package:toadplayer/widgets/mini_player.dart';
 import 'package:toadplayer/widgets/player_queue_sheet.dart';
 
@@ -90,12 +92,21 @@ class _StandalonePlayerHomeScreenState
         body: Column(
           children: [
             Expanded(
-              child: TabBarView(
+              child: Stack(
                 children: [
-                  _SongsTab(tracks: tracks, query: _query),
-                  _ArtistsTab(tracks: tracks, query: _query),
-                  _AlbumsTab(tracks: tracks, query: _query),
-                  _PlaylistsTab(query: _query),
+                  TabBarView(
+                    children: [
+                      _SongsTab(tracks: tracks, query: _query),
+                      _ArtistsTab(tracks: tracks, query: _query),
+                      _AlbumsTab(tracks: tracks, query: _query),
+                      _PlaylistsTab(query: _query),
+                    ],
+                  ),
+                  // The home-screen lyrics widget follows the current line
+                  // above the mini player; the play/pause button owns the
+                  // bottom-right corner where the queue chip used to sit.
+                  const LyricsPreviewCard(),
+                  const _PlayPauseFab(),
                 ],
               ),
             ),
@@ -171,17 +182,6 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
               child: CircularProgressIndicator(strokeWidth: 2.4),
             ),
           ),
-        IconButton(
-          tooltip: 'Queue',
-          onPressed: queueLength == 0
-              ? null
-              : () => showPlayerQueueSheet(context, colorScheme),
-          icon: Badge(
-            isLabelVisible: queueLength > 0,
-            label: Text('$queueLength'),
-            child: const Icon(Icons.queue_music_outlined),
-          ),
-        ),
         PopupMenuButton<String>(
           tooltip: 'More options',
           icon: const Icon(Icons.more_vert),
@@ -196,15 +196,6 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 'Open audio files',
               ),
             ),
-            PopupMenuItem(
-              value: 'open_folder',
-              enabled: !openingAudio,
-              child: _menuRow(
-                context,
-                Icons.folder_open_outlined,
-                'Open audio folder',
-              ),
-            ),
             if (mediaItem != null)
               PopupMenuItem(
                 value: 'full_player',
@@ -213,37 +204,16 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
                   Icons.open_in_full,
                   'Full player',
                 ),
+            ),
+            if (queueLength > 0)
+              PopupMenuItem(
+                value: 'queue',
+                child: _menuRow(context, Icons.queue_music_outlined, 'Queue'),
               ),
             const PopupMenuDivider(),
-            const PopupMenuItem(
-              value: 'equalizer',
-              child: Row(
-                children: [
-                  Icon(Icons.equalizer),
-                  SizedBox(width: 12),
-                  Text('Equalizer'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'lyrics',
-              child: Row(
-                children: [
-                  Icon(Icons.lyrics_outlined),
-                  SizedBox(width: 12),
-                  Text('Lyrics'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'playback',
-              child: Row(
-                children: [
-                  Icon(Icons.tune),
-                  SizedBox(width: 12),
-                  Text('Playback settings'),
-                ],
-              ),
+            PopupMenuItem(
+              value: 'settings',
+              child: _menuRow(context, Icons.settings_outlined, 'Settings'),
             ),
           ],
         ),
@@ -266,14 +236,6 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
     }
   }
 
-  Future<void> _pickAudioFolder(BuildContext context, WidgetRef ref) async {
-    try {
-      await ref.read(openAudioControllerProvider.notifier).pickFolder();
-    } on Object catch (error) {
-      if (context.mounted) showCannotOpenFileSnackBar(context, error);
-    }
-  }
-
   Widget _menuRow(BuildContext context, IconData icon, String label) => Row(
     children: [
       Icon(icon, color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -286,34 +248,23 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
     switch (value) {
       case 'open_files':
         _pickAudioFiles(context, ref);
-      case 'open_folder':
-        _pickAudioFolder(context, ref);
       case 'full_player':
         Navigator.of(context).push(
           NowPlayingRoute(child: const NowPlayingScreen()),
         );
-      case 'equalizer':
+      case 'queue':
+        showPlayerQueueSheet(context, Theme.of(context).colorScheme);
+      case 'settings':
         Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const EqualizerScreen()),
-        );
-      case 'lyrics':
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => const LyricsSettingsPage(),
-          ),
-        );
-      case 'playback':
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => const PlaybackSettingsPage(),
-          ),
+          MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
         );
     }
   }
 }
 
 /// The Songs tab: every session track with artwork, artist/album line and
-/// duration. Long-press offers play next, add to queue and playlists.
+/// duration, with a sort menu that orders the list — including search
+/// results. Long-press offers play next, add to queue and playlists.
 class _SongsTab extends ConsumerWidget {
   const _SongsTab({required this.tracks, required this.query});
 
@@ -324,6 +275,7 @@ class _SongsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = ref.watch(currentQueueIndexProvider);
     final controller = ref.read(musicPlayerControllerProvider);
+    final sort = ref.watch(librarySortProvider);
     final filtered = tracks
         .where(
           (track) => libraryMatchesQuery([
@@ -333,15 +285,17 @@ class _SongsTab extends ConsumerWidget {
           ], query),
         )
         .toList();
+    final sorted = sortLibraryTracks(filtered, sort);
 
     if (tracks.isEmpty) return const _LibraryEmptyState();
     if (filtered.isEmpty) return _NoResults(query: query);
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
-      itemCount: filtered.length,
+      itemCount: sorted.length + 1,
       itemBuilder: (context, index) {
-        final track = filtered[index];
+        if (index == 0) return _SortBar(count: filtered.length, sort: sort);
+        final track = sorted[index - 1];
         return LibraryTrackTile(
           track: track,
           isCurrent: track.queueIndex == currentIndex,
@@ -350,6 +304,80 @@ class _SongsTab extends ConsumerWidget {
               showLibraryTrackActionsSheet(context, ref, track.item),
         );
       },
+    );
+  }
+}
+
+/// The slim header above the song rows: how many rows match, and the sort
+/// menu that orders them.
+class _SortBar extends ConsumerWidget {
+  const _SortBar({required this.count, required this.sort});
+
+  final int count;
+  final LibrarySort sort;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+      child: Row(
+        children: [
+          Text(
+            count == 1 ? '1 song' : '$count songs',
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const Spacer(),
+          PopupMenuButton<LibrarySort>(
+            tooltip: 'Sort songs',
+            initialValue: sort,
+            onSelected: (value) =>
+                ref.read(librarySortProvider.notifier).set(value),
+            itemBuilder: (context) => [
+              for (final option in LibrarySort.values)
+                PopupMenuItem(
+                  value: option,
+                  child: Row(
+                    children: [
+                      Icon(
+                        option.icon,
+                        size: 18,
+                        color: option == sort
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(option.label)),
+                      if (option == sort)
+                        Icon(Icons.check, size: 16, color: colorScheme.primary),
+                    ],
+                  ),
+                ),
+            ],
+            icon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.sort,
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  sort.label,
+                  style: textTheme.labelMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -755,27 +783,65 @@ class _LibraryEmptyState extends ConsumerWidget {
               label: const Text('Open audio files'),
             ),
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: openingAudio
-                  ? null
-                  : () async {
-                      try {
-                        await ref
-                            .read(openAudioControllerProvider.notifier)
-                            .pickFolder();
-                      } on Object catch (error) {
-                        if (context.mounted) {
-                          showCannotOpenFileSnackBar(context, error);
-                        }
-                      }
-                    },
-              icon: const Icon(Icons.folder_open_outlined),
-              label: const Text('Open audio folder'),
-            ),
+            if (ref
+                .watch(settingsProvider)
+                .defaultAudioFolder
+                .isNotEmpty) ...[
+              FilledButton.tonalIcon(
+                onPressed: openingAudio
+                    ? null
+                    : () => _playDefaultFolder(context, ref),
+                icon: const Icon(Icons.play_circle_outline),
+                label: const Text('Play default folder'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SettingsScreen(),
+                  ),
+                ),
+                icon: const Icon(Icons.folder_open_outlined),
+                label: const Text('Folders & settings'),
+              ),
+            ] else
+              OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SettingsScreen(),
+                  ),
+                ),
+                icon: const Icon(Icons.folder_open_outlined),
+                label: const Text('Folders & settings'),
+              ),
           ],
         ),
       ),
     );
+  }
+
+  /// Queues every song in the saved default folder without a picker round
+  /// trip; the grant was persisted when the folder was chosen.
+  Future<void> _playDefaultFolder(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final folder = ref.read(settingsProvider).defaultAudioFolder;
+    if (folder.isEmpty) return;
+    try {
+      if (Platform.isAndroid) {
+        final files = await PlatformBridge.listSafAudioFiles(folder);
+        await ref
+            .read(openAudioControllerProvider.notifier)
+            .open(files.map(OpenAudioFile.parse).whereType<OpenAudioFile>());
+      } else {
+        await ref
+            .read(openAudioControllerProvider.notifier)
+            .open([OpenAudioFile(folder)]);
+      }
+    } on Object catch (error) {
+      if (context.mounted) showCannotOpenFileSnackBar(context, error);
+    }
   }
 }
 
@@ -796,6 +862,54 @@ class _NoResults extends StatelessWidget {
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The home screen's play/pause button in the bottom-right corner, above the
+/// mini player. Hidden until a queue exists.
+class _PlayPauseFab extends ConsumerWidget {
+  const _PlayPauseFab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasQueue = ref.watch(
+      playQueueProvider.select(
+        (state) => (state.value ?? const <MediaItem>[]).isNotEmpty,
+      ),
+    );
+    if (!hasQueue) return const SizedBox.shrink();
+
+    final playing = ref.watch(playbackPlayingProvider);
+    final loading = ref.watch(playbackLoadingProvider);
+
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 16, bottom: 16),
+        child: FloatingActionButton(
+          heroTag: 'home-play-pause',
+          tooltip: playing ? 'Pause' : 'Play',
+          onPressed: loading
+              ? null
+              : () => ref
+                    .read(musicPlayerControllerProvider)
+                    .togglePlayPause(playing),
+          child: loading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2.4),
+                )
+              : AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  child: Icon(
+                    playing ? Icons.pause : Icons.play_arrow,
+                    key: ValueKey(playing),
+                  ),
+                ),
         ),
       ),
     );
