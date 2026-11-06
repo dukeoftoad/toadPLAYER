@@ -619,6 +619,15 @@ class SettingsNotifier extends Notifier<AppSettings> {
     ),
   );
 
+  /// The library's default music folder: a SAF tree URI on Android or a
+  /// directory path on desktops, with a human-readable [displayName].
+  void setDefaultAudioFolder(String uri, {String? displayName}) => _commit(
+    state.copyWith(
+      defaultAudioFolder: uri,
+      defaultAudioFolderName: uri.isEmpty ? '' : (displayName ?? ''),
+    ),
+  );
+
   void setAutoFallback(bool enabled) =>
       _commit(state.copyWith(autoFallback: enabled));
 

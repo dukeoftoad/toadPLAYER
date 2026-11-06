@@ -16,6 +16,8 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   downloadDirectoryBookmark: json['downloadDirectoryBookmark'] as String? ?? '',
   storageMode: json['storageMode'] as String? ?? 'app',
   downloadTreeUri: json['downloadTreeUri'] as String? ?? '',
+  defaultAudioFolder: json['defaultAudioFolder'] as String? ?? '',
+  defaultAudioFolderName: json['defaultAudioFolderName'] as String? ?? '',
   autoFallback: json['autoFallback'] as bool? ?? true,
   embedMetadata: json['embedMetadata'] as bool? ?? true,
   embeddedCoverMaxDimension:
@@ -204,6 +206,8 @@ Map<String, dynamic> _$AppSettingsToJson(
   'downloadDirectoryBookmark': instance.downloadDirectoryBookmark,
   'storageMode': instance.storageMode,
   'downloadTreeUri': instance.downloadTreeUri,
+  'defaultAudioFolder': instance.defaultAudioFolder,
+  'defaultAudioFolderName': instance.defaultAudioFolderName,
   'autoFallback': instance.autoFallback,
   'embedMetadata': instance.embedMetadata,
   'embeddedCoverMaxDimension': instance.embeddedCoverMaxDimension,

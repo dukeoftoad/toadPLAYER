@@ -62,6 +62,11 @@ class AppSettings {
   final String downloadDirectoryBookmark;
   final String storageMode; // 'app' or 'saf'
   final String downloadTreeUri; // SAF persistable tree URI
+
+  /// Music folder the Settings hub keeps as the default: a SAF tree URI on
+  /// Android, a directory path on desktops. Empty until one is picked.
+  final String defaultAudioFolder;
+  final String defaultAudioFolderName;
   final bool autoFallback;
   final bool embedMetadata;
 
@@ -290,6 +295,8 @@ class AppSettings {
     this.downloadDirectoryBookmark = '',
     this.storageMode = 'app',
     this.downloadTreeUri = '',
+    this.defaultAudioFolder = '',
+    this.defaultAudioFolderName = '',
     this.autoFallback = true,
     this.embedMetadata = true,
     this.embeddedCoverMaxDimension = 0,
@@ -443,6 +450,8 @@ class AppSettings {
     String? downloadDirectoryBookmark,
     String? storageMode,
     String? downloadTreeUri,
+    String? defaultAudioFolder,
+    String? defaultAudioFolderName,
     bool? autoFallback,
     bool? embedMetadata,
     int? embeddedCoverMaxDimension,
@@ -576,6 +585,9 @@ class AppSettings {
           downloadDirectoryBookmark ?? this.downloadDirectoryBookmark,
       storageMode: storageMode ?? this.storageMode,
       downloadTreeUri: downloadTreeUri ?? this.downloadTreeUri,
+      defaultAudioFolder: defaultAudioFolder ?? this.defaultAudioFolder,
+      defaultAudioFolderName:
+          defaultAudioFolderName ?? this.defaultAudioFolderName,
       autoFallback: autoFallback ?? this.autoFallback,
       embedMetadata: embedMetadata ?? this.embedMetadata,
       embeddedCoverMaxDimension:
