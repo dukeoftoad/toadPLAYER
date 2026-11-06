@@ -125,11 +125,11 @@ android {
                 )
             }
         }
-
-        ndk {
-            abiFilters.clear()
-            abiFilters += rustAndroidAbis
-        }
+        // ABI selection comes from splits.abi.include below. Setting
+        // defaultConfig ndk abiFilters as well is redundant and AGP 9 fails
+        // configuration when the two sets are equal ("Conflicting
+        // configuration: abiFilters cannot be present when splits abi
+        // filters are set").
     }
 
     buildTypes {
