@@ -91,6 +91,22 @@ class OpenAudioController extends Notifier<bool> {
     if (ref.mounted && path != null) await open([OpenAudioFile(path)]);
   }
 
+  /// Reads tags for every opened source without waiting for each song to
+  /// play, so titles, artists, albums and covers show up immediately.
+  Future<void> _hydrateMetadata(List<String> sources, int request) async {
+    final handler = ref.read(musicPlayerRuntimeProvider).handler;
+    if (handler == null) return;
+    for (final source in sources) {
+      if (!ref.mounted || request != _request) return;
+      try {
+        await handler.onSourceMetadataChanged(source);
+      } on Object {
+        // A source that vanished between the pick and this read just keeps
+        // its filename as the title.
+      }
+    }
+  }
+
   Future<void> open(
     Iterable<OpenAudioFile> inputs, {
     IosSecurityScopedAccess? access,
@@ -121,6 +137,15 @@ class OpenAudioController extends Notifier<bool> {
             format: audioFormatForPath(file.displayName),
           ),
       ], initialIndex: 0);
+      if (!ref.mounted || request != _request) return;
+      // Tags are otherwise read only while a source plays, so a freshly
+      // opened folder showed "Unknown artist" on every row until each song
+      // had been played once. Refresh every opened file right away instead;
+      // one unreadable file must not stop the remaining rows.
+      final sources = [
+        for (final file in files) file.source,
+      ];
+      unawaited(_hydrateMetadata(sources, request));
       if (!ref.mounted || request != _request) return;
       final oldLeases = _iosLeases.toList();
       _iosLeases.clear();
