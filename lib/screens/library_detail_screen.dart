@@ -45,6 +45,20 @@ class _GroupDetailScreen extends ConsumerWidget {
     final controller = ref.read(musicPlayerControllerProvider);
     final countLabel =
         '${group.tracks.length} ${group.tracks.length == 1 ? 'song' : 'songs'}';
+    // A group's queueIndex was captured at push time and goes stale once the
+    // queue is reordered or replaced while this page is open; re-resolve each
+    // row against the live queue by id instead of trusting the snapshot.
+    int? liveQueueIndex(LibraryTrack track) {
+      final id = track.item.id;
+      for (var i = 0; i < queue.length; i++) {
+        if (queue[i].id == id) return i;
+      }
+      return null;
+    }
+
+    final firstLive = group.tracks.isEmpty
+        ? null
+        : liveQueueIndex(group.tracks.first);
 
     return Scaffold(
       appBar: AppBar(
@@ -53,9 +67,9 @@ class _GroupDetailScreen extends ConsumerWidget {
           IconButton(
             tooltip: 'Play',
             icon: const Icon(Icons.play_arrow),
-            onPressed: group.tracks.isEmpty
+            onPressed: firstLive == null
                 ? null
-                : () => controller.jumpTo(group.tracks.first.queueIndex),
+                : () => controller.jumpTo(firstLive),
           ),
         ],
       ),
@@ -66,21 +80,20 @@ class _GroupDetailScreen extends ConsumerWidget {
               itemCount: group.tracks.length,
               itemBuilder: (context, index) {
                 final track = group.tracks[index];
-                final inQueue = track.queueIndex < queue.length;
+                final live = liveQueueIndex(track);
                 return LibraryTrackTile(
                   track: track,
-                  isCurrent:
-                      inQueue && track.queueIndex == currentIndex,
-                  onTap: inQueue
-                      ? () => controller.jumpTo(track.queueIndex)
-                      : null,
-                  onLongPress: inQueue
-                      ? () => showLibraryTrackActionsSheet(
+                  isCurrent: live != null && live == currentIndex,
+                  onTap: live == null
+                      ? null
+                      : () => controller.jumpTo(live),
+                  onLongPress: live == null
+                      ? null
+                      : () => showLibraryTrackActionsSheet(
                           context,
                           ref,
                           track.item,
-                        )
-                      : null,
+                        ),
                 );
               },
             ),

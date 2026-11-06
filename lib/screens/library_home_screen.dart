@@ -1,6 +1,8 @@
 // The standalone player's home: a search top bar, library tabs
 // (Songs / Artists / Albums / Playlists), and the moved file/queue actions.
 // Replaces the old button-row shell.
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,7 +16,9 @@ import 'package:toadplayer/screens/library_detail_screen.dart';
 import 'package:toadplayer/screens/now_playing_screen.dart';
 import 'package:toadplayer/screens/settings/lyrics_settings_page.dart';
 import 'package:toadplayer/screens/settings/playback_settings_page.dart';
+import 'package:toadplayer/services/audio_file_open_service.dart';
 import 'package:toadplayer/utils/desktop_platform.dart';
+import 'package:toadplayer/widgets/app_snack_bar.dart';
 import 'package:toadplayer/widgets/cached_cover_image.dart';
 import 'package:toadplayer/widgets/desktop/desktop_player_bar.dart';
 import 'package:toadplayer/widgets/library/library_views.dart';
@@ -32,15 +36,43 @@ class StandalonePlayerHomeScreen extends ConsumerStatefulWidget {
 class _StandalonePlayerHomeScreenState
     extends ConsumerState<StandalonePlayerHomeScreen> {
   final TextEditingController _searchController = TextEditingController();
+  StreamSubscription<List<OpenAudioFile>>? _osOpenRequests;
   String _query = '';
 
   @override
+  void initState() {
+    super.initState();
+    // Consume OS "Open with Toadplayer" events (ACTION_VIEW / ACTION_SEND).
+    // The service buffers batches raised before this listener attached;
+    // takePending() drains those, the stream feeds everything after it.
+    _osOpenRequests = AudioFileOpenService.instance.requests.listen(
+      _handleOsOpenBatch,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (final batch in AudioFileOpenService.instance.takePending()) {
+        _handleOsOpenBatch(batch);
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    unawaited(_osOpenRequests?.cancel());
     _searchController.dispose();
     super.dispose();
   }
 
   void _setQuery(String value) => setState(() => _query = value);
+
+  Future<void> _handleOsOpenBatch(List<OpenAudioFile> files) async {
+    if (!mounted) return;
+    try {
+      await ref.read(openAudioControllerProvider.notifier).open(files);
+    } on Object catch (error) {
+      if (mounted) showCannotOpenFileSnackBar(context, error);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -226,6 +258,24 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
   static const _tabLabels = ['Songs', 'Artists', 'Albums', 'Playlists'];
 
+  /// Picker failures were previously swallowed by the zone logger; surface
+  /// them so an empty folder pick is not mistaken for a dead button.
+  Future<void> _pickAudioFiles(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(openAudioControllerProvider.notifier).pickFiles();
+    } on Object catch (error) {
+      if (context.mounted) showCannotOpenFileSnackBar(context, error);
+    }
+  }
+
+  Future<void> _pickAudioFolder(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(openAudioControllerProvider.notifier).pickFolder();
+    } on Object catch (error) {
+      if (context.mounted) showCannotOpenFileSnackBar(context, error);
+    }
+  }
+
   Widget _menuRow(BuildContext context, IconData icon, String label) => Row(
     children: [
       Icon(icon, color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -237,9 +287,9 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
   void _onMenuSelected(BuildContext context, WidgetRef ref, String value) {
     switch (value) {
       case 'open_files':
-        ref.read(openAudioControllerProvider.notifier).pickFiles();
+        _pickAudioFiles(context, ref);
       case 'open_folder':
-        ref.read(openAudioControllerProvider.notifier).pickFolder();
+        _pickAudioFolder(context, ref);
       case 'full_player':
         Navigator.of(context).push(
           NowPlayingRoute(child: const NowPlayingScreen()),
@@ -440,8 +490,10 @@ class _PlaylistsTab extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               subtitle: Text(
-                '${playlist.tracks.length} '
-                '${playlist.tracks.length == 1 ? 'song' : 'songs'}',
+                // Lazily hydrated rows keep an empty `tracks` list but a full
+                // membership index; count from the index, not the list.
+                '${playlist.trackCount} '
+                '${playlist.trackCount == 1 ? 'song' : 'songs'}',
                 style: textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -603,7 +655,9 @@ Future<String?> _askPlaylistName(
         ],
       );
     },
-  );
+    // The dialog's text controller is created per call; dispose it once the
+    // dialog is gone instead of leaking it for the lifetime of the app.
+  ).whenComplete(controller.dispose);
 }
 
 class _PlaylistThumbnail extends StatelessWidget {
@@ -614,9 +668,11 @@ class _PlaylistThumbnail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    // The user's custom cover wins over the derived first-track preview;
+    // the playlist picker sheet applies the same precedence.
     final coverPath = (playlist.coverImagePath ?? '').trim();
     final preview = (playlist.previewCover ?? '').trim();
-    final cover = preview.isNotEmpty ? preview : coverPath;
+    final cover = coverPath.isNotEmpty ? coverPath : preview;
 
     final fallback = Container(
       width: 48,
@@ -686,9 +742,17 @@ class _LibraryEmptyState extends ConsumerWidget {
             FilledButton.icon(
               onPressed: openingAudio
                   ? null
-                  : () =>
-                        ref.read(openAudioControllerProvider.notifier)
-                            .pickFiles(),
+                  : () async {
+                      try {
+                        await ref
+                            .read(openAudioControllerProvider.notifier)
+                            .pickFiles();
+                      } on Object catch (error) {
+                        if (context.mounted) {
+                          showCannotOpenFileSnackBar(context, error);
+                        }
+                      }
+                    },
               icon: const Icon(Icons.audio_file_outlined),
               label: const Text('Open audio files'),
             ),
@@ -696,9 +760,17 @@ class _LibraryEmptyState extends ConsumerWidget {
             OutlinedButton.icon(
               onPressed: openingAudio
                   ? null
-                  : () =>
-                        ref.read(openAudioControllerProvider.notifier)
-                            .pickFolder(),
+                  : () async {
+                      try {
+                        await ref
+                            .read(openAudioControllerProvider.notifier)
+                            .pickFolder();
+                      } on Object catch (error) {
+                        if (context.mounted) {
+                          showCannotOpenFileSnackBar(context, error);
+                        }
+                      }
+                    },
               icon: const Icon(Icons.folder_open_outlined),
               label: const Text('Open audio folder'),
             ),
