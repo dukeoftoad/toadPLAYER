@@ -11,6 +11,15 @@ Release APKs are built by GitHub Actions (`.github/workflows/android-alpha.yml`)
 
 The alpha APK is debug-signed for sideloading. The pipeline builds the Rust backend for `aarch64-linux-android` + `armv7-linux-androideabi`, compiles the native C++ audio engine with NDK 30 + CMake 4.x, and produces a minified release APK with Flutter AOT.
 
+## Home & Library UI (v0.2.0 alpha)
+
+The standalone home was redesigned around a library instead of a button row:
+
+- **Search bar as the top bar** — live-filters Songs, Artists, Albums and Playlists (`lib/screens/library_home_screen.dart`).
+- **Library tabs** — Songs (artwork, artist • album, duration), Artists and Albums grouped from the session queue, and persisted Playlists (`lib/widgets/library/library_views.dart`, `lib/screens/library_detail_screen.dart`).
+- **Moved actions** — Open audio files / folder, Full player and the queue badge moved into the top bar's queue button and overflow menu; the empty state keeps them discoverable.
+- **Per-track actions** — long-press a song for Play next, Add to queue and Add to playlist; playlists support create / rename / delete, play-all from the saved order, and per-row remove.
+
 ## Architecture & Rust <-> Dart FFI Setup
 
 1. **Ordinary & Gapless Audio Playback + Per-Player Equalizer DSP**:
