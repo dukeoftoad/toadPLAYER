@@ -127,7 +127,11 @@ jobs:
           # APK that doubled the native build and packaging time.
           TOADPLAYER_RUST_ANDROID_ABIS: arm64-v8a
           TOADPLAYER_UNIVERSAL_APK: 'false'
-        run: flutter build apk --release --target-platform android-arm64
+          # --split-per-abi is required for the Flutter CLI to discover split
+          # APK outputs; without it the tool expects a universal app-release.apk
+          # and reports "failed to produce an .apk file" even though Gradle
+          # produced app-arm64-v8a-release.apk.
+        run: flutter build apk --release --split-per-abi --target-platform android-arm64
 
       - name: Collect APK
         run: |
