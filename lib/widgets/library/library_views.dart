@@ -179,7 +179,9 @@ class LibraryTrackTile extends StatelessWidget {
   });
 
   final LibraryTrack track;
-  final VoidCallback onTap;
+
+  /// Null disables the tap, as for a row whose queue slot is gone.
+  final VoidCallback? onTap;
   final bool isCurrent;
   final VoidCallback? onLongPress;
 
