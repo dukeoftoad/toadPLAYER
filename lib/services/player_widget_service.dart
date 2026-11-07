@@ -37,6 +37,7 @@ class PlayerWidgetService {
   PlayerWidgetArtwork? _artwork;
   String? _lastPayload;
   String? _lastArtworkKey;
+  String? _lyric;
   int? _installedWidgetCount;
   Future<void>? _consumerQuery;
   int _artworkGeneration = 0;
@@ -168,6 +169,16 @@ class PlayerWidgetService {
     }
   }
 
+  /// Updates the lyric line the launcher widgets show. Only line changes
+  /// re-publish: position ticks that land inside the same line never cross
+  /// the channel, matching the "no position ticks" contract below.
+  Future<void> setLyric(String? lyric) {
+    final next = lyric?.trim() ?? '';
+    if ((_lyric ?? '') == next) return _writes;
+    _lyric = next.isEmpty ? null : next;
+    return publish();
+  }
+
   Future<void> publish({bool force = false}) {
     final handler = _handler;
     if (handler == null) return Future.value();
@@ -188,6 +199,7 @@ class PlayerWidgetService {
       ),
       'artworkKey': _artwork == null ? '' : _artUri.toString(),
       'background': _artwork?.background ?? 0xff292433,
+      'lyric': _lyric ?? '',
     };
     final key = jsonEncode(payload);
     if (!force && key == _lastPayload) return _writes;
@@ -245,6 +257,7 @@ class PlayerWidgetService {
     _installedWidgetCount = null;
     _lastArtworkKey = null;
     _lastPayload = null;
+    _lyric = null;
     _initialized = false;
     _channel.setMethodCallHandler(null);
   }

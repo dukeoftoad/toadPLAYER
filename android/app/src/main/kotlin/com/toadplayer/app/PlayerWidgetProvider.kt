@@ -369,6 +369,7 @@ object PlayerWidgetBridge : FlutterEngine.EngineLifecycleListener {
                                 val serialized = state.toString()
                                 if (serialized != old.toString()) prefs.edit().putString("state", serialized).commit()
                                 PlayerWidgetProvider.update(app)
+                                LyricsWidgetProvider.update(app)
                                 main.post { result.success(null) }
                             } catch (error: Exception) {
                                 main.post { result.error("widget_update", error.message, null) }

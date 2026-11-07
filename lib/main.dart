@@ -12,6 +12,7 @@ import 'package:toadplayer/constants/app_info.dart';
 import 'package:toadplayer/l10n/supported_locales.dart';
 import 'package:toadplayer/models/theme_settings.dart';
 import 'package:toadplayer/providers/runtime_profile_provider.dart';
+import 'package:toadplayer/providers/lyrics_widget_sync_provider.dart';
 import 'package:toadplayer/providers/settings_provider.dart';
 import 'package:toadplayer/providers/theme_provider.dart';
 import 'package:toadplayer/screens/now_playing_screen.dart';
@@ -209,5 +210,10 @@ class _StandalonePlayerBootstrapState
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    // Keep the launcher widgets' lyric line following playback for the
+    // whole session; the provider no-ops on desktop.
+    ref.watch(widgetLyricSyncProvider);
+    return widget.child;
+  }
 }

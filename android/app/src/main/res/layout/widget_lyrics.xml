@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launcher lyrics widget: a tinted container with the song title on
+     top and the current lyric line (or an empty-state hint) below. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/lyrics_widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/lyrics_widget_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_shape_container" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="11dp"
+        android:paddingBottom="11dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/lyrics_widget_icon"
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_widget_music" />
+
+            <TextView
+                android:id="@+id/lyrics_widget_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="7dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/lyrics_widget_name"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/lyrics_widget_line"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:ellipsize="end"
+            android:lineSpacingMultiplier="1.15"
+            android:maxLines="3"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/lyrics_widget_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:text="@string/lyrics_widget_empty"
+            android:textSize="13sp" />
+    </LinearLayout>
+</FrameLayout>
