@@ -1,7 +1,7 @@
 name: toadplayer
 description: Isolated standalone Toadplayer music player (Flutter UI + Rust backend + Native Audio/USB DAC/DSP bridges)
 publish_to: "none"
-version: 0.2.0+1
+version: 0.3.0+1
 
 environment:
   sdk: ^3.10.0

@@ -184,7 +184,7 @@ jobs:
           make_latest: false
           generate_release_notes: true
           body: |
-            Toadplayer **alpha** build for Android (arm64-v8a, target API 37).
+            Toadplayer **${{ github.ref_name }}** pre-release build for Android (arm64-v8a, target API 37).
 
             - `toadplayer-*-arm64-v8a.apk` — one build for modern 64-bit devices
 
