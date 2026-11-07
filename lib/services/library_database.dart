@@ -79,7 +79,10 @@ class LibraryDatabase {
         'local_library.db',
         version: schemaVersion,
         onCreate: (db, version) async {
-          _searchFtsAvailable = await LibrarySchema.create(db, version);
+          // create() no longer probes FTS5 (that corrupted the migration
+          // transaction). Leave _searchFtsAvailable null so the post-open
+          // call below performs the real, transaction-safe probe.
+          await LibrarySchema.create(db, version);
         },
         onUpgrade: LibrarySchema.upgrade,
         onOpen: (db) async {
