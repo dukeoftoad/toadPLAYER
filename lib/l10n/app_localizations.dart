@@ -5,22 +5,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
-import 'app_localizations_ar.dart';
-import 'app_localizations_de.dart';
+// Only English and Hindi are shipped.
 import 'app_localizations_en.dart';
-import 'app_localizations_es.dart';
-import 'app_localizations_fr.dart';
 import 'app_localizations_hi.dart';
-import 'app_localizations_id.dart';
-import 'app_localizations_it.dart';
-import 'app_localizations_ja.dart';
-import 'app_localizations_ko.dart';
-import 'app_localizations_nl.dart';
-import 'app_localizations_pt.dart';
-import 'app_localizations_ru.dart';
-import 'app_localizations_tr.dart';
-import 'app_localizations_uk.dart';
-import 'app_localizations_vi.dart';
 
 // ignore_for_file: type=lint
 
@@ -107,25 +94,10 @@ abstract class AppLocalizations {
       ];
 
   /// A list of this localizations delegate's supported locales.
+  /// Only English and Hindi are shipped.
   static const List<Locale> supportedLocales = <Locale>[
-    Locale('ar'),
-    Locale('de'),
     Locale('en'),
-    Locale('es'),
-    Locale('es', 'ES'),
-    Locale('fr'),
     Locale('hi'),
-    Locale('id'),
-    Locale('it'),
-    Locale('ja'),
-    Locale('ko'),
-    Locale('nl'),
-    Locale('pt'),
-    Locale('pt', 'PT'),
-    Locale('ru'),
-    Locale('tr'),
-    Locale('uk'),
-    Locale('vi'),
   ];
 
   /// No description provided for @libraryLyricsSearchDescription.
@@ -15560,12 +15532,6 @@ abstract class AppLocalizations {
   /// **'Open audio'**
   String get openAudio;
 
-  /// No description provided for @openAudioFiles.
-  ///
-  /// In en, this message translates to:
-  /// **'Open audio files'**
-  String get openAudioFiles;
-
   /// No description provided for @openAudioFolder.
   ///
   /// In en, this message translates to:
@@ -15709,23 +15675,9 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) => <String>[
-    'ar',
-    'de',
+  bool isSupported(Locale locale) => const <String>[
     'en',
-    'es',
-    'fr',
     'hi',
-    'id',
-    'it',
-    'ja',
-    'ko',
-    'nl',
-    'pt',
-    'ru',
-    'tr',
-    'uk',
-    'vi',
   ].contains(locale.languageCode);
 
   @override
@@ -15733,66 +15685,14 @@ class _AppLocalizationsDelegate
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
-  // Lookup logic when language+country codes are specified.
-  switch (locale.languageCode) {
-    case 'es':
-      {
-        switch (locale.countryCode) {
-          case 'ES':
-            return AppLocalizationsEsEs();
-        }
-        break;
-      }
-    case 'pt':
-      {
-        switch (locale.countryCode) {
-          case 'PT':
-            return AppLocalizationsPtPt();
-        }
-        break;
-      }
-  }
-
   // Lookup logic when only language code is specified.
+  // Only English and Hindi are shipped; anything else falls back to English.
   switch (locale.languageCode) {
-    case 'ar':
-      return AppLocalizationsAr();
-    case 'de':
-      return AppLocalizationsDe();
     case 'en':
       return AppLocalizationsEn();
-    case 'es':
-      return AppLocalizationsEs();
-    case 'fr':
-      return AppLocalizationsFr();
     case 'hi':
       return AppLocalizationsHi();
-    case 'id':
-      return AppLocalizationsId();
-    case 'it':
-      return AppLocalizationsIt();
-    case 'ja':
-      return AppLocalizationsJa();
-    case 'ko':
-      return AppLocalizationsKo();
-    case 'nl':
-      return AppLocalizationsNl();
-    case 'pt':
-      return AppLocalizationsPt();
-    case 'ru':
-      return AppLocalizationsRu();
-    case 'tr':
-      return AppLocalizationsTr();
-    case 'uk':
-      return AppLocalizationsUk();
-    case 'vi':
-      return AppLocalizationsVi();
+    default:
+      return AppLocalizationsEn();
   }
-
-  throw FlutterError(
-    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-    'an issue with the localizations generation tool. Please file an issue '
-    'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
-  );
 }

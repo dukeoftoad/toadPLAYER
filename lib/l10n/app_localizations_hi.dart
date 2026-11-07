@@ -9706,9 +9706,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get openAudio => 'Open audio';
 
   @override
-  String get openAudioFiles => 'Open audio files';
-
-  @override
   String get openAudioFolder => 'Play folder';
 
   @override

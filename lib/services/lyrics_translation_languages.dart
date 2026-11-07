@@ -116,7 +116,7 @@ LyricsTranslationLanguage lyricsTranslationLanguageForLocale(Locale locale) {
       lyricsTranslationLanguageFor('en')!;
 }
 
-/// Parses the app's `locale` setting (`system`, `en`, `pt_PT`, `zh_CN`).
+/// Parses the app's `locale` setting (`system`, `en`, `hi`, `hi_IN`).
 Locale? localeFromAppSetting(String value) {
   if (value.isEmpty || value == 'system') return null;
   final parts = value.split(RegExp('[-_]'));
