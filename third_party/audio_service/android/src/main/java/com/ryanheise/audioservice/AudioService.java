@@ -9,7 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
@@ -57,17 +56,6 @@ public class AudioService extends MediaBrowserServiceCompat {
     public static final int CONTENT_STYLE_GRID_ITEM_HINT_VALUE = 2;
     public static final int CONTENT_STYLE_CATEGORY_LIST_ITEM_HINT_VALUE = 3;
     public static final int CONTENT_STYLE_CATEGORY_GRID_ITEM_HINT_VALUE = 4;
-
-    /**
-     * Media AudioAttributes used for local playback routing. Replaces the
-     * deprecated stream-type (STREAM_MUSIC) overload of
-     * {@code MediaSessionCompat.setPlaybackToLocal}, which Android 16+ ignores.
-     */
-    private static final AudioAttributes LOCAL_MEDIA_AUDIO_ATTRIBUTES =
-            new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build();
 
     private static final String SHARED_PREFERENCES_NAME = "audio_service_preferences";
 
@@ -646,11 +634,12 @@ public class AudioService extends MediaBrowserServiceCompat {
 
     public void setPlaybackInfo(int playbackType, Integer volumeControlType, Integer maxVolume, Integer volume) {
         if (playbackType == MediaControllerCompat.PlaybackInfo.PLAYBACK_TYPE_LOCAL) {
-            // Migrated from the legacy stream-type overload
-            // (setPlaybackToLocal(AudioManager.STREAM_MUSIC)) to the
-            // AudioAttributes-based overload, which is required on Android 16+
-            // where the stream-type API is deprecated and ignored.
-            mediaSession.setPlaybackToLocal(LOCAL_MEDIA_AUDIO_ATTRIBUTES);
+            // MediaSessionCompat only exposes the stream-type overload
+            // (setPlaybackToLocal(int)); the AudioAttributes overload lives on
+            // the framework MediaSession, which audio_service does not use.
+            // Local volume routing therefore stays on STREAM_MUSIC, which the
+            // compat layer maps appropriately.
+            mediaSession.setPlaybackToLocal(AudioManager.STREAM_MUSIC);
             volumeProvider = null;
         } else if (playbackType == MediaControllerCompat.PlaybackInfo.PLAYBACK_TYPE_REMOTE) {
             if (volumeProvider == null || volumeControlType != volumeProvider.getVolumeControl() || maxVolume != volumeProvider.getMaxVolume()) {
