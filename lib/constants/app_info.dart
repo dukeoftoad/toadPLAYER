@@ -1,8 +1,14 @@
 import 'package:flutter/foundation.dart';
 
 class AppInfo {
-  static const String version = '0.2.0';
-  static const String buildNumber = '4';
+  static const String version = '0.3.1';
+
+  /// The GitHub Actions run number the installed build came from ("#16"),
+  /// injected by CI via --dart-define. Empty in local builds — the version
+  /// code itself is the run number, stamped by Gradle from GITHUB_RUN_NUMBER.
+  static const String buildNumber = String.fromEnvironment(
+    'TOADPLAYER_BUILD_NUMBER',
+  );
 
   /// The release whose What's New tour people see once after updating. Change
   /// it together with the tour's pages when a release earns a new one.

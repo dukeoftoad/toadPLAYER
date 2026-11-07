@@ -131,7 +131,7 @@ jobs:
           # APK outputs; without it the tool expects a universal app-release.apk
           # and reports "failed to produce an .apk file" even though Gradle
           # produced app-arm64-v8a-release.apk.
-        run: flutter build apk --release --split-per-abi --target-platform android-arm64
+        run: flutter build apk --release --split-per-abi --target-platform android-arm64 --dart-define=TOADPLAYER_BUILD_NUMBER=$GITHUB_RUN_NUMBER
 
       - name: Collect APK
         run: |

@@ -60,7 +60,12 @@ class AboutPage extends StatelessWidget {
                   child: Column(
                     children: [
                       _row('Version', AppInfo.displayVersion),
-                      if (commit.isNotEmpty) _row('Build', commit),
+                      if (AppInfo.buildNumber.isNotEmpty || commit.isNotEmpty)
+                        _row('Build', [
+                          if (AppInfo.buildNumber.isNotEmpty)
+                            '#${AppInfo.buildNumber}',
+                          if (commit.isNotEmpty) commit,
+                        ].join(' · ')),
                       _row('License', AppInfo.license),
                     ],
                   ),
