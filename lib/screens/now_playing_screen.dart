@@ -1372,6 +1372,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     if (selection == 'custom') {
       final minutes = await _promptCustomSleepMinutes(context, colorScheme);
       if (minutes == null || minutes <= 0) return;
+      if (!mounted || !context.mounted) return;
       controller.setSleepTimer(Duration(minutes: minutes));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
