@@ -9960,6 +9960,48 @@ abstract class AppLocalizations {
   /// **'{minutes} min'**
   String nowPlayingSleepTimerMinutesCustom(int minutes);
 
+  /// Menu item and sheet title for playback speed control
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get nowPlayingPlaybackSpeed;
+
+  /// Label for the 1.0x normal-speed preset
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get nowPlayingPlaybackSpeedNormal;
+
+  /// Menu item and sheet title for A–B section repeat
+  ///
+  /// In en, this message translates to:
+  /// **'A–B repeat'**
+  String get nowPlayingAbRepeat;
+
+  /// Action marking the current position as the A–B loop start
+  ///
+  /// In en, this message translates to:
+  /// **'Set start point (A)'**
+  String get nowPlayingAbRepeatSetStart;
+
+  /// Action marking the current position as the A–B loop end
+  ///
+  /// In en, this message translates to:
+  /// **'Set end point (B)'**
+  String get nowPlayingAbRepeatSetEnd;
+
+  /// Action clearing the armed A–B loop
+  ///
+  /// In en, this message translates to:
+  /// **'Clear loop'**
+  String get nowPlayingAbRepeatClear;
+
+  /// Subtitle shown when the A–B loop is armed
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get nowPlayingAbRepeatOn;
+
   /// Confirmation after setting the playback sleep timer
   ///
   /// In en, this message translates to:

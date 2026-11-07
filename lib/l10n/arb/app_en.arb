@@ -7090,6 +7090,34 @@
       }
     }
   },
+  "nowPlayingPlaybackSpeed": "Playback speed",
+  "@nowPlayingPlaybackSpeed": {
+    "description": "Menu item and sheet title for playback speed control"
+  },
+  "nowPlayingPlaybackSpeedNormal": "Normal",
+  "@nowPlayingPlaybackSpeedNormal": {
+    "description": "Label for the 1.0x normal-speed preset"
+  },
+  "nowPlayingAbRepeat": "A–B repeat",
+  "@nowPlayingAbRepeat": {
+    "description": "Menu item and sheet title for A–B section repeat"
+  },
+  "nowPlayingAbRepeatSetStart": "Set start point (A)",
+  "@nowPlayingAbRepeatSetStart": {
+    "description": "Action marking the current position as the A–B loop start"
+  },
+  "nowPlayingAbRepeatSetEnd": "Set end point (B)",
+  "@nowPlayingAbRepeatSetEnd": {
+    "description": "Action marking the current position as the A–B loop end"
+  },
+  "nowPlayingAbRepeatClear": "Clear loop",
+  "@nowPlayingAbRepeatClear": {
+    "description": "Action clearing the armed A–B loop"
+  },
+  "nowPlayingAbRepeatOn": "On",
+  "@nowPlayingAbRepeatOn": {
+    "description": "Subtitle shown when the A–B loop is armed"
+  },
   "nowPlayingSleepTimerSet": "Sleep timer set for {duration}",
   "@nowPlayingSleepTimerSet": {
     "description": "Confirmation after setting the playback sleep timer",

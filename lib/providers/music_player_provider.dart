@@ -406,6 +406,28 @@ class MusicPlayerController {
   /// Whether the sleep timer is armed to stop at the end of the current track.
   bool get sleepTimerStopAfterTrack => _handler?.sleepTimerStopAfterTrack ?? false;
 
+  /// The persisted user playback rate (0.5–2.0); 1.0 is normal speed.
+  double get playbackRate => _handler?.playbackRate ?? 1.0;
+
+  /// Sets and persists the playback rate, applied immediately when AutoMix
+  /// is idle.
+  Future<void> setPlaybackRate(double rate) =>
+      (_handler?.setPlaybackRate(rate) ?? Future.value);
+
+  /// A–B repeat start bound, or null.
+  Duration? get abRepeatStart => _handler?.abRepeatStart;
+  /// A–B repeat end bound, or null.
+  Duration? get abRepeatEnd => _handler?.abRepeatEnd;
+  /// Whether an A–B loop is armed for the current track.
+  bool get abRepeatActive => _handler?.abRepeatActive ?? false;
+
+  /// Marks the current position as the A (start) bound.
+  void setAbRepeatStart() => _handler?.setAbRepeatStart();
+  /// Marks the current position as the B (end) bound.
+  void setAbRepeatEnd() => _handler?.setAbRepeatEnd();
+  /// Clears the A–B loop.
+  void clearAbRepeat() => _handler?.clearAbRepeat();
+
   Future<MusicPlayerHandler?> ensureInitialized() async {
     try {
       return await _runtime.initialize();

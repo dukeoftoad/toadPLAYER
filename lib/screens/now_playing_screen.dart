@@ -1202,6 +1202,23 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                     onTap: () => Navigator.of(sheetContext).pop('sleepTimer'),
                   ),
                   SettingsItem(
+                    icon: Icons.speed,
+                    title: sheetContext.l10n.nowPlayingPlaybackSpeed,
+                    subtitle: (controller.playbackRate - 1.0).abs() < 0.001
+                        ? null
+                        : '${controller.playbackRate.toStringAsFixed(2)}x',
+                    onTap: () =>
+                        Navigator.of(sheetContext).pop('playbackSpeed'),
+                  ),
+                  SettingsItem(
+                    icon: Icons.repeat_one_outlined,
+                    title: sheetContext.l10n.nowPlayingAbRepeat,
+                    subtitle: controller.abRepeatActive
+                        ? sheetContext.l10n.nowPlayingAbRepeatOn
+                        : null,
+                    onTap: () => Navigator.of(sheetContext).pop('abRepeat'),
+                  ),
+                  SettingsItem(
                     icon: Icons.equalizer,
                     title: sheetContext.l10n.equalizerTitle,
                     onTap: () => Navigator.of(sheetContext).pop('equalizer'),
@@ -1284,6 +1301,12 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
         break;
       case 'sleepTimer':
         await _showSleepTimerSheet(context, controller, colorScheme);
+        break;
+      case 'playbackSpeed':
+        await _showPlaybackSpeedSheet(context, controller, colorScheme);
+        break;
+      case 'abRepeat':
+        await _showAbRepeatSheet(context, controller, colorScheme);
         break;
       case 'equalizer':
         await pushPage<void>(context, (_) => const EqualizerScreen());
@@ -1438,6 +1461,106 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     );
     controller.dispose();
     return result;
+  }
+
+  Future<void> _showPlaybackSpeedSheet(
+    BuildContext context,
+    MusicPlayerController controller,
+    ColorScheme colorScheme,
+  ) async {
+    const presets = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+    final selected = await showAppBottomSheet<double>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: colorScheme.surfaceContainerHigh,
+      title: context.l10n.nowPlayingPlaybackSpeed,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: SettingsGroup(
+          children: [
+            for (final rate in presets)
+              SettingsItem(
+                icon: rate == 1.0 ? Icons.speed : Icons.fast_forward,
+                title: rate == 1.0
+                    ? '${sheetContext.l10n.nowPlayingPlaybackSpeedNormal} (1.00x)'
+                    : '${rate.toStringAsFixed(2)}x',
+                selected: (controller.playbackRate - rate).abs() < 0.001,
+                showDivider: rate != presets.last,
+                onTap: () => Navigator.of(sheetContext).pop(rate),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || !context.mounted || selected == null) return;
+    await controller.setPlaybackRate(selected);
+  }
+
+  Future<void> _showAbRepeatSheet(
+    BuildContext context,
+    MusicPlayerController controller,
+    ColorScheme colorScheme,
+  ) async {
+    final action = await showAppBottomSheet<String>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: colorScheme.surfaceContainerHigh,
+      title: context.l10n.nowPlayingAbRepeat,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: SettingsGroup(
+          children: [
+            SettingsItem(
+              icon: Icons.flag_outlined,
+              title: sheetContext.l10n.nowPlayingAbRepeatSetStart,
+              subtitle: controller.abRepeatStart == null
+                  ? null
+                  : _formatDuration(controller.abRepeatStart!),
+              showDivider: true,
+              onTap: () => Navigator.of(sheetContext).pop('setA'),
+            ),
+            SettingsItem(
+              icon: Icons.flag_circle_outlined,
+              title: sheetContext.l10n.nowPlayingAbRepeatSetEnd,
+              subtitle: controller.abRepeatEnd == null
+                  ? null
+                  : _formatDuration(controller.abRepeatEnd!),
+              showDivider: true,
+              onTap: controller.abRepeatStart != null
+                  ? () => Navigator.of(sheetContext).pop('setB')
+                  : null,
+            ),
+            SettingsItem(
+              icon: Icons.clear,
+              title: sheetContext.l10n.nowPlayingAbRepeatClear,
+              showDivider: false,
+              onTap: controller.abRepeatStart != null ||
+                      controller.abRepeatEnd != null
+                  ? () => Navigator.of(sheetContext).pop('clear')
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || !context.mounted || action == null) return;
+    switch (action) {
+      case 'setA':
+        controller.setAbRepeatStart();
+        break;
+      case 'setB':
+        controller.setAbRepeatEnd();
+        break;
+      case 'clear':
+        controller.clearAbRepeat();
+        break;
+    }
+  }
+
+  String _formatDuration(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 
   Future<void> _goToCurrentAlbum({

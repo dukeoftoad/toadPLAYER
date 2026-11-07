@@ -6,6 +6,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart' show compute, visibleForTesting;
 import 'package:flutter/widgets.dart'
     show AppLifecycleState, WidgetsBinding, WidgetsBindingObserver;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toadplayer/services/playback_notification.dart';
 import 'package:audio_session/audio_session.dart'
     show
@@ -184,6 +185,17 @@ class MusicPlayerHandler extends BaseAudioHandler
   DateTime? _sleepTimerEndsAt;
   // When set, playback stops after the current track ends instead of advancing.
   bool _sleepTimerStopAfterTrack = false;
+
+  // Persisted user playback rate (0.5–2.0). Applied on track start when
+  // AutoMix is not manipulating the rate. Stored in SharedPreferences so it
+  // survives without touching the codegen settings model.
+  double _playbackRate = 1.0;
+  bool _playbackRateLoaded = false;
+  static const String _playbackRatePrefsKey = 'toadplayer_playback_rate';
+
+  // A–B repeat bounds for the current track; cleared on track change.
+  Duration? _abRepeatStart;
+  Duration? _abRepeatEnd;
 
   bool _shuffle = false;
   List<MediaItem>? _originalQueueOrder;
@@ -370,6 +382,7 @@ class MusicPlayerHandler extends BaseAudioHandler
     if (_initialized) return;
     _initialized = true;
     _configurePersonalization();
+    unawaited(_loadPersistedPlaybackRate());
     void recordListening() {
       final item = mediaItem.value;
       final state = playbackState.value;
@@ -852,6 +865,94 @@ class MusicPlayerHandler extends BaseAudioHandler
     _sleepTimerStopAfterTrack = false;
   }
 
+  // --- Playback speed -----------------------------------------------------
+  /// The persisted user playback rate (0.5–2.0), applied on track start when
+  /// AutoMix is not engaged. 1.0 is normal speed.
+  double get playbackRate => _playbackRate;
+
+  /// Sets and persists the playback rate, clamped to 0.5–2.0, and applies it
+  /// immediately unless AutoMix is currently manipulating the rate.
+  Future<void> setPlaybackRate(double rate) async {
+    final clamped = rate.clamp(0.5, 2.0);
+    if ((clamped - _playbackRate).abs() < 0.001 && _playbackRateLoaded) return;
+    _playbackRate = clamped;
+    _playbackRateLoaded = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(_playbackRatePrefsKey, clamped);
+    } catch (e) {
+      _log.w('Failed to persist playback rate: $e');
+    }
+    await _applyPlaybackRate();
+  }
+
+  /// Applies [_playbackRate] to the active deck when AutoMix is idle and the
+  /// session is not casting to a remote device.
+  Future<void> _applyPlaybackRate() async {
+    if (_disposed || _cast.active || _autoMix.rate != 1) return;
+    try {
+      await _player.setPlaybackRate(_playbackRate);
+    } catch (e) {
+      _log.w('Failed to apply playback rate: $e');
+    }
+  }
+
+  Future<void> _loadPersistedPlaybackRate() async {
+    if (_playbackRateLoaded) return;
+    _playbackRateLoaded = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getDouble(_playbackRatePrefsKey);
+      if (stored != null && (stored - 1.0).abs() >= 0.001) {
+        _playbackRate = stored.clamp(0.5, 2.0);
+        await _applyPlaybackRate();
+      }
+    } catch (e) {
+      _log.w('Failed to load persisted playback rate: $e');
+    }
+  }
+
+  // --- A–B repeat ---------------------------------------------------------
+  /// The start bound of the A–B loop for the current track, or null.
+  Duration? get abRepeatStart => _abRepeatStart;
+  /// The end bound of the A–B loop for the current track, or null.
+  Duration? get abRepeatEnd => _abRepeatEnd;
+  bool get abRepeatActive => _abRepeatStart != null && _abRepeatEnd != null;
+
+  /// Marks the current playback position as the A (start) bound.
+  void setAbRepeatStart() {
+    final position = _lastBroadcastPosition;
+    final duration = mediaItem.value?.duration ?? Duration.zero;
+    if (duration > Duration.zero && position < duration) {
+      _abRepeatStart = position;
+      if (_abRepeatEnd != null && _abRepeatEnd! <= position) _abRepeatEnd = null;
+    }
+  }
+
+  /// Marks the current playback position as the B (end) bound.
+  void setAbRepeatEnd() {
+    final position = _lastBroadcastPosition;
+    final duration = mediaItem.value?.duration ?? Duration.zero;
+    if (duration > Duration.zero &&
+        position > Duration.zero &&
+        position < duration &&
+        (_abRepeatStart == null || position > _abRepeatStart!)) {
+      _abRepeatEnd = position;
+    }
+  }
+
+  /// Clears both A–B bounds.
+  void clearAbRepeat() {
+    _abRepeatStart = null;
+    _abRepeatEnd = null;
+  }
+
+  /// Clears A–B bounds for a track change. Called when a new track begins.
+  void _resetAbRepeatForNewTrack() {
+    _abRepeatStart = null;
+    _abRepeatEnd = null;
+  }
+
   Future<bool> _activateAudioSession(int generation) async {
     if (_cast.active) return true;
     if (isDesktopPlatform) return true;
@@ -1075,6 +1176,13 @@ class MusicPlayerHandler extends BaseAudioHandler
     _prefetch.onPosition(position);
     _gapless.onPosition(position);
     unawaited(_autoplay.fill());
+    // A–B repeat: jump back to the A bound when the B bound is reached.
+    if (abRepeatActive &&
+        _abRepeatEnd != null &&
+        position >= _abRepeatEnd! &&
+        _player.state == PlaybackDeckState.playing) {
+      unawaited(_player.seek(_abRepeatStart!));
+    }
     if (_restoringSession ||
         _player.state != PlaybackDeckState.playing ||
         _media.isEmpty ||
@@ -1629,6 +1737,8 @@ class MusicPlayerHandler extends BaseAudioHandler
     Duration startPosition = Duration.zero,
   }) async {
     if (_disposed || index < 0 || index >= _media.length) return;
+    // A–B repeat is per-track; clear it whenever a different track begins.
+    _resetAbRepeatForNewTrack();
     if (_dependencies.sourceDeletionEvents.isDeleting(_media[index].source)) {
       return;
     }
@@ -1947,6 +2057,9 @@ class MusicPlayerHandler extends BaseAudioHandler
       }
       if (!_isCurrentPlayRequest(generation, media)) return;
       _sourceReady = true;
+      // Apply the persisted playback rate to the new track. AutoMix manages
+      // the rate itself when active, so only apply when it is idle.
+      unawaited(_applyPlaybackRate());
       if (media.source.startsWith('network://')) {
         unawaited(_loadNetworkMetadata(media, generation));
       }

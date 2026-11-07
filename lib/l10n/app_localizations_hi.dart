@@ -6114,6 +6114,27 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String get nowPlayingPlaybackSpeed => 'Playback speed';
+
+  @override
+  String get nowPlayingPlaybackSpeedNormal => 'Normal';
+
+  @override
+  String get nowPlayingAbRepeat => 'A–B repeat';
+
+  @override
+  String get nowPlayingAbRepeatSetStart => 'Set start point (A)';
+
+  @override
+  String get nowPlayingAbRepeatSetEnd => 'Set end point (B)';
+
+  @override
+  String get nowPlayingAbRepeatClear => 'Clear loop';
+
+  @override
+  String get nowPlayingAbRepeatOn => 'On';
+
+  @override
   String nowPlayingSleepTimerSet(String duration) {
     return 'Sleep timer set for $duration';
   }
