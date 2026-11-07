@@ -3,6 +3,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:toadplayer/models/track.dart';
 import 'package:toadplayer/providers/library_collections_provider.dart';
 import 'package:toadplayer/providers/music_player_provider.dart';
 import 'package:toadplayer/services/playable_media.dart';
@@ -235,6 +236,11 @@ class _PlaylistDetailScreen extends ConsumerWidget {
         title: Text(playlist.name),
         actions: [
           IconButton(
+            tooltip: 'Add songs',
+            icon: const Icon(Icons.playlist_add),
+            onPressed: () => _showAddSongsSheet(context, ref, playlist),
+          ),
+          IconButton(
             tooltip: 'Play all',
             icon: const Icon(Icons.play_arrow),
             onPressed: playlist.tracks.isEmpty
@@ -249,12 +255,23 @@ class _PlaylistDetailScreen extends ConsumerWidget {
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text(
-                  'No songs here yet. Add some from the Songs tab.',
-                  textAlign: TextAlign.center,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'No songs here yet.',
+                      textAlign: TextAlign.center,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: () => _showAddSongsSheet(context, ref, playlist),
+                      icon: const Icon(Icons.playlist_add),
+                      label: const Text('Add songs'),
+                    ),
+                  ],
                 ),
               ),
             )
@@ -338,5 +355,138 @@ class _PlaylistDetailScreen extends ConsumerWidget {
               },
             ),
     );
+  }
+
+  /// Picks songs from the current session queue and appends them to this
+  /// playlist, so the playlist page can load songs on its own instead of
+  /// sending people back to the Songs tab.
+  Future<void> _showAddSongsSheet(
+    BuildContext context,
+    WidgetRef ref,
+    UserPlaylistCollection playlist,
+  ) async {
+    final queue = ref.watch(playQueueProvider).value ?? const <MediaItem>[];
+    if (!context.mounted) return;
+    if (queue.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Open a folder of songs first, then add them here'),
+        ),
+      );
+      return;
+    }
+
+    final selected = <int>{};
+    final submitted = await showAppBottomSheet<bool>(
+      context: context,
+      useRootNavigator: true,
+      title: 'Add songs to ${playlist.name}',
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 420),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: queue.length,
+                      itemBuilder: (listContext, index) {
+                        final item = queue[index];
+                        final isSelected = selected.contains(index);
+                        return CheckboxListTile(
+                          value: isSelected,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          title: Text(
+                            item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: item.artist == null
+                              ? null
+                              : Text(
+                                  item.artist!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                          onChanged: (value) => setSheetState(() {
+                            if (value == true) {
+                              selected.add(index);
+                            } else {
+                              selected.remove(index);
+                            }
+                          }),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: selected.isEmpty
+                          ? null
+                          : () => Navigator.of(sheetContext).pop(true),
+                      icon: const Icon(Icons.playlist_add_check),
+                      label: Text(
+                        selected.isEmpty
+                            ? 'Select songs'
+                            : 'Add ${selected.length} '
+                                '${selected.length == 1 ? 'song' : 'songs'}',
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+    if (submitted != true || selected.isEmpty || !context.mounted) return;
+
+    final tracks = <Track>[];
+    for (final index in selected) {
+      try {
+        tracks.add(
+          await ref.read(playerCollectionTrackProvider(queue[index]).future),
+        );
+      } catch (_) {
+        // Unresolvable rows are skipped; the counts below reflect the rest.
+      }
+    }
+    if (tracks.isEmpty || !context.mounted) return;
+
+    try {
+      final result = await ref
+          .read(libraryCollectionsProvider.notifier)
+          .addTracksToPlaylist(playlist.id, tracks);
+      if (!context.mounted) return;
+      final already = result.alreadyInPlaylistCount;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.addedCount == 0
+                ? 'Already in this playlist'
+                : already > 0
+                ? 'Added ${result.addedCount} songs · $already already here'
+                : 'Added ${result.addedCount} '
+                    '${result.addedCount == 1 ? 'song' : 'songs'}',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Couldn't add songs")));
+    }
   }
 }
