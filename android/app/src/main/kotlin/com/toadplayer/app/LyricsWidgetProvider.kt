@@ -48,7 +48,11 @@ class LyricsWidgetProvider : AppWidgetProvider() {
         }
 
         /** Builds one widget instance. */
-        fun render(context: Context, state: JSONObject, colors: PlayerWidgetProvider.Palette): RemoteViews {
+        fun render(
+            context: Context,
+            state: JSONObject,
+            colors: PlayerWidgetProvider.Companion.Palette,
+        ): RemoteViews {
             val active = state.optBoolean("canPlay")
             val lyric = state.optString("lyric").trim()
             val views = RemoteViews(context.packageName, R.layout.widget_lyrics)
