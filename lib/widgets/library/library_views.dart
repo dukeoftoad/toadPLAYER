@@ -96,21 +96,37 @@ extension LibraryGroupSortLabel on LibraryGroupSort {
   };
 }
 
-/// Each grouped tab remembers its own order for the session; the family
-/// argument is the tab key ('artists', 'albums', 'genres').
-final groupSortProvider =
-    NotifierProvider.family<GroupSortNotifier, LibraryGroupSort, String>(
-      GroupSortNotifier.new,
+/// Each grouped tab remembers its own order for the session.
+final artistGroupSortProvider =
+    NotifierProvider<ArtistGroupSortNotifier, LibraryGroupSort>(
+      ArtistGroupSortNotifier.new,
     );
 
-class GroupSortNotifier extends FamilyNotifier<LibraryGroupSort, String> {
+final albumGroupSortProvider =
+    NotifierProvider<AlbumGroupSortNotifier, LibraryGroupSort>(
+      AlbumGroupSortNotifier.new,
+    );
+
+final genreGroupSortProvider =
+    NotifierProvider<GenreGroupSortNotifier, LibraryGroupSort>(
+      GenreGroupSortNotifier.new,
+    );
+
+/// Shared build/set behavior for the grouped tabs' sort state.
+abstract class GroupSortNotifier extends Notifier<LibraryGroupSort> {
   @override
-  LibraryGroupSort build(String arg) => LibraryGroupSort.nameAZ;
+  LibraryGroupSort build() => LibraryGroupSort.nameAZ;
 
   void set(LibraryGroupSort sort) {
     if (sort != state) state = sort;
   }
 }
+
+class ArtistGroupSortNotifier extends GroupSortNotifier {}
+
+class AlbumGroupSortNotifier extends GroupSortNotifier {}
+
+class GenreGroupSortNotifier extends GroupSortNotifier {}
 
 /// Returns [groups] in [sort]'s order. Name A–Z keeps the incoming order —
 /// the grouping helpers already sort by name — so it doubles as the default.

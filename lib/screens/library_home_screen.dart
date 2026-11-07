@@ -486,7 +486,7 @@ class _ArtistsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (tracks.isEmpty) return const _LibraryEmptyState();
 
-    final sort = ref.watch(groupSortProvider('artists'));
+    final sort = ref.watch(artistGroupSortProvider);
     final groups = sortLibraryGroups(
       groupTracksByArtist(tracks)
           .where((group) => libraryMatchesQuery([group.title], query))
@@ -509,7 +509,7 @@ class _ArtistsTab extends ConsumerWidget {
                 (option, option.icon, option.label),
             ],
             onSelected: (value) =>
-                ref.read(groupSortProvider('artists').notifier).set(value),
+                ref.read(artistGroupSortProvider.notifier).set(value),
           );
         }
         final group = groups[index - 1];
@@ -537,7 +537,7 @@ class _AlbumsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (tracks.isEmpty) return const _LibraryEmptyState();
 
-    final sort = ref.watch(groupSortProvider('albums'));
+    final sort = ref.watch(albumGroupSortProvider);
     final albums = sortLibraryGroups(
       groupTracksByAlbum(tracks)
           .where(
@@ -562,7 +562,7 @@ class _AlbumsTab extends ConsumerWidget {
                 (option, option.icon, option.label),
             ],
             onSelected: (value) =>
-                ref.read(groupSortProvider('albums').notifier).set(value),
+                ref.read(albumGroupSortProvider.notifier).set(value),
           ),
         ),
         SliverPadding(
@@ -604,7 +604,7 @@ class _GenresTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (tracks.isEmpty) return const _LibraryEmptyState();
 
-    final sort = ref.watch(groupSortProvider('genres'));
+    final sort = ref.watch(genreGroupSortProvider);
     final genres = sortLibraryGroups(
       groupTracksByGenre(tracks)
           .where((genre) => libraryMatchesQuery([genre.title], query))
@@ -627,7 +627,7 @@ class _GenresTab extends ConsumerWidget {
                 (option, option.icon, option.label),
             ],
             onSelected: (value) =>
-                ref.read(groupSortProvider('genres').notifier).set(value),
+                ref.read(genreGroupSortProvider.notifier).set(value),
           );
         }
         final genre = genres[index - 1];
