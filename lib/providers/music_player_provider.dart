@@ -411,8 +411,9 @@ class MusicPlayerController {
 
   /// Sets and persists the playback rate, applied immediately when AutoMix
   /// is idle.
-  Future<void> setPlaybackRate(double rate) =>
-      (_handler?.setPlaybackRate(rate) ?? Future.value);
+  Future<void> setPlaybackRate(double rate) async {
+    await _handler?.setPlaybackRate(rate);
+  }
 
   /// A–B repeat start bound, or null.
   Duration? get abRepeatStart => _handler?.abRepeatStart;
