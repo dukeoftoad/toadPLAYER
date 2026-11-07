@@ -241,7 +241,7 @@ class _RecentlyAddedBody extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            'Open audio files or a folder to build your library.',
+            'Choose a music folder in Settings to build your library.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,

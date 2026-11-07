@@ -1,8 +1,9 @@
 // The standalone player's home: a search top bar, library tabs
-// (Songs / Artists / Albums / Genres / Playlists), and the moved file
-// actions. Replaces the old button-row shell.
+// (Songs / Artists / Albums / Genres / Playlists), the reshuffle button and
+// the playback menu. Replaces the old button-row shell.
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +15,6 @@ import 'package:toadplayer/providers/settings_provider.dart';
 import 'package:toadplayer/screens/equalizer_screen.dart';
 import 'package:toadplayer/screens/library_detail_screen.dart';
 import 'package:toadplayer/screens/library_smart_screen.dart';
-import 'package:toadplayer/screens/now_playing_screen.dart';
 import 'package:toadplayer/screens/settings/settings_screen.dart';
 import 'package:toadplayer/services/audio_file_open_service.dart';
 import 'package:toadplayer/services/platform_bridge.dart';
@@ -120,8 +120,8 @@ class _StandalonePlayerHomeScreenState
   }
 }
 
-/// The search field is the top bar: opening files and folders, the full
-/// player, and the queue moved into it so the library gets the whole body.
+/// The search field is the top bar: the reshuffle button and the playback
+/// menu sit beside it so the library keeps the whole body.
 class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
   const _LibraryAppBar({
     required this.tracks,
@@ -135,6 +135,8 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String query;
   final ValueChanged<String> onQueryChanged;
 
+  static final Random _random = Random();
+
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight + 48);
 
@@ -142,7 +144,6 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final openingAudio = ref.watch(openAudioControllerProvider);
-    final mediaItem = ref.watch(currentMediaItemProvider).value;
     final queueLength = tracks.length;
 
     return AppBar(
@@ -184,30 +185,17 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
               child: CircularProgressIndicator(strokeWidth: 2.4),
             ),
           ),
+        if (queueLength > 0)
+          IconButton(
+            tooltip: 'Reshuffle',
+            icon: const Icon(Icons.shuffle),
+            onPressed: () => _reshuffle(context, ref),
+          ),
         PopupMenuButton<String>(
           tooltip: 'More options',
           icon: const Icon(Icons.more_vert),
           onSelected: (value) => _onMenuSelected(context, ref, value),
           itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'open_files',
-              enabled: !openingAudio,
-              child: _menuRow(
-                context,
-                Icons.audio_file_outlined,
-                'Open audio files',
-              ),
-            ),
-            if (mediaItem != null)
-              PopupMenuItem(
-                value: 'full_player',
-                child: _menuRow(
-                  context,
-                  Icons.open_in_full,
-                  'Full player',
-                ),
-            ),
-            const PopupMenuDivider(),
             PopupMenuItem(
               value: 'shuffle',
               child: _menuRow(context, Icons.shuffle_outlined, 'Shuffle'),
@@ -255,16 +243,6 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
     'Playlists',
   ];
 
-  /// Picker failures were previously swallowed by the zone logger; surface
-  /// them so an empty folder pick is not mistaken for a dead button.
-  Future<void> _pickAudioFiles(BuildContext context, WidgetRef ref) async {
-    try {
-      await ref.read(openAudioControllerProvider.notifier).pickFiles();
-    } on Object catch (error) {
-      if (context.mounted) showCannotOpenFileSnackBar(context, error);
-    }
-  }
-
   Widget _menuRow(BuildContext context, IconData icon, String label) => Row(
     children: [
       Icon(icon, color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -275,12 +253,6 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
   void _onMenuSelected(BuildContext context, WidgetRef ref, String value) {
     switch (value) {
-      case 'open_files':
-        _pickAudioFiles(context, ref);
-      case 'full_player':
-        Navigator.of(context).push(
-          NowPlayingRoute(child: const NowPlayingScreen()),
-        );
       case 'shuffle':
         _shuffle(context, ref);
       case 'refresh':
@@ -309,6 +281,29 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Shuffling your songs')),
+      );
+    }
+  }
+
+  /// Reshuffle re-rolls the shuffle order: shuffle stays on and playback
+  /// jumps to a random song, never the one already playing when there is
+  /// anywhere else to go.
+  Future<void> _reshuffle(BuildContext context, WidgetRef ref) async {
+    final queue = ref.read(playQueueProvider).value ?? const <MediaItem>[];
+    if (queue.isEmpty) return;
+    final controller = ref.read(musicPlayerControllerProvider);
+    await controller.setShuffle(true);
+    final current = ref.read(currentQueueIndexProvider);
+    var target = _random.nextInt(queue.length);
+    if (queue.length > 1) {
+      while (target == current) {
+        target = _random.nextInt(queue.length);
+      }
+    }
+    await controller.jumpTo(target);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reshuffling your songs')),
       );
     }
   }
@@ -491,23 +486,42 @@ class _ArtistsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (tracks.isEmpty) return const _LibraryEmptyState();
 
-    final groups = groupTracksByArtist(tracks)
-        .where((group) => libraryMatchesQuery([group.title], query))
-        .toList();
+    final sort = ref.watch(groupSortProvider('artists'));
+    final groups = sortLibraryGroups(
+      groupTracksByArtist(tracks)
+          .where((group) => libraryMatchesQuery([group.title], query))
+          .toList(),
+      sort,
+    );
     if (groups.isEmpty) return _NoResults(query: query);
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
-      itemCount: groups.length,
-      itemBuilder: (context, index) => LibraryArtistTile(
-        group: groups[index],
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) =>
-                LibraryDetailScreen.artistGroup(group: groups[index]),
+      itemCount: groups.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return LibrarySortBar<LibraryGroupSort>(
+            count: groups.length,
+            countNoun: 'artist',
+            current: sort,
+            options: [
+              for (final option in LibraryGroupSort.values)
+                (option, option.icon, option.label),
+            ],
+            onSelected: (value) =>
+                ref.read(groupSortProvider('artists').notifier).set(value),
+          );
+        }
+        final group = groups[index - 1];
+        return LibraryArtistTile(
+          group: group,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => LibraryDetailScreen.artistGroup(group: group),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -523,31 +537,58 @@ class _AlbumsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (tracks.isEmpty) return const _LibraryEmptyState();
 
-    final albums = groupTracksByAlbum(tracks)
-        .where(
-          (album) => libraryMatchesQuery([album.title, album.subtitle], query),
-        )
-        .toList();
+    final sort = ref.watch(groupSortProvider('albums'));
+    final albums = sortLibraryGroups(
+      groupTracksByAlbum(tracks)
+          .where(
+            (album) => libraryMatchesQuery([album.title, album.subtitle], query),
+          )
+          .toList(),
+      sort,
+    );
     if (albums.isEmpty) return _NoResults(query: query);
 
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 180,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: 0.82,
-      ),
-      itemCount: albums.length,
-      itemBuilder: (context, index) => LibraryAlbumCard(
-        album: albums[index],
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) =>
-                LibraryDetailScreen.artistGroup(group: albums[index]),
+    // The album grid keeps its cover cards; the sort bar rides above it as
+    // a sliver header so every list shares the same ordering menu.
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: LibrarySortBar<LibraryGroupSort>(
+            count: albums.length,
+            countNoun: 'album',
+            current: sort,
+            options: [
+              for (final option in LibraryGroupSort.values)
+                (option, option.icon, option.label),
+            ],
+            onSelected: (value) =>
+                ref.read(groupSortProvider('albums').notifier).set(value),
           ),
         ),
-      ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 180,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 0.82,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              childCount: albums.length,
+              (context, index) => LibraryAlbumCard(
+                album: albums[index],
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        LibraryDetailScreen.artistGroup(group: albums[index]),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -563,23 +604,42 @@ class _GenresTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (tracks.isEmpty) return const _LibraryEmptyState();
 
-    final genres = groupTracksByGenre(tracks)
-        .where((genre) => libraryMatchesQuery([genre.title], query))
-        .toList();
+    final sort = ref.watch(groupSortProvider('genres'));
+    final genres = sortLibraryGroups(
+      groupTracksByGenre(tracks)
+          .where((genre) => libraryMatchesQuery([genre.title], query))
+          .toList(),
+      sort,
+    );
     if (genres.isEmpty) return _NoResults(query: query);
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
-      itemCount: genres.length,
-      itemBuilder: (context, index) => LibraryArtistTile(
-        group: genres[index],
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) =>
-                LibraryDetailScreen.artistGroup(group: genres[index]),
+      itemCount: genres.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return LibrarySortBar<LibraryGroupSort>(
+            count: genres.length,
+            countNoun: 'genre',
+            current: sort,
+            options: [
+              for (final option in LibraryGroupSort.values)
+                (option, option.icon, option.label),
+            ],
+            onSelected: (value) =>
+                ref.read(groupSortProvider('genres').notifier).set(value),
+          );
+        }
+        final genre = genres[index - 1];
+        return LibraryArtistTile(
+          group: genre,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => LibraryDetailScreen.artistGroup(group: genre),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -595,9 +655,13 @@ class _PlaylistsTab extends ConsumerWidget {
     final collections = ref.watch(libraryCollectionsProvider);
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
-    final playlists = collections.playlists
-        .where((playlist) => libraryMatchesQuery([playlist.name], query))
-        .toList();
+    final playlistSort = ref.watch(playlistSortProvider);
+    final playlists = sortPlaylists(
+      collections.playlists
+          .where((playlist) => libraryMatchesQuery([playlist.name], query))
+          .toList(),
+      playlistSort,
+    );
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
@@ -648,6 +712,18 @@ class _PlaylistsTab extends ConsumerWidget {
           ),
         ),
         const Divider(height: 16),
+        if (playlists.isNotEmpty)
+          LibrarySortBar<PlaylistSort>(
+            count: playlists.length,
+            countNoun: 'playlist',
+            current: playlistSort,
+            options: [
+              for (final option in PlaylistSort.values)
+                (option, option.icon, option.label),
+            ],
+            onSelected: (value) =>
+                ref.read(playlistSortProvider.notifier).set(value),
+          ),
         ListTile(
           leading: Icon(Icons.add, color: colorScheme.primary),
           title: Text(
@@ -907,8 +983,8 @@ class _PlaylistThumbnail extends StatelessWidget {
   }
 }
 
-/// Shown on the library tabs while nothing has been opened yet; keeps the
-/// moved open actions discoverable.
+/// Shown on the library tabs while nothing has been opened yet; points at
+/// the default-folder setup instead of a file picker.
 class _LibraryEmptyState extends ConsumerWidget {
   const _LibraryEmptyState();
 
@@ -916,7 +992,8 @@ class _LibraryEmptyState extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
-    final openingAudio = ref.watch(openAudioControllerProvider);
+    final hasDefaultFolder =
+        ref.watch(settingsProvider).defaultAudioFolder.isNotEmpty;
 
     return Center(
       child: Padding(
@@ -933,40 +1010,17 @@ class _LibraryEmptyState extends ConsumerWidget {
             Text('Your library is empty', style: textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
-              'Open audio files or a folder to build your songs, artists '
-              'and albums.',
+              'Choose a music folder in Settings to build your songs, '
+              'artists and albums.',
               textAlign: TextAlign.center,
               style: textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: openingAudio
-                  ? null
-                  : () async {
-                      try {
-                        await ref
-                            .read(openAudioControllerProvider.notifier)
-                            .pickFiles();
-                      } on Object catch (error) {
-                        if (context.mounted) {
-                          showCannotOpenFileSnackBar(context, error);
-                        }
-                      }
-                    },
-              icon: const Icon(Icons.audio_file_outlined),
-              label: const Text('Open audio files'),
-            ),
-            const SizedBox(height: 12),
-            if (ref
-                .watch(settingsProvider)
-                .defaultAudioFolder
-                .isNotEmpty) ...[
-              FilledButton.tonalIcon(
-                onPressed: openingAudio
-                    ? null
-                    : () => _playDefaultFolder(context, ref),
+            if (hasDefaultFolder) ...[
+              FilledButton.icon(
+                onPressed: () => _playDefaultFolder(context, ref),
                 icon: const Icon(Icons.play_circle_outline),
                 label: const Text('Play default folder'),
               ),
@@ -981,14 +1035,14 @@ class _LibraryEmptyState extends ConsumerWidget {
                 label: const Text('Folders & settings'),
               ),
             ] else
-              OutlinedButton.icon(
+              FilledButton.icon(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const SettingsScreen(),
                   ),
                 ),
                 icon: const Icon(Icons.folder_open_outlined),
-                label: const Text('Folders & settings'),
+                label: const Text('Choose a music folder'),
               ),
           ],
         ),

@@ -15,7 +15,6 @@ export 'package:toadplayer/widgets/desktop/desktop_inspector.dart'
 /// App-wide desktop commands. Each one has one keyboard shortcut, mirrored in
 /// the macOS menu bar and named in the tooltip of the control that runs it.
 enum DesktopCommand {
-  openAudioFiles,
   openAudioFolder,
   playPause,
   next,
@@ -86,7 +85,6 @@ SingleActivator? desktopCommandShortcut(
 ]) {
   final target = platform ?? defaultTargetPlatform;
   return switch (command) {
-    DesktopCommand.openAudioFiles => _primary(LogicalKeyboardKey.keyO, target),
     DesktopCommand.openAudioFolder => _primary(
       LogicalKeyboardKey.keyO,
       target,
