@@ -2607,6 +2607,8 @@ class PlatformBridge {
     if (isCancelled?.call() == true) {
       throw StateError('Library scan cancelled before native scan');
     }
+    final covers = Directory('${scanDir.path}/library_covers');
+    await covers.create(recursive: true);
     if (forceFullScan) {
       // An explicit rescan must not resume metadata from an earlier attempt.
       for (final file in [output, File('${output.path}.state')]) {
@@ -2614,13 +2616,14 @@ class PlatformBridge {
       }
       // Native scans extract thumbnails older than this marker again under
       // their stable names, so playlists and sessions keep valid paths.
-      final covers = Directory('${scanDir.path}/library_covers');
-      await covers.create(recursive: true);
       await File(
         '${covers.path}/$libraryCoverRegenerateMarker',
       ).writeAsString(DateTime.now().toIso8601String(), flush: true);
-      await setLibraryCoverCacheDir(covers.path);
     }
+    // Every scan persists the cover directory, not just full rescans: the
+    // descriptor-based metadata reader caches artwork under it, and without
+    // this call scanned rows keep a null cover_path forever.
+    await setLibraryCoverCacheDir(covers.path);
     if (isCancelled?.call() == true) {
       throw StateError('Library scan cancelled before native scan');
     }

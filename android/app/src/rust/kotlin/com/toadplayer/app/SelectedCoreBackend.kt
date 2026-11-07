@@ -105,8 +105,14 @@ internal object RustCoreBackend : CoreBackend {
 
     @Synchronized
     override fun openDownloadDirectory(path: String): AutoCloseable {
-        val current = owner()
-        val storage = checkNotNull(identity)
+        // The standalone build ships without the extension system, so manager
+        // and identity stay null forever. Directory grants only exist for
+        // extension storage, and cover extraction / metadata access use
+        // descriptor paths that need no grant — hand back a no-op lease
+        // instead of failing, so covers keep resolving (previously every
+        // extraction died here with "Rust backend is not initialized").
+        val current = manager ?: return AutoCloseable { }
+        val storage = identity ?: return AutoCloseable { }
         val scope = current.environment().use {
             it.grantDownloadDirectories(directoryAliases(path, storage.first, storage.second))
         }
@@ -323,10 +329,18 @@ internal object RustCoreBackend : CoreBackend {
 
     @Synchronized
     override fun setLibraryCoverCacheDirectory(path: String) {
-        val current = owner()
         require(path.isEmpty() || File(path).isAbsolute) { "Library cover directory must be absolute" }
         val directory = if (path.isEmpty()) null else File(path).canonicalFile
         if (directory != null) check(directory.mkdirs() || directory.isDirectory)
+        // Without the extension backend there is no grant to establish; the
+        // descriptor-based metadata reader still caches artwork through
+        // libraryCoverDirectory below, so record the directory and return.
+        val current = manager ?: run {
+            libraryCoverScope?.close()
+            libraryCoverScope = null
+            libraryCoverDirectory = directory
+            return
+        }
         val next = directory?.let { openDownloadDirectory(it.path) }
         try { current.setLibraryCoverCacheDirectory(directory?.path.orEmpty()) }
         catch (error: Exception) { next?.close(); throw error }
