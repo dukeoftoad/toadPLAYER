@@ -7,13 +7,13 @@ class MethodChannelBackend extends BackendChannel {
   const MethodChannelBackend(this.channel);
 
   static const shared = MethodChannelBackend(
-    MethodChannel('com.zarz.toadplayer/backend'),
+    MethodChannel('com.toadplayer.app/backend'),
   );
   static const _downloadProgressChannel = EventChannel(
-    'com.zarz.toadplayer/download_progress_stream',
+    'com.toadplayer.app/download_progress_stream',
   );
   static const _libraryScanProgressChannel = EventChannel(
-    'com.zarz.toadplayer/library_scan_progress_stream',
+    'com.toadplayer.app/library_scan_progress_stream',
   );
 
   final MethodChannel channel;

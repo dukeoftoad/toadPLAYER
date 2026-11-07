@@ -4169,8 +4169,8 @@ class AppLocalizationsVi extends AppLocalizations {
       'Lời bài hát karaoke theo từng chữ (Apple/Musixmatch/Spotify/QQ, qua proxy)';
 
   @override
-  String get lyricsProviderZarzLrcDesc =>
-      'Lời bài hát theo từng chữ Apple Music từ nguồn Zarz-LRC';
+  String get lyricsProviderToadLrcDesc =>
+      'Lời bài hát theo từng chữ Apple Music từ nguồn Toad-LRC';
 
   @override
   String get lyricsProviderLrcRedDesc =>

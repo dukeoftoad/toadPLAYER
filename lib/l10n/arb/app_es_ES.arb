@@ -873,7 +873,7 @@
   },
   "aboutLyricsWebsite": "Sitio web de Letras",
   "@aboutLyricsWebsite": {
-    "description": "Link to the Zarz-LRC website for searching and saving word-timed lyrics"
+    "description": "Link to the Toad-LRC website for searching and saving word-timed lyrics"
   },
   "aboutServiceStatus": "Estado del servicio",
   "@aboutServiceStatus": {
@@ -4647,9 +4647,9 @@
   "@lyricsProviderLyricsPlusDesc": {
     "description": "Description for LyricsPlus provider"
   },
-  "lyricsProviderZarzLrcDesc": "Letras de Apple Music palabra por palabra de Zarz-LRC",
-  "@lyricsProviderZarzLrcDesc": {
-    "description": "Description for the first-party Zarz-LRC provider"
+  "lyricsProviderToadLrcDesc": "Letras de Apple Music palabra por palabra de Toad-LRC",
+  "@lyricsProviderToadLrcDesc": {
+    "description": "Description for the first-party Toad-LRC provider"
   },
   "lyricsProviderLrcRedDesc": "Letras de Apple Music palabra por palabra, emparejadas por grabación",
   "@lyricsProviderLrcRedDesc": {

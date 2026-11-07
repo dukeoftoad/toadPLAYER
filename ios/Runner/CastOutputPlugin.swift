@@ -13,7 +13,7 @@ import ToadplayerBackend
 final class CastOutputPlugin: NSObject, FlutterStreamHandler {
     private let methods: FlutterMethodChannel
     private let events: FlutterEventChannel
-    private let queue = DispatchQueue(label: "com.zarz.toadplayer.cast", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.toadplayer.app.cast", qos: .userInitiated)
     private let lock = NSLock()
     private var bridge: CastBridge?
     private var polling = false
@@ -21,8 +21,8 @@ final class CastOutputPlugin: NSObject, FlutterStreamHandler {
     private var keepAlive: AVAudioPlayer?
 
     init(messenger: FlutterBinaryMessenger) {
-        methods = FlutterMethodChannel(name: "com.zarz.toadplayer/cast", binaryMessenger: messenger)
-        events = FlutterEventChannel(name: "com.zarz.toadplayer/cast/events", binaryMessenger: messenger)
+        methods = FlutterMethodChannel(name: "com.toadplayer.app/cast", binaryMessenger: messenger)
+        events = FlutterEventChannel(name: "com.toadplayer.app/cast/events", binaryMessenger: messenger)
         super.init()
         methods.setMethodCallHandler { [weak self] call, result in
             self?.handle(call, result: result)

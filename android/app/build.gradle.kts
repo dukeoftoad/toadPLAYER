@@ -53,7 +53,7 @@ require(rustAndroidAbis.all { it in supportedRustAndroidAbis }) {
 }
 
 android {
-    namespace = "com.zarz.toadplayer"
+    namespace = "com.toadplayer.app"
     compileSdk = 37
     ndkVersion = "30.0.16248370"
 
@@ -109,11 +109,15 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.zarz.toadplayer"
+        applicationId = "com.toadplayer.app"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = flutter.minSdkVersion
         targetSdk = 37
-        versionCode = flutter.versionCode
+        // CI owns the version code: every GitHub Actions run numbers the
+        // build, so alpha APKs always upgrade over each other without a
+        // manual bump. Local builds fall back to the pubspec build number.
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+            ?: flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
         externalNativeBuild {

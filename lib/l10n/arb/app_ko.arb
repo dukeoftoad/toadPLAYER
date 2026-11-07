@@ -873,7 +873,7 @@
   },
   "aboutLyricsWebsite": "가사 웹사이트",
   "@aboutLyricsWebsite": {
-    "description": "Link to the Zarz-LRC website for searching and saving word-timed lyrics"
+    "description": "Link to the Toad-LRC website for searching and saving word-timed lyrics"
   },
   "aboutServiceStatus": "서비스 상태",
   "@aboutServiceStatus": {
@@ -4647,9 +4647,9 @@
   "@lyricsProviderLyricsPlusDesc": {
     "description": "Description for LyricsPlus provider"
   },
-  "lyricsProviderZarzLrcDesc": "Zarz-LRC의 Apple Music 가사 (단어별)",
-  "@lyricsProviderZarzLrcDesc": {
-    "description": "Description for the first-party Zarz-LRC provider"
+  "lyricsProviderToadLrcDesc": "Toad-LRC의 Apple Music 가사 (단어별)",
+  "@lyricsProviderToadLrcDesc": {
+    "description": "Description for the first-party Toad-LRC provider"
   },
   "lyricsProviderLrcRedDesc": "녹음과 일치하는 Apple Music 가사 (단어별)",
   "@lyricsProviderLrcRedDesc": {

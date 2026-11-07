@@ -14,7 +14,7 @@ class LocalNetworkAccess {
   LocalNetworkAccess({
     bool? isAndroid,
     MethodChannel channel = const MethodChannel(
-      'com.zarz.toadplayer/local_network',
+      'com.toadplayer.app/local_network',
     ),
     Future<List<InternetAddress>> Function(String)? lookup,
   }) : _isAndroid = isAndroid ?? Platform.isAndroid,

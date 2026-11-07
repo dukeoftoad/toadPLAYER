@@ -138,7 +138,9 @@ jobs:
           set -euo pipefail
           case "$GITHUB_REF_NAME" in
             v*) VERSION="${GITHUB_REF_NAME#v}" ;;
-            *)  VERSION="alpha-$(git rev-parse --short=8 HEAD)" ;;
+            # CI-run-numbered alphas match the versionCode the Gradle build
+            # stamps (GITHUB_RUN_NUMBER), so installs sort identically.
+            *)  VERSION="alpha-r${GITHUB_RUN_NUMBER}-$(git rev-parse --short=8 HEAD)" ;;
           esac
           mkdir -p dist
           apk_count=0

@@ -85,7 +85,7 @@ class MprisPlayerObject extends DBusObject {
 
   DBusObjectPath get _trackId => _item == null
       ? _noTrack
-      : DBusObjectPath('/com/zarz/toadplayer/track/$_track');
+      : DBusObjectPath('/com/toadplayer/app/track/$_track');
 
   /// The position now, advanced from the last state at its speed.
   Duration get position {
@@ -147,7 +147,7 @@ class MprisPlayerObject extends DBusObject {
     'CanRaise': DBusBoolean(false),
     'HasTrackList': DBusBoolean(false),
     'Identity': DBusString('Toadplayer'),
-    'DesktopEntry': DBusString('com.zarz.toadplayer'),
+    'DesktopEntry': DBusString('com.toadplayer.app'),
     'SupportedUriSchemes': DBusArray(DBusSignature('s')),
     'SupportedMimeTypes': DBusArray(DBusSignature('s')),
   };

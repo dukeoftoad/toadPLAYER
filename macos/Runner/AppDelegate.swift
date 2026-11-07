@@ -8,7 +8,7 @@ class AppDelegate: FlutterAppDelegate {
   private var audioOpenReady = false
 
   func installAudioOpenChannel(_ messenger: FlutterBinaryMessenger) {
-    let channel = FlutterMethodChannel(name: "com.zarz.toadplayer/open_audio", binaryMessenger: messenger)
+    let channel = FlutterMethodChannel(name: "com.toadplayer.app/open_audio", binaryMessenger: messenger)
     audioOpenChannel = channel
     channel.setMethodCallHandler { [weak self] call, result in
       guard let self else { result(nil); return }

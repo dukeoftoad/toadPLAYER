@@ -10,7 +10,7 @@ final class PlaybackNotificationBridge {
     private var target: Any?
 
     init(messenger: FlutterBinaryMessenger) {
-        channel = FlutterMethodChannel(name: "com.zarz.toadplayer/playback_notification", binaryMessenger: messenger)
+        channel = FlutterMethodChannel(name: "com.toadplayer.app/playback_notification", binaryMessenger: messenger)
         let command = MPRemoteCommandCenter.shared().likeCommand
         target = command.addTarget { [weak self] _ in
             guard let self else { return .commandFailed }
@@ -41,7 +41,7 @@ final class AudioRouteInfoBridge {
     private let channel: FlutterMethodChannel
 
     init(messenger: FlutterBinaryMessenger) {
-        channel = FlutterMethodChannel(name: "com.zarz.toadplayer/audio_route", binaryMessenger: messenger)
+        channel = FlutterMethodChannel(name: "com.toadplayer.app/audio_route", binaryMessenger: messenger)
         channel.setMethodCallHandler { call, result in
             guard call.method == "read" else {
                 result(FlutterMethodNotImplemented)
@@ -135,7 +135,7 @@ final class AudioOutputBridge: NSObject, AVRoutePickerViewDelegate {
     private var pending: FlutterResult?
 
     init(messenger: FlutterBinaryMessenger, window: @escaping () -> UIWindow?) {
-        channel = FlutterMethodChannel(name: "com.zarz.toadplayer/audio_output", binaryMessenger: messenger)
+        channel = FlutterMethodChannel(name: "com.toadplayer.app/audio_output", binaryMessenger: messenger)
         self.window = window
         super.init()
         channel.setMethodCallHandler { [weak self] call, result in

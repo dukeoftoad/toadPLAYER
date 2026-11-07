@@ -873,7 +873,7 @@
   },
   "aboutLyricsWebsite": "Сайт текстів",
   "@aboutLyricsWebsite": {
-    "description": "Link to the Zarz-LRC website for searching and saving word-timed lyrics"
+    "description": "Link to the Toad-LRC website for searching and saving word-timed lyrics"
   },
   "aboutServiceStatus": "Стан послуг",
   "@aboutServiceStatus": {
@@ -4647,9 +4647,9 @@
   "@lyricsProviderLyricsPlusDesc": {
     "description": "Description for LyricsPlus provider"
   },
-  "lyricsProviderZarzLrcDesc": "Синхронізація послівного тексту Apple Music через Zarz-LRC",
-  "@lyricsProviderZarzLrcDesc": {
-    "description": "Description for the first-party Zarz-LRC provider"
+  "lyricsProviderToadLrcDesc": "Синхронізація послівного тексту Apple Music через Toad-LRC",
+  "@lyricsProviderToadLrcDesc": {
+    "description": "Description for the first-party Toad-LRC provider"
   },
   "lyricsProviderLrcRedDesc": "Порядкові тексти Apple Music, синхронізовані із записом",
   "@lyricsProviderLrcRedDesc": {

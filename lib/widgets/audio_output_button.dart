@@ -42,7 +42,7 @@ class AudioOutputButton extends StatefulWidget {
 }
 
 class _AudioOutputButtonState extends State<AudioOutputButton> {
-  static const _systemChannel = MethodChannel('com.zarz.toadplayer/audio_output');
+  static const _systemChannel = MethodChannel('com.toadplayer.app/audio_output');
   bool _opening = false;
 
   CastOutput get _output => widget.output ?? CastOutput.instance;

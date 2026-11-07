@@ -21,7 +21,7 @@ class PlayerWidgetArtwork {
 class PlayerWidgetService {
   PlayerWidgetService({
     MethodChannel channel = const MethodChannel(
-      'com.zarz.toadplayer/player_widget',
+      'com.toadplayer.app/player_widget',
     ),
     Future<PlayerWidgetArtwork?> Function(Uri?)? loadArtwork,
   }) : _channel = channel,

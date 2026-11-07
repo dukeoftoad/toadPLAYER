@@ -8,12 +8,12 @@ import UniformTypeIdentifiers
     // Widget playback intents can launch the process before any scene exists.
     // Keep one headless-capable engine and attach that same player to the UI.
     lazy var playerEngine = FlutterEngine(name: "toadplayer-player", project: nil, allowHeadlessExecution: true)
-    private let CHANNEL = "com.zarz.toadplayer/backend"
-    private let DOWNLOAD_PROGRESS_STREAM_CHANNEL = "com.zarz.toadplayer/download_progress_stream"
-    private let LIBRARY_SCAN_PROGRESS_STREAM_CHANNEL = "com.zarz.toadplayer/library_scan_progress_stream"
+    private let CHANNEL = "com.toadplayer.app/backend"
+    private let DOWNLOAD_PROGRESS_STREAM_CHANNEL = "com.toadplayer.app/download_progress_stream"
+    private let LIBRARY_SCAN_PROGRESS_STREAM_CHANNEL = "com.toadplayer.app/library_scan_progress_stream"
     private let LARGE_JSON_RESULT_FILE_KEY = "__json_file"
     private let LARGE_JSON_RESULT_FILE_THRESHOLD_BYTES = 256 * 1024
-    private let streamQueue = DispatchQueue(label: "com.zarz.toadplayer.progress_stream", qos: .utility)
+    private let streamQueue = DispatchQueue(label: "com.toadplayer.app.progress_stream", qos: .utility)
     private lazy var downloadProgressSubscription = DownloadProgressSubscription(connect: { [weak self] in
         guard let self else { throw NSError(domain: "CoreBackend", code: 1) }
         return try self.coreBackend.openDownloadProgress()
@@ -40,7 +40,7 @@ import UniformTypeIdentifiers
     private var audioOpenChannel: FlutterMethodChannel?
     private var pendingAudio: [[String]] = []
     private var audioOpenReady = false
-    private let audioOpenQueue = DispatchQueue(label: "com.zarz.toadplayer.open_audio", qos: .userInitiated)
+    private let audioOpenQueue = DispatchQueue(label: "com.toadplayer.app.open_audio", qos: .userInitiated)
 
     /// Keep imported documents readable after the sender releases its grant.
     func handleAudioOpen(url: URL) -> Bool {
@@ -108,7 +108,7 @@ import UniformTypeIdentifiers
     }
 
     private func configureFlutterEngine(_ messenger: FlutterBinaryMessenger, registry: FlutterPluginRegistry) {
-        let audioChannel = FlutterMethodChannel(name: "com.zarz.toadplayer/open_audio", binaryMessenger: messenger)
+        let audioChannel = FlutterMethodChannel(name: "com.toadplayer.app/open_audio", binaryMessenger: messenger)
         audioOpenChannel = audioChannel
         audioChannel.setMethodCallHandler { [weak self] call, result in
             guard let self else { result(nil); return }

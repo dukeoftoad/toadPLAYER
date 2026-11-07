@@ -4,7 +4,7 @@ import NowPlaying
 import Observation
 import os
 
-private let log = Logger(subsystem: "com.zarz.toadplayer.LinkNowPlaying", category: "session")
+private let log = Logger(subsystem: "com.toadplayer.app.LinkNowPlaying", category: "session")
 
 /// An error's kind for the device log, without the URLs or keys it may carry.
 private func describe(_ error: Error) -> String {

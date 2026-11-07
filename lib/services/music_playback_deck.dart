@@ -203,8 +203,8 @@ class AudioplayersPlaybackDeck implements PlaybackDeck {
   @visibleForTesting
   static bool? debugChainsPlayers;
 
-  static const _channel = MethodChannel('com.zarz.toadplayer/usb_pcm');
-  static const _events = EventChannel('com.zarz.toadplayer/usb_pcm/events');
+  static const _channel = MethodChannel('com.toadplayer.app/usb_pcm');
+  static const _events = EventChannel('com.toadplayer.app/usb_pcm/events');
   static Stream<dynamic>? _nativeEvents;
   static int _nextToken = 0;
   final AudioPlayer _ordinary;

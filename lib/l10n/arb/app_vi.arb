@@ -873,7 +873,7 @@
   },
   "aboutLyricsWebsite": "Trang web lời bài hát",
   "@aboutLyricsWebsite": {
-    "description": "Link to the Zarz-LRC website for searching and saving word-timed lyrics"
+    "description": "Link to the Toad-LRC website for searching and saving word-timed lyrics"
   },
   "aboutServiceStatus": "Trạng thái dịch vụ",
   "@aboutServiceStatus": {
@@ -4647,9 +4647,9 @@
   "@lyricsProviderLyricsPlusDesc": {
     "description": "Description for LyricsPlus provider"
   },
-  "lyricsProviderZarzLrcDesc": "Lời bài hát theo từng chữ Apple Music từ nguồn Zarz-LRC",
-  "@lyricsProviderZarzLrcDesc": {
-    "description": "Description for the first-party Zarz-LRC provider"
+  "lyricsProviderToadLrcDesc": "Lời bài hát theo từng chữ Apple Music từ nguồn Toad-LRC",
+  "@lyricsProviderToadLrcDesc": {
+    "description": "Description for the first-party Toad-LRC provider"
   },
   "lyricsProviderLrcRedDesc": "Lời bài hát theo từng chữ từ Apple Music, khớp theo bản thu âm",
   "@lyricsProviderLrcRedDesc": {

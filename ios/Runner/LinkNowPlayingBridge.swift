@@ -10,7 +10,7 @@ final class LinkNowPlayingBridge {
     private let channel: FlutterMethodChannel
 
     init(messenger: FlutterBinaryMessenger) {
-        channel = FlutterMethodChannel(name: "com.zarz.toadplayer/link_now_playing", binaryMessenger: messenger)
+        channel = FlutterMethodChannel(name: "com.toadplayer.app/link_now_playing", binaryMessenger: messenger)
         if #available(iOS 27.0, *) {
             let controller = LinkNowPlayingController()
             channel.setMethodCallHandler { call, result in controller.handle(call, result) }

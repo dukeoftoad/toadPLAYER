@@ -1,6 +1,6 @@
 // The standalone player's home: a search top bar, library tabs
-// (Songs / Artists / Albums / Playlists), and the moved file/queue actions.
-// Replaces the old button-row shell.
+// (Songs / Artists / Albums / Genres / Playlists), and the moved file
+// actions. Replaces the old button-row shell.
 import 'dart:async';
 import 'dart:io';
 
@@ -11,7 +11,9 @@ import 'package:toadplayer/controllers/open_audio_controller.dart';
 import 'package:toadplayer/providers/library_collections_provider.dart';
 import 'package:toadplayer/providers/music_player_provider.dart';
 import 'package:toadplayer/providers/settings_provider.dart';
+import 'package:toadplayer/screens/equalizer_screen.dart';
 import 'package:toadplayer/screens/library_detail_screen.dart';
+import 'package:toadplayer/screens/library_smart_screen.dart';
 import 'package:toadplayer/screens/now_playing_screen.dart';
 import 'package:toadplayer/screens/settings/settings_screen.dart';
 import 'package:toadplayer/services/audio_file_open_service.dart';
@@ -23,7 +25,6 @@ import 'package:toadplayer/widgets/desktop/desktop_player_bar.dart';
 import 'package:toadplayer/widgets/library/library_views.dart';
 import 'package:toadplayer/widgets/lyrics_preview_card.dart';
 import 'package:toadplayer/widgets/mini_player.dart';
-import 'package:toadplayer/widgets/player_queue_sheet.dart';
 
 class StandalonePlayerHomeScreen extends ConsumerStatefulWidget {
   const StandalonePlayerHomeScreen({super.key});
@@ -81,7 +82,7 @@ class _StandalonePlayerHomeScreenState
 
     // One controller drives the app bar's TabBar and the body's TabBarView.
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: _LibraryAppBar(
           tracks: tracks,
@@ -99,6 +100,7 @@ class _StandalonePlayerHomeScreenState
                       _SongsTab(tracks: tracks, query: _query),
                       _ArtistsTab(tracks: tracks, query: _query),
                       _AlbumsTab(tracks: tracks, query: _query),
+                      _GenresTab(tracks: tracks, query: _query),
                       _PlaylistsTab(query: _query),
                     ],
                   ),
@@ -205,11 +207,32 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
                   'Full player',
                 ),
             ),
-            if (queueLength > 0)
-              PopupMenuItem(
-                value: 'queue',
-                child: _menuRow(context, Icons.queue_music_outlined, 'Queue'),
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              value: 'shuffle',
+              child: _menuRow(context, Icons.shuffle_outlined, 'Shuffle'),
+            ),
+            PopupMenuItem(
+              value: 'refresh',
+              enabled: queueLength > 0,
+              child: _menuRow(context, Icons.refresh_outlined, 'Refresh'),
+            ),
+            PopupMenuItem(
+              value: 'quick_refresh',
+              child: _menuRow(
+                context,
+                Icons.bolt_outlined,
+                'Quick refresh',
               ),
+            ),
+            PopupMenuItem(
+              value: 'equalizer',
+              child: _menuRow(
+                context,
+                Icons.equalizer_outlined,
+                'Equaliser',
+              ),
+            ),
             const PopupMenuDivider(),
             PopupMenuItem(
               value: 'settings',
@@ -224,7 +247,13 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
     );
   }
 
-  static const _tabLabels = ['Songs', 'Artists', 'Albums', 'Playlists'];
+  static const _tabLabels = [
+    'Songs',
+    'Artists',
+    'Albums',
+    'Genres',
+    'Playlists',
+  ];
 
   /// Picker failures were previously swallowed by the zone logger; surface
   /// them so an empty folder pick is not mistaken for a dead button.
@@ -252,13 +281,82 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
         Navigator.of(context).push(
           NowPlayingRoute(child: const NowPlayingScreen()),
         );
-      case 'queue':
-        showPlayerQueueSheet(context, Theme.of(context).colorScheme);
+      case 'shuffle':
+        _shuffle(context, ref);
+      case 'refresh':
+        _refresh(context, ref);
+      case 'quick_refresh':
+        _quickRefresh(context, ref);
+      case 'equalizer':
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const EqualizerScreen()),
+        );
       case 'settings':
         Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
         );
     }
+  }
+
+  /// Shuffle keeps the session queue but plays it in a random walk; the
+  /// queue's own order returns when shuffle is switched off again.
+  Future<void> _shuffle(BuildContext context, WidgetRef ref) async {
+    final queue = ref.read(playQueueProvider).value ?? const <MediaItem>[];
+    if (queue.isEmpty) return;
+    final controller = ref.read(musicPlayerControllerProvider);
+    await controller.setShuffle(true);
+    await controller.jumpTo(DateTime.now().microsecondsSinceEpoch.abs() % queue.length);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Shuffling your songs')),
+      );
+    }
+  }
+
+  /// Re-reads tags and covers for every queued song.
+  Future<void> _refresh(BuildContext context, WidgetRef ref) async {
+    final refreshed = await ref
+        .read(openAudioControllerProvider.notifier)
+        .refreshSessionMetadata();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          refreshed == 1
+              ? 'Refreshed 1 song'
+              : 'Refreshed $refreshed songs',
+        ),
+      ),
+    );
+  }
+
+  /// Appends new songs from the saved default folder without a picker.
+  Future<void> _quickRefresh(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final added = await ref
+        .read(openAudioControllerProvider.notifier)
+        .quickRefreshFromDefaultFolder();
+    if (added < 0) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Set a default folder in Settings › Library & folders first',
+          ),
+        ),
+      );
+      return;
+    }
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          added == 0
+              ? 'No new songs found'
+              : added == 1
+              ? 'Added 1 new song'
+              : 'Added $added new songs',
+        ),
+      ),
+    );
   }
 }
 
@@ -454,6 +552,38 @@ class _AlbumsTab extends ConsumerWidget {
   }
 }
 
+/// The Genres tab: the session's tracks grouped by their tagged genre.
+class _GenresTab extends ConsumerWidget {
+  const _GenresTab({required this.tracks, required this.query});
+
+  final List<LibraryTrack> tracks;
+  final String query;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (tracks.isEmpty) return const _LibraryEmptyState();
+
+    final genres = groupTracksByGenre(tracks)
+        .where((genre) => libraryMatchesQuery([genre.title], query))
+        .toList();
+    if (genres.isEmpty) return _NoResults(query: query);
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
+      itemCount: genres.length,
+      itemBuilder: (context, index) => LibraryArtistTile(
+        group: genres[index],
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                LibraryDetailScreen.artistGroup(group: genres[index]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// The Playlists tab: persisted collections with create, rename and delete.
 class _PlaylistsTab extends ConsumerWidget {
   const _PlaylistsTab({required this.query});
@@ -472,6 +602,52 @@ class _PlaylistsTab extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
       children: [
+        ListTile(
+          leading: Icon(Icons.favorite_outline, color: colorScheme.primary),
+          title: Text(
+            'Favourites',
+            style: textTheme.bodyLarge?.copyWith(
+              color: colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: Text(
+            '${collections.loved.length} '
+            '${collections.loved.length == 1 ? 'song' : 'songs'} you loved',
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const LibrarySmartScreen.favourites(),
+            ),
+          ),
+        ),
+        ListTile(
+          leading: Icon(Icons.schedule_outlined, color: colorScheme.primary),
+          title: Text(
+            'Recently added',
+            style: textTheme.bodyLarge?.copyWith(
+              color: colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: Text(
+            'Newest songs first, across sessions',
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const LibrarySmartScreen.recentlyAdded(),
+            ),
+          ),
+        ),
+        const Divider(height: 16),
         ListTile(
           leading: Icon(Icons.add, color: colorScheme.primary),
           title: Text(

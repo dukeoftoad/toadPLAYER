@@ -2579,6 +2579,17 @@ class MusicPlayerHandler extends BaseAudioHandler
         _covers.invalidate(media.coverReference);
       } else if (cover != null && cover.isNotEmpty) {
         artwork = normalizeArtUri(cover);
+      } else {
+        // readFileMetadata answers tags and quality but never a cover_path,
+        // so freshly opened rows kept the artwork placeholder forever even
+        // though the file embeds art other apps show. Pull the embedded
+        // image through the shared resolver (cached, SAF-aware) here so the
+        // whole queue gets covers right after the tags hydrate.
+        final extracted = await DownloadedEmbeddedCoverResolver
+            .resolveOrExtract(source);
+        if (extracted != null && extracted.isNotEmpty) {
+          artwork = normalizeArtUri(extracted);
+        }
       }
       if (_disposed || !identical(_metadataChanges[source], token)) return;
       var changed = false;

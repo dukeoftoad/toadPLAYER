@@ -4211,8 +4211,8 @@ class AppLocalizationsFr extends AppLocalizations {
       'Paroles de karaoké mot à mot (Apple/Musixmatch/Spotify/QQ, via un proxy)';
 
   @override
-  String get lyricsProviderZarzLrcDesc =>
-      'Word-by-word Apple Music lyrics from Zarz-LRC';
+  String get lyricsProviderToadLrcDesc =>
+      'Word-by-word Apple Music lyrics from Toad-LRC';
 
   @override
   String get lyricsProviderLrcRedDesc =>

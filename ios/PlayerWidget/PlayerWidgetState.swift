@@ -16,7 +16,7 @@ struct PlayerWidgetState: Codable {
     static let kind = "ToadplayerPlayer"
     static var container: URL? {
         let group = Bundle.main.object(forInfoDictionaryKey: "PlayerWidgetAppGroup") as? String
-            ?? "group.com.zarz.toadplayer"
+            ?? "group.com.toadplayer.app"
         return FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group)
     }
 

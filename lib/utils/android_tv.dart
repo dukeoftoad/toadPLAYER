@@ -12,7 +12,7 @@ Future<void> initializeAndroidTv() async {
   if (!Platform.isAndroid) return;
   _isAndroidTv =
       await const MethodChannel(
-        'com.zarz.toadplayer/backend',
+        'com.toadplayer.app/backend',
       ).invokeMethod<bool>('isAndroidTv') ??
       false;
 }

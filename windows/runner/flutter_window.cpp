@@ -77,7 +77,7 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   audio_channel_ =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-          flutter_controller_->engine()->messenger(), "com.zarz.toadplayer/open_audio",
+          flutter_controller_->engine()->messenger(), "com.toadplayer.app/open_audio",
           &flutter::StandardMethodCodec::GetInstance());
   audio_channel_->SetMethodCallHandler(
       [this](const auto& call, auto result) {
@@ -91,7 +91,7 @@ bool FlutterWindow::OnCreate() {
       });
   window_channel_ =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-          flutter_controller_->engine()->messenger(), "com.zarz.toadplayer/window",
+          flutter_controller_->engine()->messenger(), "com.toadplayer.app/window",
           &flutter::StandardMethodCodec::GetInstance());
   window_channel_->SetMethodCallHandler(
       [this](const flutter::MethodCall<flutter::EncodableValue>& call,

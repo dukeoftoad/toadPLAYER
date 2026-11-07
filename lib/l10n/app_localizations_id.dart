@@ -4114,8 +4114,8 @@ class AppLocalizationsId extends AppLocalizations {
       'Lirik karaoke per kata (Apple/Musixmatch/Spotify/QQ, lewat proxy)';
 
   @override
-  String get lyricsProviderZarzLrcDesc =>
-      'Lirik Apple Music per kata dari Zarz-LRC';
+  String get lyricsProviderToadLrcDesc =>
+      'Lirik Apple Music per kata dari Toad-LRC';
 
   @override
   String get lyricsProviderLrcRedDesc =>

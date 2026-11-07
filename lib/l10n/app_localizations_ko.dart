@@ -4043,7 +4043,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '단어별 노래방 가사 (Apple/Musixmatch/Spotify/QQ, 프록시 이용)';
 
   @override
-  String get lyricsProviderZarzLrcDesc => 'Zarz-LRC의 Apple Music 가사 (단어별)';
+  String get lyricsProviderToadLrcDesc => 'Toad-LRC의 Apple Music 가사 (단어별)';
 
   @override
   String get lyricsProviderLrcRedDesc => '녹음과 일치하는 Apple Music 가사 (단어별)';

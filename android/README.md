@@ -4,20 +4,20 @@ How the Flutter app talks to the Android and iOS hosts. Channel names, method
 names, argument keys and reply keys below are a compatibility contract: Dart,
 Kotlin and Swift must change together.
 
-Kotlin sources live in `android/app/src/main/kotlin/com/zarz/toadplayer/`
+Kotlin sources live in `android/app/src/main/kotlin/com/toadplayer/app/`
 (abbreviated `kotlin/` below). Swift sources live in `ios/Runner/`.
 
 ## The Backend Channel
 
-All app-level calls use one `MethodChannel` named `com.zarz.toadplayer/backend`.
+All app-level calls use one `MethodChannel` named `com.toadplayer.app/backend`.
 
 | Side | Where |
 | --- | --- |
 | Dart caller | `lib/services/platform_bridge.dart` (`PlatformBridge`) and its `part` files in `lib/services/platform_bridge/` |
-| Android dispatcher | `android/app/src/main/kotlin/com/zarz/toadplayer/MainActivity.kt`, `configureFlutterEngine` |
+| Android dispatcher | `android/app/src/main/kotlin/com/toadplayer/app/MainActivity.kt`, `configureFlutterEngine` |
 | Android handlers | `MainActivity*.kt` extension functions in `kotlin/` (table below) |
-| Android Rust route | `android/app/src/rust/kotlin/com/zarz/toadplayer/SelectedCoreBackend.kt` |
-| Routing test | `android/app/src/test/kotlin/com/zarz/toadplayer/MainActivityRoutingTest.kt` |
+| Android Rust route | `android/app/src/rust/kotlin/com/toadplayer/app/SelectedCoreBackend.kt` |
+| Routing test | `android/app/src/test/kotlin/com/toadplayer/app/MainActivityRoutingTest.kt` |
 | iOS dispatcher | `ios/Runner/AppDelegate.swift`, `handleMethodCall` |
 
 ### Routing on Android
@@ -40,17 +40,17 @@ the `when` case labels differ. To add a native method, add the name to both,
 put the handler in the matching `MainActivity*.kt` file, and run the JVM tests:
 
 ```bash
-gradle -p android :app:testDebugUnitTest --tests 'com.zarz.toadplayer.MainActivityRoutingTest'
+gradle -p android :app:testDebugUnitTest --tests 'com.toadplayer.app.MainActivityRoutingTest'
 ```
 
 ### Native Method Table
 
-Handler file key: Lifecycle = `android/app/src/main/kotlin/com/zarz/toadplayer/MainActivityLifecycleCalls.kt`,
-Service = `android/app/src/main/kotlin/com/zarz/toadplayer/MainActivityServiceCalls.kt`,
-Scan = `android/app/src/main/kotlin/com/zarz/toadplayer/MainActivityLibraryScanCalls.kt`,
-SAF = `android/app/src/main/kotlin/com/zarz/toadplayer/MainActivitySafCalls.kt`,
-Metadata = `android/app/src/main/kotlin/com/zarz/toadplayer/MainActivityMetadataCalls.kt`,
-Picker = `android/app/src/main/kotlin/com/zarz/toadplayer/MainActivitySafTreePicker.kt`,
+Handler file key: Lifecycle = `android/app/src/main/kotlin/com/toadplayer/app/MainActivityLifecycleCalls.kt`,
+Service = `android/app/src/main/kotlin/com/toadplayer/app/MainActivityServiceCalls.kt`,
+Scan = `android/app/src/main/kotlin/com/toadplayer/app/MainActivityLibraryScanCalls.kt`,
+SAF = `android/app/src/main/kotlin/com/toadplayer/app/MainActivitySafCalls.kt`,
+Metadata = `android/app/src/main/kotlin/com/toadplayer/app/MainActivityMetadataCalls.kt`,
+Picker = `android/app/src/main/kotlin/com/toadplayer/app/MainActivitySafTreePicker.kt`,
 inline = a case body in MainActivity.kt.
 
 Reply key: "JSON text" is a `String` that Dart decodes; "spill" means the
@@ -159,7 +159,7 @@ Large JSON replies are written to a file and the reply becomes
   `bridgeJsonResult` or the streaming `SpillJsonWriter` (which inlines a small
   result and deletes its file). Users: `scanLibraryFolderIncremental`,
   `scanSafTreeIncremental`, and `runNativeDataJob`
-  (`android/app/src/rust/kotlin/com/zarz/toadplayer/NativeDataJobs.kt`).
+  (`android/app/src/rust/kotlin/com/toadplayer/app/NativeDataJobs.kt`).
 - iOS writes a `bridge_json_` file (UUID suffix) in the temporary directory. Users:
   `scanLibraryFolderIncremental` and `runNativeDataJob`.
 - Dart reads and deletes the file in `_decodeJsonResultAsync`
@@ -171,13 +171,13 @@ Large JSON replies are written to a file and the reply becomes
 ## Progress Streams
 
 Two `EventChannel`s, registered on Android in
-`android/app/src/main/kotlin/com/zarz/toadplayer/MainActivityProgressStreams.kt`
+`android/app/src/main/kotlin/com/toadplayer/app/MainActivityProgressStreams.kt`
 and on iOS in AppDelegate.swift. Dart listens in platform_bridge.dart.
 
 | Channel | Payload | Emission |
 | --- | --- | --- |
-| `com.zarz.toadplayer/download_progress_stream` | Backend delta: `seq`, optional `reset`, `items` (by item ID), `removed` | Long poll `waitDelta(seq, 15000 ms)`. Android pauses 250 ms after each delivered change or error. iOS (`ios/Runner/DownloadProgressSubscription.swift`) pauses 0.25 s before every next wait |
-| `com.zarz.toadplayer/library_scan_progress_stream` | `total_files`, `scanned_files`, `current_file`, `error_count`, `progress_pct`, `is_complete` | Polled; sent only when the JSON changed. Android: every 400 ms (`LIBRARY_SCAN_PROGRESS_STREAM_POLLING_INTERVAL_MS`). iOS: every 800 ms (timer in `startLibraryScanProgressStream`) |
+| `com.toadplayer.app/download_progress_stream` | Backend delta: `seq`, optional `reset`, `items` (by item ID), `removed` | Long poll `waitDelta(seq, 15000 ms)`. Android pauses 250 ms after each delivered change or error. iOS (`ios/Runner/DownloadProgressSubscription.swift`) pauses 0.25 s before every next wait |
+| `com.toadplayer.app/library_scan_progress_stream` | `total_files`, `scanned_files`, `current_file`, `error_count`, `progress_pct`, `is_complete` | Polled; sent only when the JSON changed. Android: every 400 ms (`LIBRARY_SCAN_PROGRESS_STREAM_POLLING_INTERVAL_MS`). iOS: every 800 ms (timer in `startLibraryScanProgressStream`) |
 
 The library-scan poll interval differs between the platforms (400 ms versus
 800 ms). Whether that is intended is an open question; do not "fix" one side
@@ -187,11 +187,11 @@ without checking with the maintainer.
 
 | Channel | Owner |
 | --- | --- |
-| `com.zarz.toadplayer/concert_calendar`, `com.zarz.toadplayer/audio_output` | `android/app/src/main/kotlin/com/zarz/toadplayer/MainActivitySmallChannels.kt` |
-| `com.zarz.toadplayer/usb_pcm`, `com.zarz.toadplayer/usb_pcm/events` (EventChannel), `com.zarz.toadplayer/audio_route` | `android/app/src/main/kotlin/com/zarz/toadplayer/UsbBitPerfectPlugin.kt` |
-| `com.zarz.toadplayer/haptics` | `android/app/src/main/kotlin/com/zarz/toadplayer/MusicHapticsPlugin.kt` |
-| `com.zarz.toadplayer/local_network` | `android/app/src/main/kotlin/com/zarz/toadplayer/LocalNetworkPlugin.kt` |
-| `com.zarz.toadplayer/player_widget` | `android/app/src/main/kotlin/com/zarz/toadplayer/PlayerWidgetProvider.kt` |
+| `com.toadplayer.app/concert_calendar`, `com.toadplayer.app/audio_output` | `android/app/src/main/kotlin/com/toadplayer/app/MainActivitySmallChannels.kt` |
+| `com.toadplayer.app/usb_pcm`, `com.toadplayer.app/usb_pcm/events` (EventChannel), `com.toadplayer.app/audio_route` | `android/app/src/main/kotlin/com/toadplayer/app/UsbBitPerfectPlugin.kt` |
+| `com.toadplayer.app/haptics` | `android/app/src/main/kotlin/com/toadplayer/app/MusicHapticsPlugin.kt` |
+| `com.toadplayer.app/local_network` | `android/app/src/main/kotlin/com/toadplayer/app/LocalNetworkPlugin.kt` |
+| `com.toadplayer.app/player_widget` | `android/app/src/main/kotlin/com/toadplayer/app/PlayerWidgetProvider.kt` |
 
 ## Foreground Services
 
@@ -201,12 +201,12 @@ Both services are declared with `foregroundServiceType="dataSync"` in
 
 | | `DownloadService` | `BackgroundWorkService` |
 | --- | --- | --- |
-| File | `android/app/src/main/kotlin/com/zarz/toadplayer/DownloadService.kt` | `android/app/src/main/kotlin/com/zarz/toadplayer/BackgroundWorkService.kt` |
+| File | `android/app/src/main/kotlin/com/toadplayer/app/DownloadService.kt` | `android/app/src/main/kotlin/com/toadplayer/app/BackgroundWorkService.kt` |
 | Channels | `download_channel` (progress), `download_alerts_v1` (alerts) | `background_work` |
 | Notification IDs | 1001 (foreground), 1 (result), 4 (verification required) | 1002 |
 | Wake lock tag | `Toadplayer:DownloadWakeLock` | `Toadplayer:BackgroundWorkWakeLock` |
 | Wake lock timing | 30 min timeout, renewed on progress updates once 15 min have passed | 30 min timeout, re-acquired by a 15 min timer |
-| Started by | `startDownloadService`, `startNativeDownloadWorker` (intent actions `com.zarz.toadplayer.action.*`) | `startBackgroundWork` for a `kind` (Dart uses `library_scan` and `app_update`) |
+| Started by | `startDownloadService`, `startNativeDownloadWorker` (intent actions `com.toadplayer.app.action.*`) | `startBackgroundWork` for a `kind` (Dart uses `library_scan` and `app_update`) |
 | Stopped by | `stopDownloadService`, the native queue finishing or being cancelled, an invalid queue payload, a null restart intent, `onTimeout` | `stopBackgroundWork` for the last active kind, `onTimeout` |
 
 `BackgroundWorkService.start` returns false when Android refuses the start;
@@ -231,13 +231,13 @@ its state to native_download_worker_state.json in `filesDir` for
 - Playback leases: `safOpenPlaybackLease` opens a seekable read descriptor and
   returns its `/proc/self/fd/<fd>` path and a `token`. At most four leases stay
   open (the oldest is closed first) and all are closed in `onDestroy`
-  (`android/app/src/main/kotlin/com/zarz/toadplayer/MainActivitySafLeases.kt`).
+  (`android/app/src/main/kotlin/com/toadplayer/app/MainActivitySafLeases.kt`).
 - Temp copies: metadata calls that need a file path copy the document to a
   temp file, run the backend, and write the result back. For MP3 and Opus the
   backend replies with `method: "ffmpeg"`; Android then returns `temp_path`
   and `saf_uri` and Dart finishes with FFmpeg and `writeTempToSaf`.
 - Scanning: the full and incremental scans and their progress state live in
-  `android/app/src/main/kotlin/com/zarz/toadplayer/MainActivitySafScan.kt`. The
+  `android/app/src/main/kotlin/com/toadplayer/app/MainActivitySafScan.kt`. The
   helpers sit beside it: `SafTreeListing.kt` (tree walking and thread pools),
   `SafFileInspection.kt` (resolving download history files inside a tree),
   `SafScanCheckpoint.kt` (resume checkpoints), `SafCueScan.kt` (CUE sheet
@@ -253,12 +253,12 @@ the native libraries in `rust_backend/target/android/jniLibs/`. The
 `buildRustBackend` task runs `scripts/build_rust_backend.sh android` before
 `preBuild`.
 
-- `android/app/src/rust/kotlin/com/zarz/toadplayer/SelectedCoreBackend.kt`:
+- `android/app/src/rust/kotlin/com/toadplayer/app/SelectedCoreBackend.kt`:
   `createCoreBackend`, `dispatchBackendApplication`, and `RustCoreBackend`,
   the `CoreBackend` implementation over the generated bindings.
-- `android/app/src/rust/kotlin/com/zarz/toadplayer/RustCoreBackendApplication.kt`:
+- `android/app/src/rust/kotlin/com/toadplayer/app/RustCoreBackendApplication.kt`:
   `dispatchApplication`, the method-name switch behind `invokeApplication`.
-- `android/app/src/rust/kotlin/com/zarz/toadplayer/NativeDataJobs.kt`:
+- `android/app/src/rust/kotlin/com/toadplayer/app/NativeDataJobs.kt`:
   `runNativeDataJob` and its cancellation registry.
 
 The generated bindings load `libtoadplayer_mobile.so` through JNA
@@ -269,7 +269,7 @@ The generated bindings load `libtoadplayer_mobile.so` through JNA
 
 ## iOS
 
-`ios/Runner/AppDelegate.swift` registers the same `com.zarz.toadplayer/backend`
+`ios/Runner/AppDelegate.swift` registers the same `com.toadplayer.app/backend`
 channel and both progress `EventChannel`s on the `toadplayer-player` engine.
 `handleMethodCall` routes in this order:
 
@@ -318,4 +318,4 @@ On iOS `startBackgroundWork` begins a `UIApplication` background task per
 cancelled. Other iOS channels: `ios/Runner/ConcertCalendarBridge.swift`,
 `ios/Runner/PlayerWidgetBridge.swift`, `ios/Runner/MusicHaptics.swift`, and
 `ios/Runner/AudioOutputView.swift` (`playback_notification`, `audio_route`,
-and the per-view `com.zarz.toadplayer/audio_output/<id>`).
+and the per-view `com.toadplayer.app/audio_output/<id>`).

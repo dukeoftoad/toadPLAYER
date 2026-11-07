@@ -231,7 +231,7 @@ class MainFlutterWindow: NSWindow {
   /// Window actions for the Flutter drag areas in the title bar row.
   private func registerWindowChannel(_ messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
-      name: "com.zarz.toadplayer/window",
+      name: "com.toadplayer.app/window",
       binaryMessenger: messenger
     )
     channel.setMethodCallHandler { [weak self] call, result in

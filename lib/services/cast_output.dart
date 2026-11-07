@@ -44,7 +44,7 @@ abstract interface class CastTransport {
 
 class MethodChannelCastTransport implements CastTransport {
   const MethodChannelCastTransport({
-    this.channel = const MethodChannel('com.zarz.toadplayer/cast'),
+    this.channel = const MethodChannel('com.toadplayer.app/cast'),
     this.eventStream,
   });
 
@@ -59,7 +59,7 @@ class MethodChannelCastTransport implements CastTransport {
   Stream<Object?> events() =>
       eventStream ??
       const EventChannel(
-        'com.zarz.toadplayer/cast/events',
+        'com.toadplayer.app/cast/events',
       ).receiveBroadcastStream();
 }
 
@@ -78,7 +78,7 @@ class DesktopCastTransport implements CastTransport {
 /// shared engine; elsewhere it lives in the Rust backend.
 class CastOutput extends ChangeNotifier {
   CastOutput({
-    MethodChannel channel = const MethodChannel('com.zarz.toadplayer/cast'),
+    MethodChannel channel = const MethodChannel('com.toadplayer.app/cast'),
     Stream<Object?>? events,
     CastTransport? transport,
     bool? nativePicker,

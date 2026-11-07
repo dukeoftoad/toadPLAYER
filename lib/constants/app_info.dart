@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
 
 class AppInfo {
-  static const String version = '0.1.2';
-  static const String buildNumber = '3';
+  static const String version = '0.2.0';
+  static const String buildNumber = '4';
 
   /// The release whose What's New tour people see once after updating. Change
   /// it together with the tour's pages when a release earns a new one.
-  static const String whatsNewRelease = '5.3';
+  static const String whatsNewRelease = '0.2.0';
 
   static const String gitCommit = String.fromEnvironment('GIT_COMMIT');
   static String get shortGitCommit =>
@@ -21,19 +21,14 @@ class AppInfo {
 
   static const String appName = 'Toadplayer';
   static const String license = 'LGPL-3.0-only';
-  static const String copyright = '© 2026 Zarz Eleutherius';
+  static const String copyright = '© 2026 Toadplayer';
 
-  static const String mobileAuthor = 'zarzet';
+  static const String mobileAuthor = 'dukeoftoad';
 
-  static const String githubRepo = 'toadplayerapp/Toadplayer';
+  static const String githubRepo = 'dukeoftoad/toadPLAYER';
   static const String githubUrl = 'https://github.com/$githubRepo';
 
   /// Desktop packages are published here; the source stays in [githubRepo].
-  static const String desktopGithubRepo = 'toadplayerapp/Toadplayer-Desktop';
-  // The server keeps the endpoint name from before the rename.
-  static const String remoteConfigApiUrl =
-      'https://api.zarz.moe/v1/spotiflac-mobile/config';
-
-  static const String kofiUrl = 'https://ko-fi.com/zarzet';
-  static const String githubSponsorsUrl = 'https://github.com/sponsors/zarzet/';
+  static const String desktopGithubRepo = 'dukeoftoad/toadPLAYER';
+  static const String remoteConfigApiUrl = '';
 }

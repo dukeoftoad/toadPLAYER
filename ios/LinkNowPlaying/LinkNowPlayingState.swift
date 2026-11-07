@@ -60,7 +60,7 @@ struct LinkNowPlayingConnection: Codable, Sendable {
         guard let group, !group.isEmpty else { throw LinkNowPlayingError.missingGroup }
         return [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "com.zarz.toadplayer.link-now-playing",
+            kSecAttrService as String: "com.toadplayer.app.link-now-playing",
             kSecAttrAccount as String: id,
             kSecAttrAccessGroup as String: group,
         ]

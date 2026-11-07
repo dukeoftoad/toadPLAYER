@@ -57,7 +57,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>CFBundleURLName</key>
-			<string>com.zarz.toadplayer</string>
+			<string>com.toadplayer.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>toadplayer</string>

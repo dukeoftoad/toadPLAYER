@@ -159,6 +159,8 @@ pub fn source_uses_proxy(source: &str) -> bool {
     !source.is_empty()
         && ![
             "lrclib",
+            "toad-lrc",
+            // Retain credits embedded before the provider was renamed.
             "zarz-lrc",
             "toadplayer lyrics",
             // Retain credits embedded before the provider was renamed.
@@ -260,8 +262,8 @@ mod tests {
     #[test]
     fn first_party_lyrics_do_not_credit_paxsenix() {
         for source in [
-            "Zarz-LRC",
-            "Zarz-LRC (cached)",
+            "Toad-LRC",
+            "Toad-LRC (cached)",
             "Toadplayer Lyrics",
             "Toadplayer Lyrics (cached)",
             "SpotiFLAC-Mobile Lyrics",

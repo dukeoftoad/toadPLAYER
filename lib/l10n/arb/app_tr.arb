@@ -873,7 +873,7 @@
   },
   "aboutLyricsWebsite": "Şarkı sözleri web sitesi",
   "@aboutLyricsWebsite": {
-    "description": "Link to the Zarz-LRC website for searching and saving word-timed lyrics"
+    "description": "Link to the Toad-LRC website for searching and saving word-timed lyrics"
   },
   "aboutServiceStatus": "Hizmet durumu",
   "@aboutServiceStatus": {
@@ -4647,9 +4647,9 @@
   "@lyricsProviderLyricsPlusDesc": {
     "description": "Description for LyricsPlus provider"
   },
-  "lyricsProviderZarzLrcDesc": "Zarz-LRC'den kelime kelime Apple Music şarkı sözleri",
-  "@lyricsProviderZarzLrcDesc": {
-    "description": "Description for the first-party Zarz-LRC provider"
+  "lyricsProviderToadLrcDesc": "Toad-LRC'den kelime kelime Apple Music şarkı sözleri",
+  "@lyricsProviderToadLrcDesc": {
+    "description": "Description for the first-party Toad-LRC provider"
   },
   "lyricsProviderLrcRedDesc": "Kayda göre eşleştirilen kelime kelime Apple Music şarkı sözleri",
   "@lyricsProviderLrcRedDesc": {

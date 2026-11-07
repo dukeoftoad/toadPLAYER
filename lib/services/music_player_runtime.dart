@@ -99,7 +99,7 @@ class PlaybackDependencies {
     bool? isAndroid,
     bool? isMacOS,
     this.notificationChannel = const MethodChannel(
-      'com.zarz.toadplayer/playback_notification',
+      'com.toadplayer.app/playback_notification',
     ),
   }) : _sessionDatabase = sessionDatabase,
        _libraryDatabase = libraryDatabase,
@@ -281,7 +281,7 @@ class PlaybackDependencies {
       builder: () => SwitchAudioHandler(handler = builder()),
       cacheManager: mediaSessionArtCache(),
       config: const AudioServiceConfig(
-        androidNotificationChannelId: 'com.zarz.toadplayer.playback',
+        androidNotificationChannelId: 'com.toadplayer.app.playback',
         androidNotificationChannelName: 'Playback',
         // The notification mark omits the adaptive launcher's safe-zone padding.
         androidNotificationIcon: 'drawable/ic_notification_toadplayer',

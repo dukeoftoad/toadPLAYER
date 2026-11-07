@@ -4165,8 +4165,8 @@ class AppLocalizationsTr extends AppLocalizations {
       'Kelime kelime karaoke şarkı sözleri (Apple/Musixmatch/Spotify/QQ, proxy üzerinden)';
 
   @override
-  String get lyricsProviderZarzLrcDesc =>
-      'Zarz-LRC\'den kelime kelime Apple Music şarkı sözleri';
+  String get lyricsProviderToadLrcDesc =>
+      'Toad-LRC\'den kelime kelime Apple Music şarkı sözleri';
 
   @override
   String get lyricsProviderLrcRedDesc =>

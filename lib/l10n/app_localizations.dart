@@ -21,7 +21,6 @@ import 'app_localizations_ru.dart';
 import 'app_localizations_tr.dart';
 import 'app_localizations_uk.dart';
 import 'app_localizations_vi.dart';
-import 'app_localizations_zh.dart';
 
 // ignore_for_file: type=lint
 
@@ -127,9 +126,6 @@ abstract class AppLocalizations {
     Locale('tr'),
     Locale('uk'),
     Locale('vi'),
-    Locale('zh'),
-    Locale('zh', 'CN'),
-    Locale('zh', 'TW'),
   ];
 
   /// No description provided for @libraryLyricsSearchDescription.
@@ -1920,7 +1916,7 @@ abstract class AppLocalizations {
   /// **'Mobile source code'**
   String get aboutMobileSource;
 
-  /// Link to the Zarz-LRC website for searching and saving word-timed lyrics
+  /// Link to the Toad-LRC website for searching and saving word-timed lyrics
   ///
   /// In en, this message translates to:
   /// **'Lyrics website'**
@@ -6968,11 +6964,11 @@ abstract class AppLocalizations {
   /// **'Word-by-word karaoke lyrics (Apple/Musixmatch/Spotify/QQ, via proxy)'**
   String get lyricsProviderLyricsPlusDesc;
 
-  /// Description for the first-party Zarz-LRC provider
+  /// Description for the first-party Toad-LRC provider
   ///
   /// In en, this message translates to:
-  /// **'Word-by-word Apple Music lyrics from Zarz-LRC'**
-  String get lyricsProviderZarzLrcDesc;
+  /// **'Word-by-word Apple Music lyrics from Toad-LRC'**
+  String get lyricsProviderToadLrcDesc;
 
   /// Description for lrc.red provider
   ///
@@ -15730,7 +15726,6 @@ class _AppLocalizationsDelegate
     'tr',
     'uk',
     'vi',
-    'zh',
   ].contains(locale.languageCode);
 
   @override
@@ -15753,16 +15748,6 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
         switch (locale.countryCode) {
           case 'PT':
             return AppLocalizationsPtPt();
-        }
-        break;
-      }
-    case 'zh':
-      {
-        switch (locale.countryCode) {
-          case 'CN':
-            return AppLocalizationsZhCn();
-          case 'TW':
-            return AppLocalizationsZhTw();
         }
         break;
       }
@@ -15802,8 +15787,6 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsUk();
     case 'vi':
       return AppLocalizationsVi();
-    case 'zh':
-      return AppLocalizationsZh();
   }
 
   throw FlutterError(

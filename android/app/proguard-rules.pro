@@ -45,18 +45,18 @@
 # Android instantiates these components from the manifest. Preserve only their
 # names and constructors; normal reachability can now shrink/optimize helpers,
 # coroutine state machines, and unused members in the rest of the app package.
--keep,allowoptimization class com.zarz.toadplayer.MainActivity {
+-keep,allowoptimization class com.toadplayer.app.MainActivity {
     public <init>();
 }
--keep,allowoptimization class com.zarz.toadplayer.DownloadService {
+-keep,allowoptimization class com.toadplayer.app.DownloadService {
     public <init>();
 }
--keep,allowoptimization class com.zarz.toadplayer.DownloadQueueWidgetProvider {
+-keep,allowoptimization class com.toadplayer.app.DownloadQueueWidgetProvider {
     public <init>();
 }
 
 # Flutter's fragment builders instantiate this class through reflection.
--keep,allowoptimization class com.zarz.toadplayer.MainActivity$ImpellerAwareFlutterFragment {
+-keep,allowoptimization class com.toadplayer.app.MainActivity$ImpellerAwareFlutterFragment {
     public <init>();
 }
 

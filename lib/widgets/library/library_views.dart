@@ -142,6 +142,14 @@ String libraryAlbumLabel(MediaItem item) {
   return album;
 }
 
+/// A track's genre from the session metadata, defaulting like the artist
+/// and album labels do. Tags hydrate this into the item's extras.
+String libraryGenreLabel(MediaItem item) {
+  final genre = item.extras?['genre']?.toString().trim() ?? '';
+  if (genre.isEmpty) return 'Unknown genre';
+  return genre;
+}
+
 List<LibraryTrack> libraryTracksFromQueue(List<MediaItem> queue) => [
   for (var i = 0; i < queue.length; i++)
     LibraryTrack(queueIndex: i, item: queue[i]),
@@ -211,6 +219,27 @@ List<LibraryGroup> groupTracksByAlbum(List<LibraryTrack> tracks) {
   ];
 }
 
+/// The Genres tab: the session's tracks grouped by their tagged genre,
+/// shaped like the artist and album groups so the same detail page shows it.
+List<LibraryGroup> groupTracksByGenre(List<LibraryTrack> tracks) {
+  final labels = <String, String>{};
+  final groups = <String, List<LibraryTrack>>{};
+  for (final track in tracks) {
+    final label = libraryGenreLabel(track.item);
+    final key = label.toLowerCase();
+    labels.putIfAbsent(key, () => label);
+    groups.putIfAbsent(key, () => []).add(track);
+  }
+  final keys = groups.keys.toList()
+    ..sort(
+      (a, b) => labels[a]!.toLowerCase().compareTo(labels[b]!.toLowerCase()),
+    );
+  return [
+    for (final key in keys)
+      LibraryGroup(key: key, title: labels[key]!, tracks: groups[key]!),
+  ];
+}
+
 /// Rebuilds a playable item from a queue entry: its extras keep the file
 /// source the audio handler plays.
 PlayableMedia playableFromQueueItem(MediaItem item) => PlayableMedia(
@@ -221,6 +250,7 @@ PlayableMedia playableFromQueueItem(MediaItem item) => PlayableMedia(
   album: item.album ?? '',
   artUri: item.artUri?.toString(),
   duration: item.duration,
+  genre: item.extras?['genre']?.toString(),
 );
 
 /// A playlist track's playable form, resolved against the session queue:

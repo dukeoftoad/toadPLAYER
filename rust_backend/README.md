@@ -140,7 +140,7 @@ The binding names come from `rust_backend/crates/mobile/uniffi.toml`.
 
 | Platform | Generated | Consumed by |
 | --- | --- | --- |
-| Android | Kotlin package `com.toadplayer.backend`, loading `toadplayer_mobile` through JNA | `android/app/build.gradle.kts` adds `target/bindings/kotlin` and `target/android/jniLibs` as source dirs; used by `android/app/src/rust/kotlin/com/zarz/toadplayer/SelectedCoreBackend.kt` and its neighbors |
+| Android | Kotlin package `com.toadplayer.backend`, loading `toadplayer_mobile` through JNA | `android/app/build.gradle.kts` adds `target/bindings/kotlin` and `target/android/jniLibs` as source dirs; used by `android/app/src/rust/kotlin/com/toadplayer/app/SelectedCoreBackend.kt` and its neighbors |
 | iOS | Swift module `ToadplayerBackend` with FFI module `ToadplayerBackendFFI` | `ios/Podfile` pod `ToadplayerBackend` at `../rust_backend/target/ios`; imported by `ios/Runner/CoreBackend.swift` |
 
 The generated files are build output under `target/` and are not tracked.

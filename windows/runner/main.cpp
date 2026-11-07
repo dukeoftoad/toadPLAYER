@@ -12,11 +12,11 @@
 namespace {
 
 // Per user session, so two signed-in users each get their own instance.
-constexpr wchar_t kSingleInstanceMutex[] = L"Local\\com.zarz.toadplayer.instance";
+constexpr wchar_t kSingleInstanceMutex[] = L"Local\\com.toadplayer.app.instance";
 
 // Same ID as the installer's Start Menu shortcut (windows/installer), so the
 // taskbar groups the window with its pinned shortcut.
-constexpr wchar_t kAppUserModelId[] = L"com.zarz.toadplayer";
+constexpr wchar_t kAppUserModelId[] = L"com.toadplayer.app";
 
 void ForwardAudioToInstance() {
   HWND window = nullptr;

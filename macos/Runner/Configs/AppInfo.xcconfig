@@ -1,8 +1,8 @@
 PRODUCT_NAME = Toadplayer
 
-PRODUCT_BUNDLE_IDENTIFIER = com.zarz.toadplayer
+PRODUCT_BUNDLE_IDENTIFIER = com.toadplayer.app
 
-PRODUCT_COPYRIGHT = Copyright © 2026 zarz. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 toadplayer. All rights reserved.
 
 // Code signing: ad hoc, unless scripts/setup_macos_signing.sh wrote a stable
 // self-signed identity. A stable identity keeps keychain access across

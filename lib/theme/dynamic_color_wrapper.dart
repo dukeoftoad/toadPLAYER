@@ -5,6 +5,7 @@ import 'package:toadplayer/providers/theme_provider.dart';
 import 'package:toadplayer/providers/custom_font_provider.dart';
 import 'package:toadplayer/theme/app_theme.dart';
 import 'package:toadplayer/models/theme_settings.dart';
+import 'package:toadplayer/theme/toad_theme.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
 
 class DynamicColorWrapper extends ConsumerWidget {
@@ -59,6 +60,22 @@ class DynamicColorWrapper extends ConsumerWidget {
               fontFamily: fontFamily,
               glassClarity: themeSettings.toadplayerGlassClarity,
               glassOutlines: themeSettings.toadplayerGlassOutlines,
+            ),
+            themeSettings.themeMode,
+          );
+        }
+
+        if (themeSettings.style == AppThemeStyle.toad) {
+          return builder(
+            ToadTheme.build(
+              Brightness.light,
+              useSystemFont: themeSettings.useSystemFont,
+              fontFamily: fontFamily,
+            ),
+            ToadTheme.build(
+              Brightness.dark,
+              useSystemFont: themeSettings.useSystemFont,
+              fontFamily: fontFamily,
             ),
             themeSettings.themeMode,
           );

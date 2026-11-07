@@ -38,7 +38,7 @@ const double desktopTitleBarHeight = 52;
 /// Width the traffic lights take at the leading edge of the title bar row.
 const double desktopWindowControlsWidth = 78;
 
-const _windowChannel = MethodChannel('com.zarz.toadplayer/window');
+const _windowChannel = MethodChannel('com.toadplayer.app/window');
 
 enum DesktopWindowMode { windowed, fullscreen, borderless }
 

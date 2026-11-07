@@ -41,7 +41,53 @@ class SettingsScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+                  child: Text('Theme', style: Theme.of(context).textTheme.labelLarge),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: SegmentedButton<AppThemeStyle>(
+                    segments: const [
+                      ButtonSegment(
+                        value: AppThemeStyle.material,
+                        icon: Icon(Icons.android_outlined, size: 18),
+                        label: Text('System'),
+                      ),
+                      ButtonSegment(
+                        value: AppThemeStyle.toad,
+                        icon: Icon(Icons.emoji_nature_outlined, size: 18),
+                        label: Text('Toad'),
+                      ),
+                      ButtonSegment(
+                        value: AppThemeStyle.toadplayer,
+                        icon: Icon(Icons.auto_awesome_outlined, size: 18),
+                        label: Text('Glass'),
+                      ),
+                    ],
+                    selected: {theme.style},
+                    onSelectionChanged: (selection) => ref
+                        .read(themeProvider.notifier)
+                        .setStyle(selection.first),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Text(
+                    switch (theme.style) {
+                      AppThemeStyle.material =>
+                        'Material You follows your wallpaper on Android 12+',
+                      AppThemeStyle.toad =>
+                        'The crafted Toad palette — moss green, every device',
+                      AppThemeStyle.toadplayer =>
+                        'The frosted Toadplayer glass look',
+                    },
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
                   child: SegmentedButton<ThemeMode>(
                     segments: const [
                       ButtonSegment(
@@ -72,43 +118,50 @@ class SettingsScreen extends ConsumerWidget {
                     'Follow the wallpaper palette on Android 12+',
                   ),
                   value: theme.useDynamicColor,
-                  onChanged: (value) => ref
-                      .read(themeProvider.notifier)
-                      .setUseDynamicColor(value),
+                  onChanged: theme.style == AppThemeStyle.material
+                      ? (value) => ref
+                            .read(themeProvider.notifier)
+                            .setUseDynamicColor(value)
+                      : null,
                 ),
                 SwitchListTile(
                   title: const Text('Pure black dark theme'),
                   subtitle: const Text('AMOLED-friendly black surfaces'),
                   value: theme.useAmoled,
-                  onChanged: (value) =>
-                      ref.read(themeProvider.notifier).setUseAmoled(value),
+                  onChanged: theme.style == AppThemeStyle.material
+                      ? (value) =>
+                          ref.read(themeProvider.notifier).setUseAmoled(value)
+                      : null,
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
-                  child: Text(
-                    'Accent',
-                    style: Theme.of(context).textTheme.labelLarge,
+                if (theme.style == AppThemeStyle.toadplayer) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+                    child: Text(
+                      'Accent',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: Wrap(
-                    spacing: 12,
-                    children: [
-                      for (final accent in ToadplayerAccent.values)
-                        _AccentDot(
-                          color: ToadplayerTheme.accentColor(
-                            accent,
-                            Theme.of(context).brightness,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Wrap(
+                      spacing: 12,
+                      children: [
+                        for (final accent in ToadplayerAccent.values)
+                          _AccentDot(
+                            color: ToadplayerTheme.accentColor(
+                              accent,
+                              Theme.of(context).brightness,
+                            ),
+                            selected: theme.toadplayerAccent == accent,
+                            onTap: () => ref
+                                .read(themeProvider.notifier)
+                                .setToadplayerAccent(accent),
                           ),
-                          selected: theme.toadplayerAccent == accent,
-                          onTap: () => ref
-                              .read(themeProvider.notifier)
-                              .setToadplayerAccent(accent),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                ] else
+                  const SizedBox(height: 8),
               ],
             ),
           ),

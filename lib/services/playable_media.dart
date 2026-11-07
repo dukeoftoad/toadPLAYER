@@ -175,6 +175,8 @@ class PlayableMedia {
         if (bitrate != null && bitrate! > 0) 'bitrate': bitrate,
         if (format != null && format!.trim().isNotEmpty)
           'format': format!.trim(),
+        if (genre != null && genre!.trim().isNotEmpty)
+          'genre': genre!.trim(),
         if (explicit) 'explicit': true,
         if (autoplay) 'autoplay': true,
       },

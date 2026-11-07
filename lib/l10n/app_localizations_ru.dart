@@ -4249,8 +4249,8 @@ class AppLocalizationsRu extends AppLocalizations {
       'Послойные караоке-тексты (Apple/Musixmatch/Spotify/QQ, через прокси)';
 
   @override
-  String get lyricsProviderZarzLrcDesc =>
-      'Word-by-word Apple Music lyrics from Zarz-LRC';
+  String get lyricsProviderToadLrcDesc =>
+      'Word-by-word Apple Music lyrics from Toad-LRC';
 
   @override
   String get lyricsProviderLrcRedDesc =>

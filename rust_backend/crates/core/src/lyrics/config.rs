@@ -116,9 +116,9 @@ pub fn available_providers() -> Vec<AvailableProvider> {
         ),
         (
             "toadplayer_lyrics",
-            "Zarz-LRC",
+            "Toad-LRC",
             false,
-            "Word-by-word Apple Music lyrics from Zarz-LRC",
+            "Word-by-word Apple Music lyrics from Toad-LRC",
         ),
         (
             "qqmusic",

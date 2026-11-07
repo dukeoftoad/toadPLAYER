@@ -201,7 +201,7 @@ List<int> _ints(Object? value) => value is List
       ]
     : const [];
 
-const _channel = MethodChannel('com.zarz.toadplayer/audio_route');
+const _channel = MethodChannel('com.toadplayer.app/audio_route');
 
 /// Reads the current route; [path] adds what the platform decoder sees for a
 /// local file. Returns null where the platform has no implementation.

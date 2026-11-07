@@ -35,7 +35,7 @@
 
 #define AppName "Toadplayer"
 #define AppExe "toadplayer.exe"
-#define AppUserModelId "com.zarz.toadplayer"
+#define AppUserModelId "com.toadplayer.app"
 #define AppUrl "https://github.com/toadplayerapp/Toadplayer"
 
 #if Arch == "arm64"
@@ -49,7 +49,7 @@ AppId={{0FFEA5B8-69C1-423B-B38E-1E521494A286}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
-AppPublisher=zarzet
+AppPublisher=dukeoftoad
 AppPublisherURL={#AppUrl}
 AppSupportURL={#AppUrl}/issues
 AppUpdatesURL=https://github.com/toadplayerapp/Toadplayer-Desktop/releases

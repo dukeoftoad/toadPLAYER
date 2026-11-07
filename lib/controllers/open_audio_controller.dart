@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:audio_service/audio_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:toadplayer/providers/music_player_provider.dart';
@@ -8,6 +9,7 @@ import 'package:toadplayer/providers/settings_provider.dart';
 import 'package:toadplayer/services/audio_file_open_service.dart';
 import 'package:toadplayer/services/playable_media.dart';
 import 'package:toadplayer/services/platform_bridge.dart';
+import 'package:toadplayer/services/recently_added_store.dart';
 import 'package:toadplayer/utils/audio_format_utils.dart';
 import 'package:path/path.dart' as p;
 
@@ -107,6 +109,80 @@ class OpenAudioController extends Notifier<bool> {
     }
   }
 
+  /// The menu's Refresh: re-reads tags and embedded covers for every song
+  /// currently in the session, one source at a time so a huge queue stays
+  /// responsive. Returns how many rows were re-read.
+  Future<int> refreshSessionMetadata() async {
+    final handler = ref.read(musicPlayerRuntimeProvider).handler;
+    if (handler == null) return 0;
+    final queue = ref.read(playQueueProvider).value ?? const <MediaItem>[];
+    final sources = <String>{
+      for (final item in queue)
+        if (item.extras?['source'] case final String source)
+          if (source.isNotEmpty) source,
+    };
+    var refreshed = 0;
+    for (final source in sources) {
+      try {
+        await handler.onSourceMetadataChanged(source);
+        refreshed++;
+      } on Object {
+        // A missing file must not stop the rest of the sweep.
+      }
+    }
+    return refreshed;
+  }
+
+  /// The menu's Quick refresh: re-lists the saved default folder and appends
+  /// only the songs that are not queued yet. Returns how many were added,
+  /// or -1 when no default folder is set.
+  Future<int> quickRefreshFromDefaultFolder() async {
+    final folder = ref.read(settingsProvider).defaultAudioFolder;
+    if (folder.isEmpty) return -1;
+    final listed = await PlatformBridge.listSafAudioFiles(folder);
+    final files = listed
+        .map(OpenAudioFile.parse)
+        .whereType<OpenAudioFile>()
+        .toList(growable: false);
+    if (files.isEmpty) return 0;
+    final queue = ref.read(playQueueProvider).value ?? const <MediaItem>[];
+    final queued = <String>{
+      for (final item in queue)
+        if (item.extras?['source'] case final String source) source,
+    };
+    final fresh = [
+      for (final file in files)
+        if (!queued.contains(file.source)) file,
+    ];
+    if (fresh.isEmpty) return 0;
+    await RecentlyAddedStore.instance.noteAdded([
+      for (final file in fresh) file.source,
+    ]);
+    final controller = ref.read(musicPlayerControllerProvider);
+    await controller.enqueueMedia([
+      for (final file in fresh)
+        PlayableMedia(
+          id: 'opened:${file.source}',
+          source: file.source,
+          title: p.basenameWithoutExtension(file.displayName),
+          artist: '',
+          format: audioFormatForPath(file.displayName),
+        ),
+    ]);
+    // Tags for the new rows right away, like a plain open does.
+    final handler = ref.read(musicPlayerRuntimeProvider).handler;
+    if (handler != null) {
+      for (final file in fresh) {
+        try {
+          await handler.onSourceMetadataChanged(file.source);
+        } on Object {
+          // Keep its filename as the title.
+        }
+      }
+    }
+    return fresh.length;
+  }
+
   Future<void> open(
     Iterable<OpenAudioFile> inputs, {
     IosSecurityScopedAccess? access,
@@ -127,6 +203,9 @@ class OpenAudioController extends Notifier<bool> {
       }
       if (!ref.mounted || request != _request) return;
       _hydrated.clear();
+      await RecentlyAddedStore.instance.noteAdded([
+        for (final file in files) file.source,
+      ]);
       await ref.read(musicPlayerControllerProvider).playAll([
         for (final file in files)
           PlayableMedia(

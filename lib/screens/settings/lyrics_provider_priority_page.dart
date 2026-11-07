@@ -230,8 +230,8 @@ class _LyricsProviderPriorityPageState
         );
       case 'toadplayer_lyrics':
         return _LyricsProviderInfo(
-          name: 'Zarz-LRC',
-          description: context.l10n.lyricsProviderZarzLrcDesc,
+          name: 'Toad-LRC',
+          description: context.l10n.lyricsProviderToadLrcDesc,
           icon: Icons.verified_outlined,
         );
       case 'qqmusic':

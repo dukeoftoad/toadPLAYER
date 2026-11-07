@@ -4188,8 +4188,8 @@ class AppLocalizationsUk extends AppLocalizations {
       'Текст пісні для караоке (послідовний показ слів; Apple / Musixmatch / Spotify / QQ, через проксі)';
 
   @override
-  String get lyricsProviderZarzLrcDesc =>
-      'Синхронізація послівного тексту Apple Music через Zarz-LRC';
+  String get lyricsProviderToadLrcDesc =>
+      'Синхронізація послівного тексту Apple Music через Toad-LRC';
 
   @override
   String get lyricsProviderLrcRedDesc =>
