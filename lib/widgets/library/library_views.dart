@@ -2,11 +2,13 @@
 // artist/album grouping, the queue-backed track tile, and the per-track
 // action sheet. Hardcoded English labels match the standalone slice's other
 // shell screens.
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:toadplayer/models/library_collections.dart';
 import 'package:toadplayer/models/track.dart';
+import 'package:toadplayer/providers/library_collections_provider.dart';
 import 'package:toadplayer/providers/music_player_provider.dart';
 import 'package:toadplayer/services/playable_media.dart';
 import 'package:toadplayer/widgets/app_bottom_sheet.dart';
@@ -520,7 +522,7 @@ PlayableMedia? resolvePlaylistTrackPlayable(Track track, List<MediaItem> queue) 
   return null;
 }
 
-class LibraryTrackTile extends StatelessWidget {
+class LibraryTrackTile extends ConsumerWidget {
   const LibraryTrackTile({
     super.key,
     required this.track,
@@ -537,7 +539,7 @@ class LibraryTrackTile extends StatelessWidget {
   final VoidCallback? onLongPress;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final item = track.item;
@@ -574,16 +576,74 @@ class LibraryTrackTile extends StatelessWidget {
           color: colorScheme.onSurfaceVariant,
         ),
       ),
-      trailing: duration.isEmpty
-          ? null
-          : Text(
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TrackLoveButton(item: item),
+          if (duration.isNotEmpty)
+            Text(
               duration,
               style: textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
+        ],
+      ),
       onTap: onTap,
       onLongPress: onLongPress,
+    );
+  }
+}
+
+/// The heart every song row carries: one tap adds the song to (or removes it
+/// from) the Favourites list, mirroring the player's favourite button.
+class TrackLoveButton extends ConsumerWidget {
+  const TrackLoveButton({super.key, required this.item});
+
+  final MediaItem item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final loved = ref.watch(mediaTrackLovedProvider(item)).value ?? false;
+    final colorScheme = Theme.of(context).colorScheme;
+    return IconButton(
+      tooltip: loved ? 'Remove from favourites' : 'Add to favourites',
+      visualDensity: VisualDensity.compact,
+      icon: Icon(
+        loved ? Icons.favorite : Icons.favorite_border,
+        size: 20,
+        color: loved ? colorScheme.primary : colorScheme.onSurfaceVariant,
+      ),
+      onPressed: () => toggleTrackLoved(context, ref, item),
+    );
+  }
+}
+
+/// Flips the song's membership in the Favourites list and reports a failure
+/// through a snackbar rather than leaving the heart silently inert.
+Future<void> toggleTrackLoved(
+  BuildContext context,
+  WidgetRef ref,
+  MediaItem item,
+) async {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  try {
+    final track = await ref.read(playerCollectionTrackProvider(item).future);
+    final loved = await ref
+        .read(libraryCollectionsProvider.notifier)
+        .toggleLoved(track);
+    if (messenger != null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            loved ? 'Added to Favourites' : 'Removed from Favourites',
+          ),
+        ),
+      );
+    }
+  } catch (_) {
+    messenger?.showSnackBar(
+      const SnackBar(content: Text("Couldn't update Favourites")),
     );
   }
 }
@@ -678,13 +738,18 @@ class LibraryAlbumCard extends StatelessWidget {
   }
 }
 
-/// Long-press actions for a queue-backed track: play next, add to the queue,
-/// or send it to a playlist.
+/// Long-press actions for a queue-backed track: love it, play it next, add
+/// it to the queue, or send it to a playlist.
 Future<void> showLibraryTrackActionsSheet(
   BuildContext context,
   WidgetRef ref,
   MediaItem item,
 ) async {
+  final loved = await ref
+      .read(mediaTrackLovedProvider(item).future)
+      .catchError((_) => false);
+  if (!context.mounted) return;
+
   Future<void> enqueue(Future<void> Function(PlayableMedia) action) async {
     try {
       await action(playableFromQueueItem(item));
@@ -740,6 +805,14 @@ Future<void> showLibraryTrackActionsSheet(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Column(
                 children: [
+                  actionTile(
+                    loved ? Icons.favorite : Icons.favorite_border,
+                    loved ? 'Remove from Favourites' : 'Add to Favourites',
+                    () {
+                      Navigator.of(sheetContext).pop();
+                      unawaited(toggleTrackLoved(context, ref, item));
+                    },
+                  ),
                   actionTile(
                     Icons.skip_next_outlined,
                     'Play next',

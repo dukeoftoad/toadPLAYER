@@ -1,11 +1,12 @@
 import 'dart:convert';
 
+import 'package:audio_service/audio_service.dart' show MediaItem;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:toadplayer/models/library_collections.dart';
 import 'package:toadplayer/models/track.dart';
 import 'package:toadplayer/providers/music_player_provider.dart'
-    show musicPlayerRuntimeProvider;
+    show musicPlayerRuntimeProvider, playerCollectionTrackProvider;
 import 'package:toadplayer/services/autoplay_personalization.dart'
     show AutoplayFeedbackKind, AutoplayLearningTrack;
 import 'package:toadplayer/services/library_collections_database.dart';
@@ -883,4 +884,15 @@ final libraryPlaylistPickerSummariesProvider = FutureProvider.autoDispose
       final db = LibraryCollectionsDatabase.instance;
       await db.migrateFromSharedPreferences();
       return db.loadPlaylistPickerSummaries(request.trackKeys);
+    });
+
+/// Whether the queue-backed media item sits in the Favourites list, for the
+/// heart buttons on song rows. Resolves the item's collection identity once
+/// and then follows the collections state.
+final mediaTrackLovedProvider = FutureProvider.autoDispose
+    .family<bool, MediaItem>((ref, item) async {
+      final track = await ref.watch(playerCollectionTrackProvider(item).future);
+      return ref.watch(
+        libraryCollectionsProvider.select((state) => state.isLoved(track)),
+      );
     });
