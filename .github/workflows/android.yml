@@ -175,18 +175,35 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publish alpha release
+      - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*.apk
-          prerelease: true
-          make_latest: false
+          prerelease: false
+          make_latest: true
           generate_release_notes: true
           body: |
-            Toadplayer **${{ github.ref_name }}** pre-release build for Android (arm64-v8a, target API 37).
+            Toadplayer **${{ github.ref_name }}** release build for Android (arm64-v8a, target API 37).
 
             - `toadplayer-*-arm64-v8a.apk` — one build for modern 64-bit devices
+
+            **What's new in v1.0.0**
+
+            - Fixed the Rust-backend init race that left opened files without
+              titles/artists/covers ("Rust backend is not initialized").
+            - Fixed SAF `/proc/self/fd` playback failures (MEDIA_ERROR_UNKNOWN):
+              the descriptor is now dup'd and held for MediaPlayer's lifetime.
+            - Fixed FTS5 search-index transaction corruption ("cannot start a
+              transaction within a transaction"); LIKE fallback retained.
+            - Migrated legacy AudioTrack stream-type API to AudioAttributes
+              for Android 16+ compatibility.
+            - Deferred heavy startup work off the first frame (less cold-start
+              jank).
+            - Added a non-truncating system-property reader
+              (`__system_property_read_callback` with fallback).
+            - Custom sleep timer: custom duration entry + "stop after current
+              track" mode.
 
             Sideloading: download the APK, allow "Install unknown apps" for your
             browser/file manager, then install. Without release-keystore secrets

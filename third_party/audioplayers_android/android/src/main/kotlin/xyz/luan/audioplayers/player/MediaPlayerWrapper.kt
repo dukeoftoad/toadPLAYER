@@ -14,6 +14,10 @@ class MediaPlayerWrapper(
     private var equalizer: PlaybackEqualizer? = null
     private val mixedOutput = MixedOutput(wrappedPlayer, mediaPlayer.audioSessionId)
     private var playbackParamsApplied = false
+    // The currently active Source, tracked so its native resources (e.g. a
+    // dup'd playback descriptor) are released when replaced or when this
+    // wrapper is released.
+    private var currentSource: Source? = null
 
     init {
         configureMediaPlayer()
@@ -85,6 +89,10 @@ class MediaPlayerWrapper(
     }
 
     override fun setSource(source: Source) {
+        // Release the previous source's native resources (e.g. a dup'd
+        // playback descriptor) before resetting and binding the new one.
+        currentSource?.release()
+        currentSource = source
         reset()
         source.setForMediaPlayer(mediaPlayer)
     }
@@ -114,6 +122,8 @@ class MediaPlayerWrapper(
         // Retiring a preparing network source may still deliver queued callbacks.
         // They belong to this output, not the next one on the WrappedPlayer.
         released = true
+        currentSource?.release()
+        currentSource = null
         if (Build.VERSION.SDK_INT >= 28) equalizer?.close()
         equalizer = null
         mixedOutput.close()

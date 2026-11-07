@@ -6103,6 +6103,17 @@ class AppLocalizationsHi extends AppLocalizations {
   String get nowPlayingSleepTimerOff => 'Turn off sleep timer';
 
   @override
+  String get nowPlayingSleepTimerStopAfterTrack => 'Stop after current track';
+
+  @override
+  String get nowPlayingSleepTimerCustom => 'Custom…';
+
+  @override
+  String nowPlayingSleepTimerMinutesCustom(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
   String nowPlayingSleepTimerSet(String duration) {
     return 'Sleep timer set for $duration';
   }

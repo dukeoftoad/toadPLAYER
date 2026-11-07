@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' show Random;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
@@ -584,6 +585,85 @@ class PlatformBridge {
   static Future<void> prepareRuntimeState(String dataDir) async {
     if (!Platform.isAndroid) return;
     await _invokeMap('prepareRuntimeState', {'data_dir': dataDir});
+  }
+
+  // --- Rust backend readiness gate (mobile) -------------------------------
+  // The Rust ExtensionManager (the "owner") is created lazily by
+  // initExtensionSystem. Until that call completes, every backend method that
+  // reaches owner() throws "Rust backend is not initialized". File-open and
+  // metadata operations that can run before the runtime finishes initializing
+  // await this gate so they never hit that race.
+  static final Completer<void> _backendReady = Completer<void>();
+  static bool _mobileBackendInitAttempted = false;
+
+  /// Resolves once the Rust backend owner has been initialized (or its
+  /// initialization has been attempted and failed gracefully). Callers that
+  /// touch owner()-dependent methods (metadata, covers, lyrics, library scan)
+  /// should await this before invoking.
+  static Future<void> ensureBackendReady() {
+    if (_mobileBackendInitAttempted) return _backendReady.future;
+    return initializeMobileBackend();
+  }
+
+  /// Initializes the Rust backend owner on Android and iOS. Idempotent and
+  /// failure-tolerant: a runtime error completes the gate anyway so callers
+  /// proceed and fail at the specific operation (graceful degradation) rather
+  /// than hanging the file-open path. On desktop the FFI backend loads on
+  /// first use, so this is a no-op there.
+  static Future<void> initializeMobileBackend() async {
+    if (_mobileBackendInitAttempted) return _backendReady.future;
+    _mobileBackendInitAttempted = true;
+    if (!(Platform.isAndroid || Platform.isIOS)) {
+      if (!_backendReady.isCompleted) _backendReady.complete();
+      return;
+    }
+    try {
+      final support = await getApplicationSupportDirectory();
+      final extensionsDir = Directory(p.join(support.path, 'extensions'));
+      final dataDir = Directory(p.join(support.path, 'extension_data'));
+      await extensionsDir.create(recursive: true);
+      await dataDir.create(recursive: true);
+      final prefs = await SharedPreferences.getInstance();
+      var masterKey = prefs.getString('toadplayer_backend_master_key');
+      if (masterKey == null || masterKey.isEmpty) {
+        // Stable, install-scoped key. The host hashes it to SHA-256 before
+        // use, so any non-empty string is acceptable; a random value avoids
+        // reusing a derived/identical key across installs.
+        masterKey = _generateBackendMasterKey();
+        await prefs.setString('toadplayer_backend_master_key', masterKey);
+      }
+      // Android builds the runtime-state payload from signed sessions in the
+      // data dir; iOS resolves it inside the host.
+      if (Platform.isAndroid) {
+        await prepareRuntimeState(dataDir.path);
+      }
+      await initExtensionSystem(
+        extensionsDir.path,
+        dataDir.path,
+        masterKey: masterKey,
+        lyricsProviders: const [],
+        lyricsFetchOptions: const {},
+      );
+      _log.i('Mobile Rust backend initialized');
+    } catch (error, stack) {
+      // A failure here must not break playback: the SAF lease path and
+      // ContentResolver copies do not need the owner. Metadata/cover reads
+      // will simply continue to degrade as before.
+      _log.e(
+        'Failed to initialize mobile Rust backend; metadata/cover '
+        'operations will degrade',
+        error,
+        stack,
+      );
+    } finally {
+      if (!_backendReady.isCompleted) _backendReady.complete();
+    }
+  }
+
+  static String _generateBackendMasterKey() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
   static Future<Map<String, dynamic>> _cachedInvoke(
@@ -1463,7 +1543,10 @@ class PlatformBridge {
   static Future<Map<String, dynamic>> extractCoverToFile(
     String audioPath,
     String outputPath,
-  ) {
+  ) async {
+    // Cover extraction reaches the Rust owner; await readiness to avoid the
+    // "Rust backend is not initialized" race on freshly opened files.
+    await ensureBackendReady();
     return _withMediaFileAccess([audioPath, outputPath], () {
       return _invokeMap('extractCoverToFile', {
         'audio_path': audioPath,
@@ -1517,7 +1600,10 @@ class PlatformBridge {
   static Future<Map<String, dynamic>> readFileMetadata(
     String filePath, {
     String? displayName,
-  }) {
+  }) async {
+    // Await the Rust owner so a tag read before backend init does not throw
+    // "Rust backend is not initialized".
+    await ensureBackendReady();
     return _invokeMap('readFileMetadata', {
       'file_path': filePath,
       'display_name': ?displayName,
@@ -2927,6 +3013,10 @@ class PlatformBridge {
   static Future<Map<String, dynamic>?> readAudioMetadata(
     String filePath,
   ) async {
+    // The Rust owner must exist before any tag read. Awaiting the readiness
+    // gate eliminates the "Rust backend is not initialized" race that left
+    // opened files without titles/artists/covers.
+    await ensureBackendReady();
     try {
       final result = await _channel.invokeMethod('readAudioMetadata', {
         'file_path': filePath,

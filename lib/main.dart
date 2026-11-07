@@ -24,6 +24,7 @@ import 'package:toadplayer/services/cover_cache_manager.dart';
 import 'package:toadplayer/services/desktop_diagnostics.dart';
 import 'package:toadplayer/services/music_player_service.dart';
 import 'package:toadplayer/services/playback_notification.dart';
+import 'package:toadplayer/services/platform_bridge.dart';
 import 'package:toadplayer/services/player_widget_service.dart';
 import 'package:toadplayer/utils/android_tv.dart';
 import 'package:toadplayer/utils/desktop_platform.dart';
@@ -40,6 +41,13 @@ void main() {
     () async {
       final binding = WidgetsFlutterBinding.ensureInitialized();
       final preferences = SharedPreferences.getInstance();
+      // Initialize the Rust backend owner as early as possible on mobile so
+      // metadata/cover/lyrics reads never hit the "Rust backend is not
+      // initialized" race. Runs in parallel with the activity-attachment wait;
+      // callers gate on PlatformBridge.ensureBackendReady().
+      if (Platform.isAndroid || Platform.isIOS) {
+        unawaited(PlatformBridge.initializeMobileBackend());
+      }
       if (Platform.isAndroid) {
         if (!isActivityAttached(binding)) {
           unawaited(_startBackgroundPlayback());
@@ -73,29 +81,36 @@ void main() {
         ),
       );
 
-      musicPlayerRuntime.prepareCovers();
-      musicPlayerRuntime.startSongAnalysis();
-      if (Platform.isAndroid || Platform.isIOS) {
-        unawaited(
-          PlayerWidgetService.instance.initialize((command) async {
-            await restorePersistedPlaybackSession();
-            final handler = await initMusicPlayer();
-            if (command == 'open') {
-              await WidgetsBinding.instance.endOfFrame;
-              final navigator = playerRootNavigatorKey.currentState;
-              if (navigator != null && handler.mediaItem.value != null) {
-                unawaited(
-                  navigator.push<void>(
-                    NowPlayingRoute(child: const NowPlayingScreen()),
-                  ),
-                );
+      // Defer cover preparation, song analysis and the player-widget handler
+      // registration to after the first frame has painted. Running these
+      // synchronously between runApp() and the first frame build blocked the
+      // platform thread for ~800ms and dropped ~48 frames on cold start; they
+      // are not needed for the first paint.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        musicPlayerRuntime.prepareCovers();
+        musicPlayerRuntime.startSongAnalysis();
+        if (Platform.isAndroid || Platform.isIOS) {
+          unawaited(
+            PlayerWidgetService.instance.initialize((command) async {
+              await restorePersistedPlaybackSession();
+              final handler = await initMusicPlayer();
+              if (command == 'open') {
+                await WidgetsBinding.instance.endOfFrame;
+                final navigator = playerRootNavigatorKey.currentState;
+                if (navigator != null && handler.mediaItem.value != null) {
+                  unawaited(
+                    navigator.push<void>(
+                      NowPlayingRoute(child: const NowPlayingScreen()),
+                    ),
+                  );
+                }
+              } else {
+                await PlayerWidgetService.control(handler, command);
               }
-            } else {
-              await PlayerWidgetService.control(handler, command);
-            }
-          }),
-        );
-      }
+            }),
+          );
+        }
+      });
     },
     (error, stack) {
       _log.e('Uncaught zone error: $error', error, stack);

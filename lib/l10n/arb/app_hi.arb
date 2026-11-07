@@ -7035,6 +7035,23 @@
   "@nowPlayingSleepTimerOff": {
     "description": "Action to cancel the active playback sleep timer"
   },
+  "nowPlayingSleepTimerStopAfterTrack": "Stop after current track",
+  "@nowPlayingSleepTimerStopAfterTrack": {
+    "description": "Sleep timer option that stops playback when the current track ends"
+  },
+  "nowPlayingSleepTimerCustom": "Custom…",
+  "@nowPlayingSleepTimerCustom": {
+    "description": "Sleep timer option to enter a custom duration"
+  },
+  "nowPlayingSleepTimerMinutesCustom": "{minutes} min",
+  "@nowPlayingSleepTimerMinutesCustom": {
+    "description": "Custom sleep timer confirmation label",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "nowPlayingSleepTimerSet": "Sleep timer set for {duration}",
   "@nowPlayingSleepTimerSet": {
     "description": "Confirmation after setting the playback sleep timer",

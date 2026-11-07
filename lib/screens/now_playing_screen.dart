@@ -1116,7 +1116,9 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     final controller = ref.read(musicPlayerControllerProvider);
     final sleepTimerEndsAt = controller.sleepTimerEndsAt;
     final sleepTimerSubtitle = sleepTimerEndsAt == null
-        ? null
+        ? (controller.sleepTimerStopAfterTrack
+            ? context.l10n.nowPlayingSleepTimerStopAfterTrack
+            : null)
         : context.l10n.nowPlayingSleepTimerActive(
             MaterialLocalizations.of(
               context,
@@ -1301,7 +1303,9 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     ColorScheme colorScheme,
   ) async {
     const durations = [15, 30, 45, 60];
-    final isActive = controller.sleepTimerEndsAt != null;
+    final isActive =
+        controller.sleepTimerEndsAt != null ||
+        controller.sleepTimerStopAfterTrack;
     final selection = await showAppBottomSheet<String>(
       context: context,
       useRootNavigator: true,
@@ -1315,9 +1319,21 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
               SettingsItem(
                 icon: Icons.timer_outlined,
                 title: sheetContext.l10n.nowPlayingSleepTimerMinutes(minutes),
-                showDivider: isActive || minutes != durations.last,
+                showDivider: true,
                 onTap: () => Navigator.of(sheetContext).pop('$minutes'),
               ),
+            SettingsItem(
+              icon: Icons.stop_circle_outlined,
+              title: sheetContext.l10n.nowPlayingSleepTimerStopAfterTrack,
+              showDivider: true,
+              onTap: () => Navigator.of(sheetContext).pop('track'),
+            ),
+            SettingsItem(
+              icon: Icons.edit_outlined,
+              title: sheetContext.l10n.nowPlayingSleepTimerCustom,
+              showDivider: isActive,
+              onTap: () => Navigator.of(sheetContext).pop('custom'),
+            ),
             if (isActive)
               SettingsItem(
                 icon: Icons.timer_off_outlined,
@@ -1339,6 +1355,36 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
       return;
     }
 
+    if (selection == 'track') {
+      controller.setSleepTimerStopAfterTrack();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.l10n.nowPlayingSleepTimerSet(
+              context.l10n.nowPlayingSleepTimerStopAfterTrack,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (selection == 'custom') {
+      final minutes = await _promptCustomSleepMinutes(context, colorScheme);
+      if (minutes == null || minutes <= 0) return;
+      controller.setSleepTimer(Duration(minutes: minutes));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.l10n.nowPlayingSleepTimerSet(
+              context.l10n.nowPlayingSleepTimerMinutesCustom(minutes),
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
     final minutes = int.tryParse(selection);
     if (minutes == null) return;
     controller.setSleepTimer(Duration(minutes: minutes));
@@ -1351,6 +1397,46 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
         ),
       ),
     );
+  }
+
+  /// Prompts the user for a custom sleep timer duration in minutes.
+  Future<int?> _promptCustomSleepMinutes(
+    BuildContext context,
+    ColorScheme colorScheme,
+  ) async {
+    final controller = TextEditingController(text: '20');
+    final result = await showDialog<int>(
+      context: context,
+      useRootNavigator: true,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        title: Text(context.l10n.nowPlayingSleepTimerCustom),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: context.l10n.nowPlayingSleepTimerCustom,
+            suffixText: 'min',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(null),
+            child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+          ),
+          TextButton(
+            onPressed: () {
+              final value = int.tryParse(controller.text.trim());
+              Navigator.of(dialogContext).pop(value);
+            },
+            child: Text(MaterialLocalizations.of(context).okButtonLabel),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return result;
   }
 
   Future<void> _goToCurrentAlbum({

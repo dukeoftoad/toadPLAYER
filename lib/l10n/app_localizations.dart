@@ -9942,6 +9942,24 @@ abstract class AppLocalizations {
   /// **'Turn off sleep timer'**
   String get nowPlayingSleepTimerOff;
 
+  /// Sleep timer option that stops playback when the current track ends
+  ///
+  /// In en, this message translates to:
+  /// **'Stop after current track'**
+  String get nowPlayingSleepTimerStopAfterTrack;
+
+  /// Sleep timer option to enter a custom duration
+  ///
+  /// In en, this message translates to:
+  /// **'Custom…'**
+  String get nowPlayingSleepTimerCustom;
+
+  /// Custom sleep timer confirmation label
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String nowPlayingSleepTimerMinutesCustom(int minutes);
+
   /// Confirmation after setting the playback sleep timer
   ///
   /// In en, this message translates to:

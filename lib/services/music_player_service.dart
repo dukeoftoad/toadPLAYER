@@ -182,6 +182,8 @@ class MusicPlayerHandler extends BaseAudioHandler
   Timer? _sleepTimer;
   Timer? _listeningTimer;
   DateTime? _sleepTimerEndsAt;
+  // When set, playback stops after the current track ends instead of advancing.
+  bool _sleepTimerStopAfterTrack = false;
 
   bool _shuffle = false;
   List<MediaItem>? _originalQueueOrder;
@@ -221,6 +223,8 @@ class MusicPlayerHandler extends BaseAudioHandler
   static const Duration _positionQueryAllowance = Duration(milliseconds: 50);
 
   DateTime? get sleepTimerEndsAt => _sleepTimerEndsAt;
+  /// Whether the sleep timer is armed to stop at the end of the current track.
+  bool get sleepTimerStopAfterTrack => _sleepTimerStopAfterTrack;
   bool get isDisposed => _disposed;
   int get playbackRequestGeneration => _playRequestGeneration;
 
@@ -820,6 +824,7 @@ class MusicPlayerHandler extends BaseAudioHandler
   void setSleepTimer(Duration duration) {
     if (duration <= Duration.zero) return;
     _sleepTimer?.cancel();
+    _sleepTimerStopAfterTrack = false;
     _sleepTimerEndsAt = DateTime.now().add(duration);
     _sleepTimer = Timer(duration, () {
       _sleepTimer = null;
@@ -830,10 +835,21 @@ class MusicPlayerHandler extends BaseAudioHandler
     });
   }
 
+  /// Arms the sleep timer to stop playback when the current track ends,
+  /// instead of after a fixed duration. Clears any timed sleep timer so the
+  /// two modes are mutually exclusive.
+  void setSleepTimerStopAfterTrack() {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepTimerEndsAt = null;
+    _sleepTimerStopAfterTrack = true;
+  }
+
   void cancelSleepTimer() {
     _sleepTimer?.cancel();
     _sleepTimer = null;
     _sleepTimerEndsAt = null;
+    _sleepTimerStopAfterTrack = false;
   }
 
   Future<bool> _activateAudioSession(int generation) async {
@@ -2150,6 +2166,15 @@ class MusicPlayerHandler extends BaseAudioHandler
     try {
       _runtime.personalization.finish();
       if (await _gapless.handoff()) return;
+      // Sleep timer "stop after current track": the track just ended, so stop
+      // here instead of advancing to the next queue item.
+      if (_sleepTimerStopAfterTrack) {
+        _log.i('Sleep timer (end of track) reached; stopping playback');
+        _sleepTimerStopAfterTrack = false;
+        await _pausePlayback();
+        _broadcastState(playerState: PlaybackDeckState.completed);
+        return;
+      }
       await _onComplete();
     } finally {
       _completing = false;

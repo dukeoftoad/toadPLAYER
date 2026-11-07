@@ -73,10 +73,16 @@ abstract final class HistorySchema {
     await _createQueueIndexes(db);
     await _createPathKeyTable(db);
     await _createOriginIndex(db);
-    final searchFtsAvailable = await createSearchFts(db);
-
+    // The FTS5/trigram index is intentionally NOT created here. sqflite runs
+    // onCreate inside a migration transaction; when the FTS5 module is missing
+    // the CREATE VIRTUAL TABLE fails mid-transaction, leaving it in an error
+    // state so the probe's cleanup DROP throws "cannot start a transaction
+    // within a transaction" and corrupts the migration. The index is created
+    // AFTER open() commits, outside any transaction, by HistoryDatabase.
+    // searchFtsAvailable is therefore reported false here; the post-open call
+    // sets the authoritative value.
     _log.i('Database schema created with indexes');
-    return searchFtsAvailable;
+    return false;
   }
 
   static Future<void> upgrade(

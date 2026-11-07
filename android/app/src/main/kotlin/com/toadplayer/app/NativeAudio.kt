@@ -23,4 +23,14 @@ internal object NativeAudio {
     external fun readFlac(handle: Long, data: ByteBuffer, bits: Int): Int
     external fun seekFlac(handle: Long, sample: Long)
     external fun closeFlac(handle: Long)
+
+    /**
+     * Reads a system property without the 92-byte (PROP_VALUE_MAX) truncation
+     * of [android.os.SystemProperties] / __system_property_get. The native
+     * implementation uses __system_property_read_callback (API 26+) when
+     * available, falling back to the legacy call on older devices. Use this
+     * instead of any truncated read for long-valued properties such as
+     * ro.build.version.known_codenames.
+     */
+    external fun readSystemPropertyFull(name: String): String
 }

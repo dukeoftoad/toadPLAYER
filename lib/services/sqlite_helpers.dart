@@ -192,7 +192,20 @@ bool isTrigramFts5UnavailableError(Object error) {
 /// more reliable than PRAGMA compile_options because it also verifies that the
 /// trigram tokenizer is registered. All app databases use the same sqflite
 /// runtime, so subsequent history/library initialization can reuse the result.
+///
+/// The probe must NOT run inside an open transaction (for example, from a
+/// sqflite onCreate/onUpgrade migration callback). A failed CREATE VIRTUAL
+/// TABLE inside a transaction leaves the transaction in an error state, and the
+/// cleanup DROP then raises "cannot start a transaction within a transaction",
+/// which corrupts the migration. When the executor is an active [Transaction],
+/// the probe defers (returns false without caching) so a later post-open call
+/// on the database itself performs the real, transaction-safe probe.
 Future<bool> _supportsTrigramFts5(DatabaseExecutor db) {
+  if (db is Transaction) {
+    // Defer: do not cache, do not touch FTS5 while a migration transaction
+    // is open. The post-open caller retries on the bare Database.
+    return Future.value(false);
+  }
   return _trigramFts5Capability ??= _probeTrigramFts5(db);
 }
 
@@ -211,6 +224,14 @@ Future<bool> _probeTrigramFts5(DatabaseExecutor db) async {
         'Trigram FTS5 is unavailable in this SQLite runtime; '
         'search will use the LIKE fallback',
       );
+    } else if (_isTransactionStateError(error)) {
+      // The probe ran inside a transaction that is now in an error state.
+      // Do not attempt further statements here; the caller's transaction
+      // will roll back and the post-open probe will run cleanly.
+      _log.w(
+        'Trigram FTS5 probe deferred because the database transaction is '
+        'busy; the post-open probe will retry: $error',
+      );
     } else {
       _log.w(
         'Could not probe trigram FTS5; search will use the LIKE fallback: '
@@ -219,12 +240,26 @@ Future<bool> _probeTrigramFts5(DatabaseExecutor db) async {
     }
     return false;
   } finally {
-    try {
-      await db.execute('DROP TABLE IF EXISTS temp.$_trigramFts5ProbeTable');
-    } catch (error) {
-      _log.d('Could not remove the temporary FTS5 probe table: $error');
+    // Only attempt cleanup when the connection is not in a failed
+    // transaction state. A DROP here while a transaction is open would raise
+    // "cannot start a transaction within a transaction".
+    if (db is! Transaction) {
+      try {
+        await db.execute('DROP TABLE IF EXISTS temp.$_trigramFts5ProbeTable');
+      } catch (error) {
+        _log.d('Could not remove the temporary FTS5 probe table: $error');
+      }
     }
   }
+}
+
+bool _isTransactionStateError(Object error) {
+  final message = error.toString().toLowerCase();
+  return message.contains('cannot start a transaction within a transaction') ||
+      message.contains('cannot rollback - no transaction is active') ||
+      message.contains('cannot commit - no transaction is active') ||
+      message.contains('database disk image is malformed') ||
+      message.contains('database is locked');
 }
 
 /// Creates an external-content FTS5 index that preserves substring search
@@ -302,13 +337,19 @@ Future<bool> createTrigramFtsIndex(
     );
     // Do not leave a half-created index/triggers behind. This makes a later
     // retry deterministic and never compromises the authoritative table.
-    try {
-      await db.execute('DROP TRIGGER IF EXISTS ${triggerPrefix}_ai');
-      await db.execute('DROP TRIGGER IF EXISTS ${triggerPrefix}_ad');
-      await db.execute('DROP TRIGGER IF EXISTS ${triggerPrefix}_au');
-      await db.execute('DROP TABLE IF EXISTS $ftsTable');
-    } catch (cleanupError) {
-      _log.w('Failed to clean up partial FTS5 index $ftsTable: $cleanupError');
+    // Skip cleanup when inside a transaction: a failed DDL statement leaves
+    // the transaction in an error state, and further DROPs would raise
+    // "cannot start a transaction within a transaction". The transaction's
+    // own rollback clears any partial objects safely.
+    if (db is! Transaction) {
+      try {
+        await db.execute('DROP TRIGGER IF EXISTS ${triggerPrefix}_ai');
+        await db.execute('DROP TRIGGER IF EXISTS ${triggerPrefix}_ad');
+        await db.execute('DROP TRIGGER IF EXISTS ${triggerPrefix}_au');
+        await db.execute('DROP TABLE IF EXISTS $ftsTable');
+      } catch (cleanupError) {
+        _log.w('Failed to clean up partial FTS5 index $ftsTable: $cleanupError');
+      }
     }
     return false;
   }

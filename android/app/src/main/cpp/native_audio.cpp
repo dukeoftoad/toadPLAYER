@@ -7,11 +7,14 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>
-#include <memory>
+#include <dlfcn.h>
 #include <limits>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
+#include <string>
+#include <sys/system_properties.h>
 #include <unordered_map>
 #include <vector>
 
@@ -331,4 +334,36 @@ JNIEXPORT void JNICALL JNI_AUDIO(seekFlac)(JNIEnv *env, jobject, jlong handle, j
     } catch (const std::exception &e) { report(env, e); }
 }
 JNIEXPORT void JNICALL JNI_AUDIO(closeFlac)(JNIEnv *, jobject, jlong handle) { flacSources.remove(handle); }
+
+// Reads a system property without the PROP_VALUE_MAX (92-byte) truncation
+// imposed by __system_property_get. __system_property_read_callback (API 26+)
+// delivers the full value; it is resolved through dlsym so the library still
+// loads and runs on API < 26 (minSdk 21), where the legacy call is used as a
+// fallback. This addresses ro.build.version.known_codenames, whose 309-char
+// value the legacy call truncates and which can misreport the OS version.
+JNIEXPORT jstring JNICALL JNI_AUDIO(readSystemPropertyFull)(
+        JNIEnv *env, jobject, jstring name) {
+    const char *nameStr = env->GetStringUTFChars(name, nullptr);
+    if (!nameStr) return env->NewStringUTF("");
+    std::string value;
+    using CallbackFn = void (*)(const prop_info *, void *,
+        void (*)(void *, const char *, const char *, uint32_t));
+    static CallbackFn readCallback = []() -> CallbackFn {
+        void *sym = dlsym(RTLD_DEFAULT, "__system_property_read_callback");
+        return sym ? reinterpret_cast<CallbackFn>(sym) : nullptr;
+    }();
+    const prop_info *info = __system_property_find(nameStr);
+    if (info && readCallback) {
+        readCallback(info, &value,
+            [](void *cookie, const char *, const char *val, uint32_t) {
+                *static_cast<std::string *>(cookie) = val ? val : "";
+            });
+    } else {
+        char buffer[PROP_VALUE_MAX] = {0};
+        __system_property_get(nameStr, buffer);
+        value = buffer;
+    }
+    env->ReleaseStringUTFChars(name, nameStr);
+    return env->NewStringUTF(value.c_str());
+}
 }

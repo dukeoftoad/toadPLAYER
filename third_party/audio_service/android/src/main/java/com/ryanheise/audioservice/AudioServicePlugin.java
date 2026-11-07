@@ -5,6 +5,7 @@ import android.app.Application;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -1091,31 +1092,40 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
                     // See: https://issuetracker.google.com/issues/65344811
                     if (silenceAudioTrack == null) {
                         byte[] silence = new byte[2048];
-                        // TODO: Uncomment this after moving to a minSdkVersion of 21.
-                        /* AudioAttributes audioAttributes = new AudioAttributes.Builder() */
-                        /*     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC) */
-                        /*     .setUsage(AudioAttributes.USAGE_MEDIA) */
-                        /*     .build(); */
-                        /* AudioFormat audioFormat = new AudioFormat.Builder() */
-                        /*     .setChannelMask(AudioFormat.CHANNEL_CONFIGURATION_MONO) */
-                        /*     .setEncoding(AudioFormat.ENCODING_PCM_8BIT) */
-                        /*     .setSampleRate(SILENCE_SAMPLE_RATE) */
-                        /*     .build(); */
-                        /* silenceAudioTrack = new AudioTrack.Builder() */
-                        /*     .setAudioAttributes(audioAttributes) */
-                        /*     .setAudioFormat(audioFormat) */
-                        /*     .setBufferSizeInBytes(silence.length) */
-                        /*     .setTransferMode(AudioTrack.MODE_STATIC) */
-                        /*     .build(); */
-                        @SuppressWarnings("deprecation")
-                        final AudioTrack audioTrack = new AudioTrack(
-                                AudioManager.STREAM_MUSIC,
-                                SILENCE_SAMPLE_RATE,
-                                AudioFormat.CHANNEL_CONFIGURATION_MONO,
-                                AudioFormat.ENCODING_PCM_8BIT,
-                                silence.length,
-                                AudioTrack.MODE_STATIC);
-                        silenceAudioTrack = audioTrack;
+                        // Migrated from the legacy stream-type constructor
+                        // (new AudioTrack(STREAM_MUSIC, ...)) which is
+                        // deprecated and actively broken on Android 16+, to
+                        // the AudioAttributes-based AudioTrack.Builder. The
+                        // minSdk is now >= 21 (LOLLIPOP), so the Builder path
+                        // is always available; the legacy branch below is kept
+                        // only as an unreachable fallback for older hosts.
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                .setUsage(AudioAttributes.USAGE_MEDIA)
+                                .build();
+                            AudioFormat audioFormat = new AudioFormat.Builder()
+                                .setChannelMask(AudioFormat.CHANNEL_CONFIGURATION_MONO)
+                                .setEncoding(AudioFormat.ENCODING_PCM_8BIT)
+                                .setSampleRate(SILENCE_SAMPLE_RATE)
+                                .build();
+                            silenceAudioTrack = new AudioTrack.Builder()
+                                .setAudioAttributes(audioAttributes)
+                                .setAudioFormat(audioFormat)
+                                .setBufferSizeInBytes(silence.length)
+                                .setTransferMode(AudioTrack.MODE_STATIC)
+                                .build();
+                        } else {
+                            @SuppressWarnings("deprecation")
+                            final AudioTrack audioTrack = new AudioTrack(
+                                    AudioManager.STREAM_MUSIC,
+                                    SILENCE_SAMPLE_RATE,
+                                    AudioFormat.CHANNEL_CONFIGURATION_MONO,
+                                    AudioFormat.ENCODING_PCM_8BIT,
+                                    silence.length,
+                                    AudioTrack.MODE_STATIC);
+                            silenceAudioTrack = audioTrack;
+                        }
                         silenceAudioTrack.write(silence, 0, silence.length);
                     }
                     silenceAudioTrack.reloadStaticData();

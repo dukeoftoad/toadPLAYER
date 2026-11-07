@@ -165,8 +165,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Strip native debug symbols from the release APK to minimize size.
+            // The unstripped .so files remain in the build intermediates for
+            // crash symbolication; Dart AOT symbols are kept outside libapp.so
+            // via split-debug-info. FULL was adding substantial .so bloat.
             ndk {
-                debugSymbolLevel = "FULL"
+                debugSymbolLevel = "NONE"
             }
         }
     }
