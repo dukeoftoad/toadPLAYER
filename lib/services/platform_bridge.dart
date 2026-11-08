@@ -639,8 +639,7 @@ class PlatformBridge {
       } catch (error, stack) {
         _log.w(
           'Failed to initialize mobile Rust backend '
-          '(attempt $attempt/$attempts): $error',
-          stack,
+          '(attempt $attempt/$attempts): $error\n$stack',
         );
       }
       if (attempt < attempts) {
