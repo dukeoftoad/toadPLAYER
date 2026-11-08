@@ -42,7 +42,8 @@ Future<void> runLyricsVerificationFlow(
   var lastTrack = metadata.item?.title ?? '';
   var lastArtist = metadata.item?.artist ?? '';
   var fetched = await metadata.fetchOnlineForReview();
-  while (fetched != null && context.mounted) {
+  while (fetched != null) {
+    if (!context.mounted) return;
     final action = await _showReviewSheet(context, metadata, fetched);
     if (!context.mounted) return;
     if (action == _ReviewAction.save) {
