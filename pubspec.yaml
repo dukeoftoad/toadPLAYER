@@ -14,7 +14,6 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.3
-  timezone: ^0.11.2
 
   # State Management
   flutter_riverpod: ^3.4.2
@@ -31,7 +30,6 @@ dependencies:
 
   # HTTP & Crypto (Lyrics AI translation, Cast media server, cover hashing)
   http: ^1.6.0
-  connectivity_plus: ^7.3.1
   crypto: ^3.0.8
 
   # UI Components & Player Visuals
@@ -66,16 +64,12 @@ dependencies:
   open_filex: ^5.0.0
   video_player: ^2.14.1
   xml: ^7.1.0
-  html: ^0.15.7
-  synchronized: ^3.5.0
 
   # Audio Playback, Equalizer, Sessions & Desktop Transport Controls
-  flutter_local_notifications: ^22.3.3
   audioplayers: ^6.8.1
   audio_service:
     path: third_party/audio_service
   audio_session: ^0.2.4
-  app_links: ^7.2.2
   media_kit: ^1.2.6
   media_kit_libs_windows_audio: ^1.0.9
   media_kit_libs_linux: ^1.2.1

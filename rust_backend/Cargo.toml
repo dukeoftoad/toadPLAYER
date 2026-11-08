@@ -76,5 +76,6 @@ socket2 = "0.6"
 unsafe_code = "deny"
 
 [profile.release]
-lto = "thin"
+lto = "fat"
 codegen-units = 1
+strip = "symbols"
