@@ -1,27 +1,27 @@
 # Toadplayer — Cross-Platform Hi-Fi Music Player
 
-**Toadplayer** is a standalone, offline-first music player built on **Flutter/Dart UI + Rust backend + Android/iOS/Desktop native audio bridges** (hi-res/bit-perfect playback, parametric EQ, gapless, USB DAC). This alpha (`v0.2.0`) was bootstrapped from an earlier prototype codebase and fully rebranded — every symbol, module, channel, crate, asset and icon now carries the Toadplayer identity (`com.toadplayer.app`).
+**Toadplayer** is a standalone, offline-first music player built on **Flutter/Dart UI + Rust backend + Android/iOS/Desktop native audio bridges** (hi-res/bit-perfect playback, parametric EQ, gapless, USB DAC). Now at production **v1.0.x** (`v1.0.0` first stable release; `v1.0.1` the bug-fix re-release) — bootstrapped from an earlier prototype codebase and fully rebranded, every symbol, module, channel, crate, asset and icon carries the Toadplayer identity (`com.toadplayer.app`).
 
-## Alpha Builds (CI)
+## Releases (CI)
 
-One APK, one target: GitHub Actions (`.github/workflows/android.yml`) builds a single **arm64-v8a release APK targeting API 37** on every push to `main`, and publishes it as a **pre-release** whenever a `v*` tag is pushed:
+One APK, one target: GitHub Actions (`.github/workflows/android.yml`) builds a single **arm64-v8a release APK targeting API 37** on every push to `main`, and publishes it as a **GitHub release** whenever a `v*` tag is pushed:
 
-- `toadplayer-alpha-r<run>-<sha>-arm64-v8a.apk` — the one and only build artifact
-- **versionCode is stamped from the CI run number** (`GITHUB_RUN_NUMBER`) in `android/app/build.gradle.kts`, so every alpha upgrades over the previous one without a manual bump (local builds fall back to the pubspec build number)
+- `toadplayer-<version>-arm64-v8a.apk` — the one and only build artifact (CI-run builds are named `toadplayer-alpha-r<run>-<sha>-arm64-v8a.apk`)
+- **versionCode is stamped from the CI run number** (`GITHUB_RUN_NUMBER`) in `android/app/build.gradle.kts`, so every build upgrades over the previous one without a manual bump (local builds fall back to the pubspec build number)
 - Gradle, Rust and pub caches keep warm runs well under the old 30-minute build
 
-The alpha APK is debug-signed unless repo signing secrets are present. The pipeline builds the Rust backend for `aarch64-linux-android`, compiles the native C++ audio engine with NDK 30 + CMake 4.x, and produces a minified release APK with Flutter AOT.
+The APK is debug-signed unless repo signing secrets are present. The pipeline builds the Rust backend for `aarch64-linux-android`, compiles the native C++ audio engine with NDK 30 + CMake 4.x, and produces a minified release APK with Flutter AOT, R8 full mode and stripped native symbols.
 
 > **Note:** the package id is `com.toadplayer.app`. Builds from before the rename (`com.zarz.toadplayer`) cannot be updated in place — uninstall the old app first.
 
-## Home & Library UI (v0.2.0 alpha)
+## Home & Library UI
 
 The standalone home is a library, not a button row:
 
 - **Search bar as the top bar** — live-filters every tab (`lib/screens/library_home_screen.dart`).
 - **Library tabs** — Songs (artwork, artist • album, duration, sort menu), Artists, Albums, **Genres** and Playlists, grouped from the session queue (`lib/widgets/library/library_views.dart`, `lib/screens/library_detail_screen.dart`).
 - **Smart playlists** — Favourites (the loved collection) and Recently added (songs ordered by when they first entered the library, persisted across runs) sit above the user's own playlists (`lib/screens/library_smart_screen.dart`, `lib/services/recently_added_store.dart`).
-- **Overflow menu** — Open audio files, Full player, Shuffle, Refresh (re-read every queued song's tags and covers), Quick refresh (append new songs from the default folder), Equaliser and Settings. The queue button is gone; playback lives in the bottom-right play/pause button, the home lyrics widget and the full player.
+- **Overflow menu** — Sleep timer (shared sheet with the full player), Refresh (re-read every queued song's tags and covers), Quick refresh (append new songs from the default folder), Equaliser and Settings. The queue button is gone; playback lives in the bottom-right play/pause button, the home lyrics widget and the full player.
 - **Home lyrics widget** — the current line floats above the mini player (`lib/widgets/lyrics_preview_card.dart`).
 - **Themes** — Appearance offers the default **System Material** (wallpaper-driven Material You), the crafted **Toad** palette (fixed moss green, `lib/theme/toad_theme.dart`) and the frosted **Glass** Toadplayer style.
 - **Per-track actions** — long-press a song for Play next, Add to queue and Add to playlist; playlists support create / rename / delete, play-all from the saved order, and per-row remove.

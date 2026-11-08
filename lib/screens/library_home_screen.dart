@@ -19,14 +19,13 @@ import 'package:toadplayer/screens/settings/settings_screen.dart';
 import 'package:toadplayer/services/audio_file_open_service.dart';
 import 'package:toadplayer/services/platform_bridge.dart';
 import 'package:toadplayer/utils/desktop_platform.dart';
-import 'package:toadplayer/widgets/app_bottom_sheet.dart';
 import 'package:toadplayer/widgets/app_snack_bar.dart';
-import 'package:toadplayer/widgets/settings_group.dart';
 import 'package:toadplayer/widgets/cached_cover_image.dart';
 import 'package:toadplayer/widgets/desktop/desktop_player_bar.dart';
 import 'package:toadplayer/widgets/library/library_views.dart';
 import 'package:toadplayer/widgets/lyrics_preview_card.dart';
 import 'package:toadplayer/widgets/mini_player.dart';
+import 'package:toadplayer/widgets/sleep_timer_sheet.dart';
 
 class StandalonePlayerHomeScreen extends ConsumerStatefulWidget {
   const StandalonePlayerHomeScreen({super.key});
@@ -256,7 +255,14 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
   void _onMenuSelected(BuildContext context, WidgetRef ref, String value) {
     switch (value) {
       case 'sleep_timer':
-        _showSleepTimerSheet(context, ref);
+        // One implementation for every entry point: the shared sheet also
+        // offers "stop after current track" and a custom duration, and the
+        // playback handler owns the countdown.
+        showSleepTimerSheet(
+          context,
+          ref.read(musicPlayerControllerProvider),
+          Theme.of(context).colorScheme,
+        );
       case 'refresh':
         _refresh(context, ref);
       case 'quick_refresh':
@@ -270,56 +276,6 @@ class _LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
           MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
         );
     }
-  }
-
-  /// The home menu's sleep timer mirrors the player's: pick a duration and
-  /// playback fades out when it ends; the native handler owns the countdown.
-  Future<void> _showSleepTimerSheet(BuildContext context, WidgetRef ref) async {
-    const durations = [15, 30, 45, 60];
-    final controller = ref.read(musicPlayerControllerProvider);
-    final isActive = controller.sleepTimerEndsAt != null;
-    final selection = await showAppBottomSheet<String>(
-      context: context,
-      useRootNavigator: true,
-      title: 'Sleep timer',
-      builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: SettingsGroup(
-          children: [
-            for (final minutes in durations)
-              SettingsItem(
-                icon: Icons.timer_outlined,
-                title: '$minutes min',
-                showDivider: isActive || minutes != durations.last,
-                onTap: () => Navigator.of(sheetContext).pop('$minutes'),
-              ),
-            if (isActive)
-              SettingsItem(
-                icon: Icons.timer_off_outlined,
-                title: 'Turn off',
-                showDivider: false,
-                onTap: () => Navigator.of(sheetContext).pop('off'),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (!context.mounted || selection == null) return;
-
-    if (selection == 'off') {
-      controller.cancelSleepTimer();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sleep timer cancelled')),
-      );
-      return;
-    }
-
-    final minutes = int.tryParse(selection);
-    if (minutes == null) return;
-    controller.setSleepTimer(Duration(minutes: minutes));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Sleep timer set for $minutes min')),
-    );
   }
 
   /// Reshuffle re-rolls the shuffle order: shuffle stays on and playback

@@ -7,9 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
-import android.media.AudioManager;
 import android.media.AudioTrack;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -1090,45 +1088,38 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
                     // that we are playing "real" audio so that it will route
                     // media buttons to us.
                     // See: https://issuetracker.google.com/issues/65344811
+                    byte[] silence = new byte[2048];
                     if (silenceAudioTrack == null) {
-                        byte[] silence = new byte[2048];
-                        // Migrated from the legacy stream-type constructor
-                        // (new AudioTrack(STREAM_MUSIC, ...)) which is
-                        // deprecated and actively broken on Android 16+, to
-                        // the AudioAttributes-based AudioTrack.Builder. The
-                        // minSdk is now >= 21 (LOLLIPOP), so the Builder path
-                        // is always available; the legacy branch below is kept
-                        // only as an unreachable fallback for older hosts.
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                            AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                                .setUsage(AudioAttributes.USAGE_MEDIA)
-                                .build();
-                            AudioFormat audioFormat = new AudioFormat.Builder()
-                                .setChannelMask(AudioFormat.CHANNEL_CONFIGURATION_MONO)
-                                .setEncoding(AudioFormat.ENCODING_PCM_8BIT)
-                                .setSampleRate(SILENCE_SAMPLE_RATE)
-                                .build();
-                            silenceAudioTrack = new AudioTrack.Builder()
-                                .setAudioAttributes(audioAttributes)
-                                .setAudioFormat(audioFormat)
-                                .setBufferSizeInBytes(silence.length)
-                                .setTransferMode(AudioTrack.MODE_STATIC)
-                                .build();
-                        } else {
-                            @SuppressWarnings("deprecation")
-                            final AudioTrack audioTrack = new AudioTrack(
-                                    AudioManager.STREAM_MUSIC,
-                                    SILENCE_SAMPLE_RATE,
-                                    AudioFormat.CHANNEL_CONFIGURATION_MONO,
-                                    AudioFormat.ENCODING_PCM_8BIT,
-                                    silence.length,
-                                    AudioTrack.MODE_STATIC);
-                            silenceAudioTrack = audioTrack;
-                        }
-                        silenceAudioTrack.write(silence, 0, silence.length);
+                        // Built with AudioTrack.Builder + AudioAttributes (the
+                        // legacy stream-type constructor is deprecated and
+                        // ignored on Android 16+). MODE_STATIC is deliberately
+                        // NOT used: the static mode allocates its buffer
+                        // through the legacy ashmem/MemoryFile pin path, which
+                        // logs "ashmem: Pinning is deprecated since Android Q"
+                        // on every play. MODE_STREAM keeps the same audible
+                        // result (a moment of silence) without the deprecated
+                        // pin call.
+                        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .build();
+                        AudioFormat audioFormat = new AudioFormat.Builder()
+                            .setChannelMask(AudioFormat.CHANNEL_CONFIGURATION_MONO)
+                            .setEncoding(AudioFormat.ENCODING_PCM_8BIT)
+                            .setSampleRate(SILENCE_SAMPLE_RATE)
+                            .build();
+                        silenceAudioTrack = new AudioTrack.Builder()
+                            .setAudioAttributes(audioAttributes)
+                            .setAudioFormat(audioFormat)
+                            .setBufferSizeInBytes(silence.length)
+                            .setTransferMode(AudioTrack.MODE_STREAM)
+                            .build();
                     }
-                    silenceAudioTrack.reloadStaticData();
+                    // Rewind the stream: pause+flush discards any previously
+                    // queued bytes, then queue and play the silence again.
+                    silenceAudioTrack.pause();
+                    silenceAudioTrack.flush();
+                    silenceAudioTrack.write(silence, 0, silence.length);
                     silenceAudioTrack.play();
                     result.success(null);
                     break;

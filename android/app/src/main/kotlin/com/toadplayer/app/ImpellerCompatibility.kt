@@ -132,7 +132,19 @@ internal fun shouldDisableImpeller(): Boolean {
  */
 private fun getGpuRenderer(): String {
     return try {
-        android.opengl.GLES20.glGetString(android.opengl.GLES20.GL_RENDERER) ?: ""
+        // glGetString requires a current EGL context. Calling it without one
+        // (which is the case while shell args are built, before the Flutter
+        // surface exists) makes libEGL log
+        // "call to OpenGL ES API with no current context" on every startup.
+        // Only query the renderer when a context is current; otherwise return
+        // empty and let the chipset/model/manufacturer matching decide.
+        if (android.opengl.EGL14.eglGetCurrentContext() ==
+            android.opengl.EGL14.EGL_NO_CONTEXT
+        ) {
+            ""
+        } else {
+            android.opengl.GLES20.glGetString(android.opengl.GLES20.GL_RENDERER) ?: ""
+        }
     } catch (e: Exception) {
         ""
     }

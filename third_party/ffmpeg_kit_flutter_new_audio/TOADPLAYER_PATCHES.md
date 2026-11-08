@@ -102,3 +102,14 @@ checked against it; `build.gradle` adds JUnit and forks one JVM per test
 class, since `FFmpegKitConfig` initializes once per JVM).
 From the app's `android/` folder:
 `gradle --offline :ffmpeg_kit_flutter_new_audio:testDebugUnitTest -x buildRustBackend`.
+
+
+### Android: silence foreign activity results
+
+`onActivityResult` logged "ignored unsupported activity result" for every
+result that was not this plugin's own SAF request codes. The Flutter engine
+forwards every activity result to all registered listeners, so the host
+app's pickers (SAF tree, document, folder) triggered the log line each time.
+The handler now declines foreign request codes without logging, and clears
+the pending `Result` after answering so a stale result can never be
+answered twice.
