@@ -309,25 +309,33 @@ public class FFmpegKitFlutterPlugin implements FlutterPlugin, ActivityAware, Met
 
     @Override
     public boolean onActivityResult(final int requestCode, final int resultCode, final Intent data) {
-        Log.d(LIBRARY_NAME, String.format("selectDocument completed with requestCode: %d, resultCode: %d, data: %s.", requestCode, resultCode, data == null ? null : data.toString()));
-
-        if (requestCode == READABLE_REQUEST_CODE || requestCode == WRITABLE_REQUEST_CODE) {
-            if (resultCode == Activity.RESULT_OK) {
-                if (data == null) {
-                    resultHandler.successAsync(lastInitiatedIntentResult, null);
-                } else {
-                    final Uri uri = data.getData();
-                    resultHandler.successAsync(lastInitiatedIntentResult, uri == null ? null : uri.toString());
-                }
-            } else {
-                resultHandler.errorAsync(lastInitiatedIntentResult, "SELECT_CANCELLED", String.valueOf(resultCode));
-            }
-
-            return true;
-        } else {
-            Log.i(LIBRARY_NAME, String.format("FFmpegKitFlutterPlugin ignored unsupported activity result for requestCode: %d.", requestCode));
+        if (requestCode != READABLE_REQUEST_CODE && requestCode != WRITABLE_REQUEST_CODE) {
+            // The Flutter engine forwards every activity result to every
+            // registered listener, so results belonging to the host app's own
+            // pickers (SAF tree, document, folder) reach this plugin too.
+            // Silently decline those instead of logging an "unsupported
+            // activity result" line for each one.
             return false;
         }
+
+        Log.d(LIBRARY_NAME, String.format("selectDocument completed with requestCode: %d, resultCode: %d, data: %s.", requestCode, resultCode, data == null ? null : data.toString()));
+
+        final Result pending = lastInitiatedIntentResult;
+        lastInitiatedIntentResult = null;
+        if (pending == null) return true;
+
+        if (resultCode == Activity.RESULT_OK) {
+            if (data == null) {
+                resultHandler.successAsync(pending, null);
+            } else {
+                final Uri uri = data.getData();
+                resultHandler.successAsync(pending, uri == null ? null : uri.toString());
+            }
+        } else {
+            resultHandler.errorAsync(pending, "SELECT_CANCELLED", String.valueOf(resultCode));
+        }
+
+        return true;
     }
 
     @Override

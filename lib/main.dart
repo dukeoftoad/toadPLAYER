@@ -41,13 +41,6 @@ void main() {
     () async {
       final binding = WidgetsFlutterBinding.ensureInitialized();
       final preferences = SharedPreferences.getInstance();
-      // Initialize the Rust backend owner as early as possible on mobile so
-      // metadata/cover/lyrics reads never hit the "Rust backend is not
-      // initialized" race. Runs in parallel with the activity-attachment wait;
-      // callers gate on PlatformBridge.ensureBackendReady().
-      if (Platform.isAndroid || Platform.isIOS) {
-        unawaited(PlatformBridge.initializeMobileBackend());
-      }
       if (Platform.isAndroid) {
         if (!isActivityAttached(binding)) {
           unawaited(_startBackgroundPlayback());
@@ -81,12 +74,21 @@ void main() {
         ),
       );
 
-      // Defer cover preparation, song analysis and the player-widget handler
-      // registration to after the first frame has painted. Running these
-      // synchronously between runApp() and the first frame build blocked the
-      // platform thread for ~800ms and dropped ~48 frames on cold start; they
-      // are not needed for the first paint.
+      // Defer backend init, cover preparation, song analysis and the
+      // player-widget handler registration to after the first frame has
+      // painted. Running these synchronously between runApp() and the first
+      // frame build blocked the platform thread and dropped frames on cold
+      // start; none of them are needed for the first paint.
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        // The Rust backend owner init issues platform-channel round trips
+        // that contend with the first-frame window on the Android main
+        // thread (startup measurements showed the jank worsen when it ran
+        // before runApp). It retries internally until the backend channel
+        // is registered, so starting it here is safe for headless engine
+        // starts too; metadata/cover callers gate on ensureBackendReady().
+        if (Platform.isAndroid || Platform.isIOS) {
+          unawaited(PlatformBridge.initializeMobileBackend());
+        }
         musicPlayerRuntime.prepareCovers();
         musicPlayerRuntime.startSongAnalysis();
         if (Platform.isAndroid || Platform.isIOS) {

@@ -188,22 +188,34 @@ jobs:
 
             - `toadplayer-*-arm64-v8a.apk` — one build for modern 64-bit devices
 
-            **What's new in v1.0.0**
+            **What's new in v1.0.1**
 
-            - Fixed the Rust-backend init race that left opened files without
-              titles/artists/covers ("Rust backend is not initialized").
-            - Fixed SAF `/proc/self/fd` playback failures (MEDIA_ERROR_UNKNOWN):
-              the descriptor is now dup'd and held for MediaPlayer's lifetime.
-            - Fixed FTS5 search-index transaction corruption ("cannot start a
-              transaction within a transaction"); LIKE fallback retained.
-            - Migrated legacy AudioTrack stream-type API to AudioAttributes
-              for Android 16+ compatibility.
-            - Deferred heavy startup work off the first frame (less cold-start
-              jank).
-            - Added a non-truncating system-property reader
-              (`__system_property_read_callback` with fallback).
-            - Custom sleep timer: custom duration entry + "stop after current
-              track" mode.
+            - One shared sleep timer everywhere: the home menu and the full
+              player now open the same sheet (presets, custom duration,
+              "stop after current track"); the duplicate home implementation
+              is gone.
+            - Lyrics settings now reach the backend: the provider priority
+              order and fetch options (including the Musixmatch language)
+              were silently discarded at startup before the backend existed;
+              they are cached and re-applied once it initializes.
+            - Startup jank: the Rust backend init moved off the critical
+              first-frame path and now retries safely when the engine starts
+              headless (widget / media browse) instead of failing once and
+              disabling itself for the whole session.
+            - "libEGL: call to OpenGL ES API with no current context" is
+              gone: the Impeller GPU check no longer calls glGetString
+              without an EGL context.
+            - "ashmem: Pinning is deprecated since Android Q" is gone: the
+              media-button silence track now streams instead of using the
+              legacy static ashmem buffer.
+            - ffmpeg-kit no longer logs "ignored unsupported activity result"
+              for the app's own file/folder pickers.
+
+            **v1.0.0** fixed the Rust-backend init race (missing titles,
+            artists, covers on opened files), SAF `/proc/self/fd` playback
+            failures (MEDIA_ERROR_UNKNOWN), FTS5 transaction corruption, the
+            legacy AudioTrack stream-type API on Android 16+, and added the
+            custom sleep timer, playback speed control and A–B repeat.
 
             Sideloading: download the APK, allow "Install unknown apps" for your
             browser/file manager, then install. Without release-keystore secrets

@@ -590,74 +590,129 @@ class PlatformBridge {
   // --- Rust backend readiness gate (mobile) -------------------------------
   // The Rust ExtensionManager (the "owner") is created lazily by
   // initExtensionSystem. Until that call completes, every backend method that
-  // reaches owner() throws "Rust backend is not initialized". File-open and
-  // metadata operations that can run before the runtime finishes initializing
-  // await this gate so they never hit that race.
-  static final Completer<void> _backendReady = Completer<void>();
-  static bool _mobileBackendInitAttempted = false;
+  // reaches owner() throws "Rust backend is not initialized".
+  //
+  // The backend method channel is only registered when MainActivity attaches;
+  // on a headless engine start (widget/media browse) the first attempts fail
+  // with MissingPluginException. Initialization therefore retries for a
+  // bounded time instead of poisoning the gate: a failed attempt must never
+  // permanently disable the backend for the process.
+  static Future<void>? _backendInitFuture;
+  static bool _mobileBackendReady = false;
+
+  /// Whether the mobile Rust backend owner is initialized in this process.
+  /// False while the retry loop is pending or after it was exhausted.
+  static bool get mobileBackendReady => _mobileBackendReady;
 
   /// Resolves once the Rust backend owner has been initialized (or its
-  /// initialization has been attempted and failed gracefully). Callers that
-  /// touch owner()-dependent methods (metadata, covers, lyrics, library scan)
-  /// should await this before invoking.
+  /// bounded retries were exhausted, in which case owner()-dependent calls
+  /// degrade per-operation). Callers that touch owner()-dependent methods
+  /// (metadata, covers, lyrics, library scan) await this before invoking.
   static Future<void> ensureBackendReady() {
-    if (_mobileBackendInitAttempted) return _backendReady.future;
-    return initializeMobileBackend();
+    return _backendInitFuture ??= _initializeMobileBackendWithRetries();
   }
 
-  /// Initializes the Rust backend owner on Android and iOS. Idempotent and
-  /// failure-tolerant: a runtime error completes the gate anyway so callers
-  /// proceed and fail at the specific operation (graceful degradation) rather
-  /// than hanging the file-open path. On desktop the FFI backend loads on
-  /// first use, so this is a no-op there.
-  static Future<void> initializeMobileBackend() async {
-    if (_mobileBackendInitAttempted) return _backendReady.future;
-    _mobileBackendInitAttempted = true;
-    if (!(Platform.isAndroid || Platform.isIOS)) {
-      if (!_backendReady.isCompleted) _backendReady.complete();
-      return;
-    }
-    try {
-      final support = await getApplicationSupportDirectory();
-      final extensionsDir = Directory(p.join(support.path, 'extensions'));
-      final dataDir = Directory(p.join(support.path, 'extension_data'));
-      await extensionsDir.create(recursive: true);
-      await dataDir.create(recursive: true);
-      final prefs = await SharedPreferences.getInstance();
-      var masterKey = prefs.getString('toadplayer_backend_master_key');
-      if (masterKey == null || masterKey.isEmpty) {
-        // Stable, install-scoped key. The host hashes it to SHA-256 before
-        // use, so any non-empty string is acceptable; a random value avoids
-        // reusing a derived/identical key across installs.
-        masterKey = _generateBackendMasterKey();
-        await prefs.setString('toadplayer_backend_master_key', masterKey);
+  /// Same as [ensureBackendReady]; starts initialization when it has not
+  /// started yet. Kick this off after the first frame (see main()), not
+  /// before runApp: the init's platform-channel round trips contend with the
+  /// critical first-frame window on the Android main thread.
+  static Future<void> initializeMobileBackend() => ensureBackendReady();
+
+  static Future<void> _initializeMobileBackendWithRetries() async {
+    if (!(Platform.isAndroid || Platform.isIOS)) return;
+    const attempts = 5;
+    for (var attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        await _initializeMobileBackendOnce();
+        _mobileBackendReady = true;
+        _log.i('Mobile Rust backend initialized (attempt $attempt)');
+        await _reapplyPendingLyricsSettings();
+        return;
+      } on MissingPluginException {
+        // The backend channel is not registered yet (headless engine start
+        // before the Activity attaches). Retry shortly; the gate stays
+        // pending so early callers wait instead of failing.
+        _log.i(
+          'Mobile Rust backend not reachable yet '
+          '(attempt $attempt/$attempts); retrying',
+        );
+      } catch (error, stack) {
+        _log.w(
+          'Failed to initialize mobile Rust backend '
+          '(attempt $attempt/$attempts): $error',
+          stack,
+        );
       }
-      // Android builds the runtime-state payload from signed sessions in the
-      // data dir; iOS resolves it inside the host.
-      if (Platform.isAndroid) {
-        await prepareRuntimeState(dataDir.path);
+      if (attempt < attempts) {
+        await Future<void>.delayed(const Duration(milliseconds: 400));
       }
-      await initExtensionSystem(
-        extensionsDir.path,
-        dataDir.path,
-        masterKey: masterKey,
-        lyricsProviders: const [],
-        lyricsFetchOptions: const {},
-      );
-      _log.i('Mobile Rust backend initialized');
-    } catch (error, stack) {
-      // A failure here must not break playback: the SAF lease path and
-      // ContentResolver copies do not need the owner. Metadata/cover reads
-      // will simply continue to degrade as before.
-      _log.e(
-        'Failed to initialize mobile Rust backend; metadata/cover '
-        'operations will degrade',
-        error,
-        stack,
-      );
-    } finally {
-      if (!_backendReady.isCompleted) _backendReady.complete();
     }
+    // Exhausted. Complete normally: the SAF lease path and ContentResolver
+    // copies do not need the owner, so playback keeps working; metadata and
+    // cover reads degrade per-operation as before this gate existed.
+    _log.e(
+      'Mobile Rust backend initialization exhausted its retries; '
+      'metadata/cover operations will degrade',
+    );
+  }
+
+  /// Re-applies the lyrics provider order and fetch options that were synced
+  /// before the backend owner existed. The native handler discards those
+  /// calls while the owner is null, so without this the user's provider
+  /// priority and options like the Musixmatch language would silently stay at
+  /// their defaults until the next settings change.
+  static Future<void> _reapplyPendingLyricsSettings() async {
+    final providers = _pendingLyricsProviders;
+    if (providers != null) {
+      try {
+        await _invokeVoid('setLyricsProviders', {
+          'providers_json': jsonEncode(providers),
+        });
+      } catch (error) {
+        _log.w('Failed to re-apply lyrics providers after init: $error');
+      }
+    }
+    final options = _pendingLyricsFetchOptions;
+    if (options != null) {
+      try {
+        await _invokeVoid('setLyricsFetchOptions', {
+          'options_json': jsonEncode(options),
+        });
+      } catch (error) {
+        _log.w('Failed to re-apply lyrics fetch options after init: $error');
+      }
+    }
+  }
+
+  static Future<void> _initializeMobileBackendOnce() async {
+    final support = await getApplicationSupportDirectory();
+    final extensionsDir = Directory(p.join(support.path, 'extensions'));
+    final dataDir = Directory(p.join(support.path, 'extension_data'));
+    await extensionsDir.create(recursive: true);
+    await dataDir.create(recursive: true);
+    final prefs = await SharedPreferences.getInstance();
+    var masterKey = prefs.getString('toadplayer_backend_master_key');
+    if (masterKey == null || masterKey.isEmpty) {
+      // Stable, install-scoped key. The host hashes it to SHA-256 before
+      // use, so any non-empty string is acceptable; a random value avoids
+      // reusing a derived/identical key across installs.
+      masterKey = _generateBackendMasterKey();
+      await prefs.setString('toadplayer_backend_master_key', masterKey);
+    }
+    // Android builds the runtime-state payload from signed sessions in the
+    // data dir; iOS resolves it inside the host.
+    if (Platform.isAndroid) {
+      await prepareRuntimeState(dataDir.path);
+    }
+    await initExtensionSystem(
+      extensionsDir.path,
+      dataDir.path,
+      masterKey: masterKey,
+      lyricsProviders:
+          _pendingLyricsProviders ?? const <String>[],
+      lyricsFetchOptions:
+          _pendingLyricsFetchOptions ?? const <String, dynamic>{},
+    );
   }
 
   static String _generateBackendMasterKey() {
@@ -1573,18 +1628,33 @@ class PlatformBridge {
     });
   }
 
+  /// The last lyrics provider order and fetch options that passed through
+  /// here. The mobile backend's owner may not exist yet when settings sync
+  /// runs at startup; the native handler then discards the values, so they
+  /// are cached here and re-applied once the backend initializes (see
+  /// [_initializeMobileBackendWithRetries]). Without this, the user's
+  /// lyrics provider priority order and fetch options such as the Musixmatch
+  /// language never reached the backend.
+  static List<String>? _pendingLyricsProviders;
+  static Map<String, dynamic>? _pendingLyricsFetchOptions;
+
   /// Providers not in the list are disabled.
-  static Future<void> setLyricsProviders(List<String> providers) async =>
-      _invokeVoid('setLyricsProviders', {
-        'providers_json': jsonEncode(providers),
-      });
+  static Future<void> setLyricsProviders(List<String> providers) async {
+    _pendingLyricsProviders = List<String>.of(providers);
+    await _invokeVoid('setLyricsProviders', {
+      'providers_json': jsonEncode(providers),
+    });
+  }
 
   /// Sets advanced lyrics fetch options used by provider-specific integrations.
   static Future<void> setLyricsFetchOptions(
     Map<String, dynamic> options,
-  ) async => _invokeVoid('setLyricsFetchOptions', {
-    'options_json': jsonEncode(options),
-  });
+  ) async {
+    _pendingLyricsFetchOptions = Map<String, dynamic>.of(options);
+    await _invokeVoid('setLyricsFetchOptions', {
+      'options_json': jsonEncode(options),
+    });
+  }
 
   static Future<Map<String, dynamic>> reEnrichFile(
     Map<String, dynamic> request,

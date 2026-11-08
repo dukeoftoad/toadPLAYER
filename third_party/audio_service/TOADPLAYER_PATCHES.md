@@ -195,3 +195,11 @@ Compared against the pub.dev 0.18.19 package in the local pub cache:
    Android Auto browsing, and iOS lock screen controls after a video plays.
 6. Run `flutter pub get` so the root `pubspec.lock` records the new version,
    and update this file.
+- Android: build the `androidForceEnableMediaButtons` silence AudioTrack
+  with `AudioTrack.Builder` + `AudioAttributes` (the legacy stream-type
+  constructor is deprecated and ignored on Android 16+) and use
+  `MODE_STREAM` instead of `MODE_STATIC`. Static mode allocates its buffer
+  through the legacy ashmem/MemoryFile pin path, which logs
+  "ashmem: Pinning is deprecated since Android Q" on every play; streaming
+  the same 2048 silence bytes keeps the focus-grabbing behaviour without the
+  deprecated pin call. Replays pause+flush the stream before re-queueing.
