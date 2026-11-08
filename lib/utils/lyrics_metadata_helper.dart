@@ -177,13 +177,18 @@ Future<void> ensureLyricsMetadataForConversion({
 
   if (lyrics == null || lyrics.isEmpty) {
     try {
-      final fetched = await PlatformBridge.getLyricsLRC(
+      // With the file path (local copies only) this reads embedded lyrics;
+      // otherwise — and on an embedded miss — it falls back to the online
+      // provider search, so converted files pick up lyrics like playback.
+      final result = await PlatformBridge.getLyricsLRCWithSource(
         spotifyId,
         trackName,
         artistName,
+        filePath: isContentUri(sourcePath) ? null : sourcePath,
         durationMs: durationMs,
       );
-      final normalized = fetched.trim();
+      final normalized =
+          (result['lyrics']?.toString() ?? '').trim();
       if (normalized.isNotEmpty &&
           normalized.toLowerCase() != '[instrumental:true]') {
         lyrics = normalized;

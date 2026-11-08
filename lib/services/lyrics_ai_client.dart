@@ -528,6 +528,14 @@ Future<Map<int, LyricsAiLine>> parseLyricsTranslationReplyInBackground(
       reply: reply,
       ids: ids,
     ));
+  } on PlatformException {
+    // The native reply validator can fail on inputs its Dart counterpart
+    // tolerates (encoding edge cases, oversized replies). Degrade to the
+    // isolate parser instead of failing the whole translation.
+    return compute(_parseLyricsTranslationReplyOnWorker, (
+      reply: reply,
+      ids: ids,
+    ));
   }
   if (result['error'] == 'badResponse') {
     throw const LyricsAiException(
