@@ -163,6 +163,13 @@ if [[ "$PLATFORM" == "android" ]]; then
     mkdir -p "$CARGO_TARGET_DIR/android/jniLibs/$ABI"
     cp "$CARGO_TARGET_DIR/$target/release/libtoadplayer_mobile.so" \
       "$CARGO_TARGET_DIR/android/jniLibs/$ABI/"
+    # Shrink the packaged copy only: the cargo output keeps its UNIFFI
+    # metadata sections (bindgen reads them), while the APK gets a smaller
+    # ELF without the symbol table. Silently skipped if llvm-strip is absent.
+    if [[ -x "$NDK_BIN/llvm-strip" ]]; then
+      "$NDK_BIN/llvm-strip" --strip-all \
+        "$CARGO_TARGET_DIR/android/jniLibs/$ABI/libtoadplayer_mobile.so"
+    fi
   done
 elif [[ "$PLATFORM" == "ios" ]]; then
   if [[ "$(uname -s)" != "Darwin" ]]; then

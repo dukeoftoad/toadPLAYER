@@ -78,4 +78,7 @@ unsafe_code = "deny"
 [profile.release]
 lto = "fat"
 codegen-units = 1
-strip = "symbols"
+# No `strip` here: cargo strip removes the UNIFFI metadata sections the
+# bindgen step must read from the release library. The APK copy is stripped
+# separately in scripts/build_rust_backend.sh (llvm-strip on the jniLibs
+# staging copy only).
