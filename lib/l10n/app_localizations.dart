@@ -5,9 +5,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
-// Only English and Hindi are shipped.
+// Only English is shipped.
 import 'app_localizations_en.dart';
-import 'app_localizations_hi.dart';
 
 // ignore_for_file: type=lint
 
@@ -94,10 +93,9 @@ abstract class AppLocalizations {
       ];
 
   /// A list of this localizations delegate's supported locales.
-  /// Only English and Hindi are shipped.
+  /// Only English is shipped.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
-    Locale('hi'),
   ];
 
   /// No description provided for @libraryLyricsSearchDescription.
@@ -15737,7 +15735,6 @@ class _AppLocalizationsDelegate
   @override
   bool isSupported(Locale locale) => const <String>[
     'en',
-    'hi',
   ].contains(locale.languageCode);
 
   @override
@@ -15746,12 +15743,10 @@ class _AppLocalizationsDelegate
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
   // Lookup logic when only language code is specified.
-  // Only English and Hindi are shipped; anything else falls back to English.
+  // Only English is shipped; anything else falls back to English.
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
-    case 'hi':
-      return AppLocalizationsHi();
     default:
       return AppLocalizationsEn();
   }
