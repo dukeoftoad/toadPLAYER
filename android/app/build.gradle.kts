@@ -64,6 +64,13 @@ android {
         if (discordSdkEnabled) jniLibs.pickFirsts += "**/libdiscord_partner_sdk.so"
     }
 
+    // AGP 9 removed defaultConfig.resourceConfigurations. The app ships
+    // English-only (Hindi UI locale dropped), so strip every other locale's
+    // resources that AndroidX and Play libraries bundle into the APK.
+    androidResources {
+        localeFilters += listOf("en")
+    }
+
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
@@ -211,7 +218,6 @@ tasks.withType<org.gradle.api.tasks.Copy>().configureEach {
         exclude(
             "flutter_assets/packages/liquid_glass_easy/lib/assets/shaders/liquid_glass_desktop.frag",
             "flutter_assets/packages/liquid_glass_easy/lib/assets/shaders/metaball_glass_desktop.frag",
-            "flutter_assets/packages/flutter_local_notifications_web/web/notifications_service_worker.js",
         )
     }
 }
