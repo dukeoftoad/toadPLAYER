@@ -2135,14 +2135,14 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 
 [[package]]
 name = "toadplayer-bindgen"
-version = "0.1.0"
+version = "1.0.1"
 dependencies = [
  "uniffi",
 ]
 
 [[package]]
 name = "toadplayer-cast"
-version = "0.1.0"
+version = "1.0.1"
 dependencies = [
  "bytes",
  "futures-util",
@@ -2166,7 +2166,7 @@ dependencies = [
 
 [[package]]
 name = "toadplayer-core"
-version = "0.1.0"
+version = "1.0.1"
 dependencies = [
  "base64",
  "chrono",
@@ -2187,7 +2187,7 @@ dependencies = [
 
 [[package]]
 name = "toadplayer-desktop"
-version = "0.1.0"
+version = "1.0.1"
 dependencies = [
  "chrono",
  "getrandom 0.4.3",
@@ -2204,7 +2204,7 @@ dependencies = [
 
 [[package]]
 name = "toadplayer-mobile"
-version = "0.1.0"
+version = "1.0.1"
 dependencies = [
  "base64",
  "chrono",
@@ -2230,7 +2230,7 @@ dependencies = [
 
 [[package]]
 name = "toadplayer-network"
-version = "0.1.0"
+version = "1.0.1"
 dependencies = [
  "async-compression",
  "bytes",
