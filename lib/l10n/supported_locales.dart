@@ -1,6 +1,6 @@
 // Hand-maintained list of locales offered in the UI.
-// Only English and Hindi are currently shipped; edit this list by hand if a
-// new locale is ever added back.
+// Only English is currently shipped; edit this list by hand if a new locale
+// is ever added back.
 
 import 'dart:ui' show PlatformDispatcher;
 
@@ -11,13 +11,11 @@ import 'package:toadplayer/l10n/app_localizations.dart';
 /// Only these languages will be available in the app.
 const List<Locale> filteredSupportedLocales = <Locale>[
   Locale('en'),
-  Locale('hi'),
 ];
 
 /// Set of locale codes for quick lookup.
 const Set<String> filteredLocaleCodes = <String>{
   'en',
-  'hi',
 };
 
 /// The locale the language setting names, or null to follow the device.
