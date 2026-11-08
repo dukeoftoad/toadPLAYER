@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="player_widget_name">Toadplayer प्लेयर</string>
+    <string name="player_widget_description">आपका संगीत, आर्टवर्क और प्लेबैक नियंत्रण। अनुकूलित करने के लिए रीसाइज़ या एडिट करें।</string>
+    <string name="player_widget_empty">ऐप में संगीत चुनें</string>
+    <string name="player_widget_play">चलाएँ</string>
+    <string name="player_widget_pause">रोकें</string>
+    <string name="player_widget_previous">पिछला ट्रैक</string>
+    <string name="player_widget_next">अगला ट्रैक</string>
+    <string name="player_widget_artwork">आर्टवर्क रंग</string>
+    <string name="player_widget_light">लाइट</string>
+    <string name="player_widget_dark">डार्क</string>
+    <string name="player_widget_show_artist">कलाकार का नाम दिखाएँ</string>
+    <string name="player_widget_save">विजेट सहेजें</string>
+    <string name="player_widget_customize">चुनें कि यह विजेट आपकी होम स्क्रीन पर कैसा दिखे।</string>
+    <string name="player_widget_style">स्टाइल</string>
+
+    <string name="lyrics_widget_name">Toadplayer बोल</string>
+    <string name="lyrics_widget_desc">चल रहे गाने की मौजूदा पंक्ति, सीधे आपकी होम स्क्रीन पर।</string>
+    <string name="lyrics_widget_empty">बोल देखने के लिए कोई गाना चलाएँ</string>
+    <string name="lyrics_widget_no_lyrics">इस गाने के बोल उपलब्ध नहीं हैं</string>
+</resources>
