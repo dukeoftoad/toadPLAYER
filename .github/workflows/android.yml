@@ -188,34 +188,34 @@ jobs:
 
             - `toadplayer-*-arm64-v8a.apk` — one build for modern 64-bit devices
 
-            **What's new in v1.0.1**
+            **What's new in v1.2.0**
 
-            - One shared sleep timer everywhere: the home menu and the full
-              player now open the same sheet (presets, custom duration,
-              "stop after current track"); the duplicate home implementation
-              is gone.
-            - Lyrics settings now reach the backend: the provider priority
-              order and fetch options (including the Musixmatch language)
-              were silently discarded at startup before the backend existed;
-              they are cached and re-applied once it initializes.
-            - Startup jank: the Rust backend init moved off the critical
-              first-frame path and now retries safely when the engine starts
-              headless (widget / media browse) instead of failing once and
-              disabling itself for the whole session.
-            - "libEGL: call to OpenGL ES API with no current context" is
-              gone: the Impeller GPU check no longer calls glGetString
-              without an EGL context.
-            - "ashmem: Pinning is deprecated since Android Q" is gone: the
-              media-button silence track now streams instead of using the
-              legacy static ashmem buffer.
-            - ffmpeg-kit no longer logs "ignored unsupported activity result"
-              for the app's own file/folder pickers.
+            - Zen view on every theme: double-tap the cover art to hide all
+              player UI — the cover gestures and zen view now work on
+              Material layouts too, not just Glass — with a blackout
+              screen style available for the double-tap gesture.
+            - Tap the cover for lyrics: a single tap opens the lyrics view,
+              with real fullscreen lyrics support.
+            - Cover-only swipe: track-switch swiping is confined to the
+              cover art area, so it no longer collides with page swipes;
+              pinch support is arena-free.
+            - Anti-pop playback: a live volume ride on track transitions
+              removes the pop/crackle when switching songs, and the
+              session holds still on lyrics-only saves.
+            - Lyrics overhaul: online lyrics search is real with a
+              verify-first flow, .lrc file import, deleting embedded
+              lyrics, hardened translation, and synced lyric offset.
+            - Expanded sleep mode alongside the new cover gestures and
+              transitions.
+            - English-only UI: the Hindi locale is dropped.
+            - Brand refresh: the share card, About screen and Android TV
+              banner carry the toad icon.
 
-            **v1.0.0** fixed the Rust-backend init race (missing titles,
-            artists, covers on opened files), SAF `/proc/self/fd` playback
-            failures (MEDIA_ERROR_UNKNOWN), FTS5 transaction corruption, the
-            legacy AudioTrack stream-type API on Android 16+, and added the
-            custom sleep timer, playback speed control and A–B repeat.
+            **v1.0.1** shipped the shared sleep timer, lyrics-settings
+            delivery to the backend and log-noise fixes; **v1.0.0** fixed
+            the Rust-backend init race, SAF playback failures, FTS5
+            transaction corruption and added the custom sleep timer,
+            playback speed control and A–B repeat.
 
             Sideloading: download the APK, allow "Install unknown apps" for your
             browser/file manager, then install. Without release-keystore secrets
