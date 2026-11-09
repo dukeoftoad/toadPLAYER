@@ -16,6 +16,7 @@ import 'package:toadplayer/utils/logger.dart';
 import 'package:toadplayer/utils/lyrics_draft.dart';
 import 'package:toadplayer/utils/string_utils.dart';
 import 'package:toadplayer/widgets/app_action_button.dart';
+import 'package:toadplayer/widgets/app_alert_dialog.dart';
 import 'package:toadplayer/widgets/app_bottom_sheet.dart';
 import 'package:toadplayer/widgets/app_icon.dart';
 import 'package:toadplayer/widgets/app_icon_button.dart';
@@ -61,7 +62,7 @@ Future<void> openLyricsEditor(
     return;
   }
   if (!context.mounted) return;
-  final saved = await showAppModalBottomSheet<bool>(
+  final saved = await showAppModalBottomSheet<Object>(
     context: context,
     useRootNavigator: true,
     isScrollControlled: true,
@@ -71,7 +72,10 @@ Future<void> openLyricsEditor(
     dialogSize: AppDialogSize.wide,
     builder: (_) => LyricsEditorSheet(metadata: metadata, item: item),
   );
-  if (saved == true && context.mounted) {
+  if (!context.mounted) return;
+  if (saved == 'deleted') {
+    showAppSnackBar(context, content: Text(l10n.lyricsDeleted));
+  } else if (saved == true) {
     showAppSnackBar(context, content: Text(l10n.lyricsEditSaved));
   }
 }
@@ -280,6 +284,39 @@ class _LyricsEditorSheetState extends ConsumerState<LyricsEditorSheet> {
     }
   }
 
+  /// Deletes the embedded lyrics: an empty save clears the LYRICS tags in
+  /// the file through the same pipeline every other lyrics save uses. The
+  /// deletion also feeds the verification layer's per-song counter, which
+  /// is why it goes through [PlayerMetadataController.saveEditedLyrics].
+  Future<void> _deleteLyrics() async {
+    if (_saving) return;
+    final l10n = context.l10n;
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: l10n.lyricsDeleteConfirmTitle,
+      message: l10n.lyricsDeleteConfirmBody,
+      confirmLabel: l10n.lyricsDeleteAction,
+      destructive: true,
+      cancelIsDefault: true,
+    );
+    if (!confirmed || !mounted || _saving) return;
+    setState(() => _saving = true);
+    try {
+      await widget.metadata.saveEditedLyrics('');
+      if (!mounted) return;
+      Navigator.of(context).pop('deleted');
+    } catch (error) {
+      _log.w('Could not delete embedded lyrics: $error');
+      if (!mounted) return;
+      setState(() => _saving = false);
+      _messengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(context.l10n.lyricsEditSaveFailed)),
+        );
+    }
+  }
+
   Future<void> _showLineMenu(int index, Offset position) async {
     _select(index);
     final l10n = context.l10n;
@@ -380,6 +417,12 @@ class _LyricsEditorSheetState extends ConsumerState<LyricsEditorSheet> {
               ],
             ),
           ),
+          if (widget.metadata.rawLyrics.trim().isNotEmpty)
+            AppIconButton(
+              tooltip: context.l10n.lyricsDeleteAction,
+              onPressed: _saving ? null : _deleteLyrics,
+              icon: const AppIcon.adaptive(Icons.delete_outline),
+            ),
           AppIconButton(
             tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
             onPressed: _saving ? null : _close,

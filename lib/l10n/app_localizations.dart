@@ -15721,6 +15721,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Lyrics can\'t be saved to this song\'s file'**
   String get lyricsEditReadOnly;
+
+  /// Button under 'No lyrics' in the player that picks a .lrc file and saves its content as the song's lyrics
+  ///
+  /// In en, this message translates to:
+  /// **'Import lyrics file'**
+  String get lyricsImportTitle;
+
+  /// Import failed because the picked lyrics file could not be read
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import lyrics from that file'**
+  String get lyricsImportFailed;
+
+  /// Import failed because the picked lyrics file holds no usable lyric lines
+  ///
+  /// In en, this message translates to:
+  /// **'That file doesn\'t contain usable lyrics'**
+  String get lyricsImportInvalid;
+
+  /// Lyrics editor action that removes the lyrics embedded in the audio file, also used as the confirmation button label
+  ///
+  /// In en, this message translates to:
+  /// **'Delete lyrics'**
+  String get lyricsDeleteAction;
+
+  /// Title of the confirmation dialog for deleting embedded lyrics
+  ///
+  /// In en, this message translates to:
+  /// **'Delete lyrics?'**
+  String get lyricsDeleteConfirmTitle;
+
+  /// Body of the confirmation dialog for deleting embedded lyrics
+  ///
+  /// In en, this message translates to:
+  /// **'Lyrics embedded in this file will be removed. This can\'t be undone.'**
+  String get lyricsDeleteConfirmBody;
+
+  /// Snack bar shown after embedded lyrics were deleted
+  ///
+  /// In en, this message translates to:
+  /// **'Lyrics deleted'**
+  String get lyricsDeleted;
+
+  /// Title of the sheet that asks the user to verify online lyrics before they are saved
+  ///
+  /// In en, this message translates to:
+  /// **'Do these lyrics match?'**
+  String get lyricsVerifyTitle;
+
+  /// Explains why the lyrics verification sheet is shown
+  ///
+  /// In en, this message translates to:
+  /// **'This song\'s lyrics were deleted more than once, so toadPLAYER will only save lyrics you confirm. Does this look like the lyrics you intended?'**
+  String get lyricsVerifyQuestion;
+
+  /// Button that approves the shown lyrics and saves them
+  ///
+  /// In en, this message translates to:
+  /// **'Looks right — save'**
+  String get lyricsVerifyLooksRight;
+
+  /// Button that reports the shown lyrics as a mismatch and opens the refine form
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong lyrics'**
+  String get lyricsVerifyWrong;
+
+  /// Footer under the lyrics excerpt counting the lines that are not shown
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String lyricsVerifyMoreLines(int count);
+
+  /// Title of the form that collects corrected search details
+  ///
+  /// In en, this message translates to:
+  /// **'Help find the right lyrics'**
+  String get lyricsVerifyRefineTitle;
+
+  /// Explains the lyrics verification refine form
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust the details used to search for lyrics, then search again.'**
+  String get lyricsVerifyRefineDescription;
+
+  /// Field for the corrected track name in the lyrics verification refine form
+  ///
+  /// In en, this message translates to:
+  /// **'Track name'**
+  String get lyricsVerifyTrackField;
+
+  /// Field for the corrected artist in the lyrics verification refine form
+  ///
+  /// In en, this message translates to:
+  /// **'Artist'**
+  String get lyricsVerifyArtistField;
+
+  /// Button that searches lyrics with the corrected details
+  ///
+  /// In en, this message translates to:
+  /// **'Search with these details'**
+  String get lyricsVerifySearch;
+
+  /// Shown in the refine form when a verification search returns nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No lyrics found for these details'**
+  String get lyricsVerifyNoResults;
 }
 
 class _AppLocalizationsDelegate

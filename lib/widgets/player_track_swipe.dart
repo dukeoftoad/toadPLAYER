@@ -163,8 +163,9 @@ class PlayerTrackSwipeTitles extends StatelessWidget {
         .dependOnInheritedWidgetOfExactType<_SwipeScope>()
         ?.state;
     if (state == null) return builder(current);
-    return PlayerTrackSwipeRegion(
-      child: LayoutBuilder(
+    // Titles render the swipe animation but never start one: track swipe
+    // belongs to the cover area, not to the titles above the transport.
+    return LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
           state._width = width > 0 ? width : 1;
@@ -210,7 +211,6 @@ class PlayerTrackSwipeTitles extends StatelessWidget {
             ),
           );
         },
-      ),
     );
   }
 }

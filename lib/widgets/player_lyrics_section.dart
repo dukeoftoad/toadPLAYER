@@ -6,6 +6,7 @@ import 'package:toadplayer/l10n/l10n.dart';
 import 'package:toadplayer/providers/lyrics_translation_provider.dart';
 import 'package:toadplayer/providers/settings_provider.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
+import 'package:toadplayer/services/lyrics_verification_store.dart';
 import 'package:toadplayer/utils/lyrics_parser.dart';
 import 'package:toadplayer/utils/playback_seek_preview.dart';
 import 'package:toadplayer/widgets/app_icon.dart';
@@ -13,6 +14,8 @@ import 'package:toadplayer/widgets/app_loading_indicator.dart';
 import 'package:toadplayer/widgets/app_snack_bar.dart';
 import 'package:toadplayer/widgets/expressive_button.dart';
 import 'package:toadplayer/widgets/lyrics_editor_sheet.dart';
+import 'package:toadplayer/widgets/lyrics_import.dart';
+import 'package:toadplayer/widgets/lyrics_verification_sheet.dart';
 import 'package:toadplayer/widgets/player_lyrics.dart';
 import 'package:toadplayer/widgets/lyrics_text_scale.dart';
 
@@ -138,7 +141,17 @@ class PlayerLyricsSection extends ConsumerWidget {
           ExpressiveButton(
             tonal: true,
             onPressed: () async {
-              await metadata.searchOnline();
+              // A song whose lyrics were deleted twice searches verify-first:
+              // the fetched lyrics are confirmed before anything is written.
+              final verify = await LyricsVerificationStore
+                  .instance
+                  .needsVerificationFor(metadata.source);
+              if (!context.mounted) return;
+              if (verify) {
+                await runLyricsVerificationFlow(context, metadata);
+              } else {
+                await metadata.searchOnline();
+              }
               if (context.mounted && metadata.onlineLyricsSaveFailed) {
                 showAppSnackBar(
                   context,
@@ -158,6 +171,14 @@ class PlayerLyricsSection extends ConsumerWidget {
             onPressed: () => openLyricsEditor(context, metadata),
             icon: const Icon(Icons.edit_note),
             child: Text(context.l10n.lyricsEditWrite),
+          ),
+          const SizedBox(height: 8),
+          ExpressiveButton(
+            key: const ValueKey('lyrics-import'),
+            text: true,
+            onPressed: () => importLyricsFromFile(context, metadata),
+            icon: const Icon(Icons.upload_file_outlined),
+            child: Text(context.l10n.lyricsImportTitle),
           ),
         ],
       ],

@@ -15,6 +15,11 @@ pub enum ExtensionManagerError {
 pub struct ExtensionManager {
     pub(crate) env: Arc<ExtensionEnvironment>,
     pub(crate) cover_cache_dir: Mutex<String>,
+    /// Provider priority list delivered by the app (lyrics settings).
+    pub(crate) lyrics_providers_json: Mutex<String>,
+    /// Fetch options (Musixmatch language, Netease includes, ...) delivered by
+    /// the app. Providers read these when shaping requests.
+    pub(crate) lyrics_fetch_options_json: Mutex<String>,
 }
 
 #[uniffi::export]
@@ -45,10 +50,14 @@ impl ExtensionManager {
         _master_key: String,
         _app_version: String,
         _timeout_ms: u64,
-        _providers_json: String,
-        _options_json: String,
+        providers_json: String,
+        options_json: String,
     ) -> Result<Self, ExtensionManagerError> {
-        Ok(Self::default())
+        Ok(Self {
+            lyrics_providers_json: Mutex::new(providers_json),
+            lyrics_fetch_options_json: Mutex::new(options_json),
+            ..Self::default()
+        })
     }
 
     pub fn environment(&self) -> Arc<ExtensionEnvironment> {

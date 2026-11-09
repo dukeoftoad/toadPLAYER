@@ -266,6 +266,15 @@ class MusicPlayerHandler extends BaseAudioHandler
         previous.exclusiveOutput != settings.exclusiveOutput) {
       unawaited(_gapless.cancel());
     }
+    // A fade or crossfade switch invalidates any prepared transition and any
+    // ride in flight: the next transition uses the new mode from scratch.
+    if (previous.crossfadePlayback != settings.crossfadePlayback ||
+        previous.crossfadeDuration != settings.crossfadeDuration ||
+        previous.fadePlayback != settings.fadePlayback ||
+        previous.fadeDuration != settings.fadeDuration) {
+      unawaited(_gapless.cancel());
+      _cancelVolumeRide();
+    }
     // USB changes apply at the next source boundary, without raising volume.
     if ((previous.playerMode == 'internal') !=
             (settings.playerMode == 'internal') ||
@@ -665,6 +674,124 @@ class MusicPlayerHandler extends BaseAudioHandler
       }),
     );
     return true;
+  }
+
+  static const _antiPopFadeSteps = 5;
+  static const _antiPopFadeDuration = Duration(milliseconds: 40);
+
+  /// Rides grow past the anti-pop default only when the fade setting asks
+  /// for it; rides never outlive a newer one or a pause.
+  int _volumeRideGeneration = 0;
+
+  /// Whether the current song is riding its volume down across the final
+  /// seconds of a natural transition ([_settings.fadePlayback]).
+  bool _fadeOutStarted = false;
+
+  /// The ride duration for a song's audible start: the fade setting over a
+  /// natural transition, the anti-pop ride otherwise.
+  Duration _fadeInRideDuration({required bool userSkip, required bool startPaused}) {
+    if (!_settings.fadePlayback ||
+        _cast.active ||
+        userSkip ||
+        startPaused ||
+        _settings.autoMix) {
+      return _antiPopFadeDuration;
+    }
+    return Duration(seconds: _settings.fadeDuration);
+  }
+
+  /// Rides a deck's volume from [from] to [to] in small steps so a source
+  /// that starts or stops on audible content does not click: many
+  /// devices output a drum-like thump when an AudioTrack opens or closes
+  /// mid-sample. The default 40 ms keeps the drum-sound fix; the fade
+  /// setting stretches the same ride over the configured seconds. A newer
+  /// ride, a pause or a seek cancels the previous one at its next step.
+  Future<void> _rideVolume(
+    PlaybackDeck player,
+    double from,
+    double to, {
+    Duration duration = _antiPopFadeDuration,
+  }) async {
+    final generation = ++_volumeRideGeneration;
+    final steps = (duration.inMilliseconds ~/ 20).clamp(
+      _antiPopFadeSteps,
+      120,
+    );
+    final gap = Duration(milliseconds: duration.inMilliseconds ~/ steps);
+    for (var step = 1; step <= steps; step++) {
+      if (_disposed || generation != _volumeRideGeneration) return;
+      try {
+        await player.setVolume(from + (to - from) * step / steps);
+      } catch (_) {
+        return;
+      }
+      if (step < steps) {
+        await Future<void>.delayed(gap);
+      }
+    }
+  }
+
+  /// Aborts any in-flight volume ride and, when a fade-out had already
+  /// bitten, restores the song's normalization volume (a pause or seek in
+  /// the middle of a fade must not leave the song silent).
+  void _cancelVolumeRide() {
+    _volumeRideGeneration++;
+    if (_fadeOutStarted) {
+      _fadeOutStarted = false;
+      if (!_cast.active && _sourceReady) {
+        unawaited(_player.setVolume(_normalizationVolume));
+      }
+    }
+  }
+
+  /// The fade-out across a song's final seconds, armed from the position
+  /// ticks. Crossfade replaces it; AutoMix owns the transition while on.
+  void _onFadeOutPosition(Duration position) {
+    if (!_settings.fadePlayback ||
+        _settings.crossfadePlayback ||
+        _settings.autoMix ||
+        _cast.active ||
+        _fadeOutStarted ||
+        _player.state != PlaybackDeckState.playing) {
+      return;
+    }
+    final duration = mediaItem.value?.duration;
+    if (duration == null || duration <= Duration.zero) return;
+    final remaining = duration - position;
+    if (remaining <= Duration.zero ||
+        remaining > Duration(seconds: _settings.fadeDuration)) {
+      return;
+    }
+    _fadeOutStarted = true;
+    _log.d(
+      'Fading out across the last ${remaining.inMilliseconds} ms of '
+      '${mediaItem.value?.title}',
+    );
+    unawaited(
+      _rideVolume(
+        _player,
+        _normalizationVolume,
+        0,
+        duration: Duration(seconds: _settings.fadeDuration),
+      ),
+    );
+  }
+
+  /// Whether the position ticks must keep coming so a due fade-out is read.
+  bool _wantsFadeOut(Duration estimate) {
+    if (!_settings.fadePlayback ||
+        _settings.crossfadePlayback ||
+        _settings.autoMix ||
+        _fadeOutStarted) {
+      return false;
+    }
+    final duration = mediaItem.value?.duration;
+    if (duration == null || duration <= Duration.zero) return false;
+    final remaining = duration - estimate;
+    return remaining > Duration.zero &&
+        remaining <=
+            Duration(seconds: _settings.fadeDuration) +
+            const Duration(seconds: 1);
   }
 
   /// Drops a prepared AutoMix or gapless transition.
@@ -1158,6 +1285,7 @@ class MusicPlayerHandler extends BaseAudioHandler
       final estimate = _lastBroadcastPosition + (now - readAt) * _autoMix.rate;
       if (!_autoMix.wantsPosition(estimate) &&
           !_gapless.wantsPosition(estimate) &&
+          !_wantsFadeOut(estimate) &&
           !_autoplay.wouldFill) {
         return false;
       }
@@ -1175,6 +1303,7 @@ class MusicPlayerHandler extends BaseAudioHandler
     _autoMix.onPosition(position);
     _prefetch.onPosition(position);
     _gapless.onPosition(position);
+    _onFadeOutPosition(position);
     unawaited(_autoplay.fill());
     // A–B repeat: jump back to the A bound when the B bound is reached.
     if (abRepeatActive &&
@@ -1760,8 +1889,19 @@ class MusicPlayerHandler extends BaseAudioHandler
       _pendingRestorePosition = null;
     }
     final generation = ++_playRequestGeneration;
+    // Capture the outgoing song's audibility before _sourceReady clears: the
+    // ride-down below must know whether audio is actually playing, not
+    // whether a new request has already begun.
+    final outgoingAudible =
+        !_cast.active &&
+        _sourceReady &&
+        _player.state == PlaybackDeckState.playing;
     _sourceReady = false;
     _playbackError = null;
+    // A new song begins its fade lifecycle afresh; a ride left over from the
+    // previous song's fade-out must not leak into it.
+    _fadeOutStarted = false;
+    _volumeRideGeneration++;
     // Advance the requested index synchronously so consecutive Next taps do
     // not all target the same song while AutoMix/source preparation awaits.
     _index = index;
@@ -1775,6 +1915,12 @@ class MusicPlayerHandler extends BaseAudioHandler
         await _cancelTransitions();
         if (!_isCurrentPlayRequest(generation, media)) return;
         // Retire the audible source before publishing another song's title.
+        // Ride the volume down first: stopping an AudioTrack mid-sample
+        // clicks on many devices. Cast volume is a remote round-trip, so
+        // the ride is skipped there.
+        if (outgoingAudible) {
+          await _rideVolume(_player, _normalizationVolume, 0);
+        }
         await _player.stop();
         if (!_isCurrentPlayRequest(generation, media)) return;
         await _loadIndex(
@@ -1783,6 +1929,7 @@ class MusicPlayerHandler extends BaseAudioHandler
           recordHistory: recordHistory,
           startPaused: startPaused,
           startPosition: startPosition,
+          userSkip: userSkip,
         );
       } finally {
         if (_switchingGeneration == generation) _switchingGeneration = 0;
@@ -1862,6 +2009,7 @@ class MusicPlayerHandler extends BaseAudioHandler
     required bool recordHistory,
     required Duration startPosition,
     bool startPaused = false,
+    bool userSkip = false,
   }) async {
     await _cast.applyOutput();
     if (!_isCurrentPlayRequest(generation, media)) return;
@@ -2007,7 +2155,9 @@ class MusicPlayerHandler extends BaseAudioHandler
       await _player.stop();
       _sourceReady = false;
       if (!_isCurrentPlayRequest(generation, media)) return;
-      await _player.setVolume(normalizationVolume);
+      // Open silent and ride up once the source is audible: a track that
+      // starts on audible content clicks on many devices.
+      await _player.setVolume(startPaused ? normalizationVolume : 0);
       _normalizationVolume = normalizationVolume;
       if (!_isCurrentPlayRequest(generation, media)) return;
       final startAt = effectiveStartPosition > Duration.zero
@@ -2050,12 +2200,27 @@ class MusicPlayerHandler extends BaseAudioHandler
           cacheKey: media.source,
         );
         if (!_isCurrentPlayRequest(generation, media)) return;
-        await _player.setVolume(normalizationVolume);
+        await _player.setVolume(0);
         if (!_isCurrentPlayRequest(generation, media)) return;
         _normalizationVolume = normalizationVolume;
         await _startResolvedSource(fallback, generation, media, startAt);
       }
       if (!_isCurrentPlayRequest(generation, media)) return;
+      // Ride up unless the track must stay paused; the deck state can lag
+      // an awaited resume, so startPaused alone decides the silent case.
+      if (!_cast.active &&
+          (!startPaused || _player.state == PlaybackDeckState.playing)) {
+        await _rideVolume(
+          _player,
+          0,
+          normalizationVolume,
+          duration: _fadeInRideDuration(
+            userSkip: userSkip,
+            startPaused: startPaused,
+          ),
+        );
+        if (!_isCurrentPlayRequest(generation, media)) return;
+      }
       _sourceReady = true;
       // Apply the persisted playback rate to the new track. AutoMix manages
       // the rate itself when active, so only apply when it is idle.
@@ -2239,6 +2404,7 @@ class MusicPlayerHandler extends BaseAudioHandler
   }
 
   Future<void> _onComplete() async {
+    _log.i('Advancing after ${mediaItem.value?.title}');
     if (_repeatMode == AudioServiceRepeatMode.one &&
         _index >= 0 &&
         _index < _media.length) {
@@ -2412,6 +2578,9 @@ class MusicPlayerHandler extends BaseAudioHandler
     final generation = ++_playRequestGeneration;
     _switchingGeneration = 0;
     _userPaused = true;
+    // A pause in the middle of a fade-out restores the song's volume, so
+    // resuming plays it as loud as before the fade began.
+    _cancelVolumeRide();
     await _player.cancelPreparation();
     await _cancelTransitions();
     await _serializeSourceChange(() async {
@@ -2427,6 +2596,14 @@ class MusicPlayerHandler extends BaseAudioHandler
   Future<void> seek(Duration position) async {
     final generation = _playRequestGeneration;
     await _autoMix.cancel();
+    if (_gapless.crossfading) {
+      // An overlap follows the old position; seeking mid-crossfade drops it
+      // and leaves the ordinary completion to bring the next song.
+      unawaited(_gapless.cancel());
+    }
+    // A seek out of a fade-out restores the full volume; the fade re-arms
+    // from the ticks once the position nears the end again.
+    _cancelVolumeRide();
     await _serializeSourceChange(() async {
       if (generation != _playRequestGeneration || _disposed) return;
       if (!_sourceReady) {
@@ -2512,6 +2689,14 @@ class MusicPlayerHandler extends BaseAudioHandler
       await _persistSession(position: position);
       if (generation != _playRequestGeneration || _disposed) return;
       resumeMedia = _media[_index].toJson();
+    }
+    // Ride the volume down while the song is still audible: stopping an
+    // AudioTrack mid-sample clicks on many devices. Cast volume is a remote
+    // round-trip, so the ride is skipped there.
+    if (!_cast.active &&
+        _sourceReady &&
+        _player.state == PlaybackDeckState.playing) {
+      await _rideVolume(_player, _normalizationVolume, 0);
     }
     await _player.stop();
     if (generation != _playRequestGeneration || _disposed) return;
@@ -2689,6 +2874,20 @@ class MusicPlayerHandler extends BaseAudioHandler
     await _persistSession(position: playbackState.value.position);
   }
 
+  /// Whether [next] shows the media session the same song as [old]: every
+  /// field the session, the widgets and the queue screens display. A
+  /// lyrics-only edit rebuilds an item with identical facts here.
+  static bool _sameSessionFacts(MediaItem old, MediaItem next) =>
+      old.id == next.id &&
+      old.title == next.title &&
+      old.artist == next.artist &&
+      old.album == next.album &&
+      old.duration == next.duration &&
+      old.artUri == next.artUri &&
+      old.extras?['source'] == next.extras?['source'] &&
+      old.extras?['resolvedSource'] == next.extras?['resolvedSource'] &&
+      old.extras?['explicit'] == next.extras?['explicit'];
+
   /// Refreshes every occurrence without reopening the decoder or seeking.
   Future<void> onSourceMetadataChanged(String source) async {
     // An edited network file must not play from its copy before the edit.
@@ -2763,6 +2962,15 @@ class MusicPlayerHandler extends BaseAudioHandler
         );
         final old = _queueItems[i];
         final next = replace(old);
+        if (_sameSessionFacts(old, next)) {
+          // A lyrics-only edit rebuilds the item with identical display
+          // facts. Keep the old instances: re-sending an unchanged queue
+          // and metadata to the media session makes some system media
+          // controllers react as if a transport key was pressed (observed
+          // as an instant skip to the next song), and a fresh instance
+          // would drop an armed gapless handoff for the same song.
+          continue;
+        }
         _media[i] = updated;
         _queueItems[i] = next;
         final originalIndex = _originalQueueOrder?.indexWhere(
