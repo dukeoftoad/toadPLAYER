@@ -34,6 +34,9 @@ class MaterialPlayerLayout extends StatelessWidget {
     this.immersive = false,
     this.compactPlayer = false,
     this.onCompactPlayerTouch,
+    this.uiHidden = false,
+    this.onArtworkTap,
+    this.onArtworkDoubleTap,
   });
 
   final MediaItem mediaItem;
@@ -62,19 +65,40 @@ class MaterialPlayerLayout extends StatelessWidget {
   /// sees it.
   final VoidCallback? onCompactPlayerTouch;
 
+  /// Whether the player's chrome (app bar, metadata, transport, volume) is
+  /// hidden, leaving the cover and the timeline visible.
+  final bool uiHidden;
+
+  /// Cover taps: a single tap shows the lyrics (or restores hidden chrome),
+  /// a double-tap toggles the hidden chrome. Portrait only, like the
+  /// Toadplayer player; the landscape two-pane keeps its cover plain.
+  final VoidCallback? onArtworkTap;
+  final VoidCallback? onArtworkDoubleTap;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        Widget artworkAt(double artSize) => fullScreenArtwork
-            ? const PlayerArtworkDragRegion(
-                child: ColoredBox(
-                  color: Colors.transparent,
-                  child: SizedBox.expand(),
-                ),
-              )
-            : Center(
-                child: PlayerArtworkDragRegion(
+        // Cover taps are a portrait gesture here, as in Toadplayer's player:
+        // the landscape two-pane has no full-screen lyrics to open and no
+        // zen surface to hide. Null callbacks add no recognizers.
+        final coverTap =
+            MediaQuery.orientationOf(context) == Orientation.portrait;
+        final artworkTap = coverTap ? onArtworkTap : null;
+        final artworkDoubleTap = coverTap ? onArtworkDoubleTap : null;
+        Widget artworkAt(double artSize) => GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: artworkTap,
+          onDoubleTap: artworkDoubleTap,
+          child: fullScreenArtwork
+              ? const PlayerArtworkDragRegion(
+                  child: ColoredBox(
+                    color: Colors.transparent,
+                    child: SizedBox.expand(),
+                  ),
+                )
+              : Center(
+                  child: PlayerArtworkDragRegion(
                   child: Hero(
                     tag: kNowPlayingArtworkHeroTag,
                     child: Consumer(
@@ -143,7 +167,8 @@ class MaterialPlayerLayout extends StatelessWidget {
                     ),
                   ),
                 ),
-              );
+              ),
+            );
 
         Widget cover() => LayoutBuilder(
           key: const ValueKey('material-player-cover'),
@@ -268,6 +293,10 @@ class MaterialPlayerLayout extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 12),
                   child: PlayerQueueSwipeRegion(
                     onOpenQueue: onOpenQueue,
+                    // A hidden chrome keeps no hidden gestures: the queue
+                    // swipe stays armed only while its controls show. The
+                    // cover still swipes the route away.
+                    enabled: !uiHidden,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       // Short phones keep the room for artwork and lyrics;
@@ -275,6 +304,7 @@ class MaterialPlayerLayout extends StatelessWidget {
                       children: _metadataAndControls(
                         context,
                         showVolume: constraints.maxHeight >= 600,
+                        uiHidden: uiHidden,
                       ),
                     ),
                   ),
@@ -311,12 +341,17 @@ class MaterialPlayerLayout extends StatelessWidget {
 
   /// Title/artist, seek slider, transport buttons and volume, shared by the
   /// portrait column and the landscape right pane.
+  ///
+  /// While [uiHidden] the chrome fades in place — the timeline keeps its
+  /// room and its touch targets, exactly like the Toadplayer player's zen
+  /// view.
   List<Widget> _metadataAndControls(
     BuildContext context, {
     bool compact = false,
     bool showVolume = true,
     bool showMetadata = true,
     bool showControls = true,
+    bool uiHidden = false,
   }) {
     final fallback = AppMotionSpec(
       MediaQuery.disableAnimationsOf(context)
@@ -328,7 +363,11 @@ class MaterialPlayerLayout extends StatelessWidget {
     final fade = AppMotion.effects(context, fallback);
     return [
       if (showMetadata) ...[
-        Padding(
+        // The hidden chrome fades in place: the title keeps its room so
+        // the timeline below never moves.
+        PlayerLyricsControlsVisibility(
+          hidden: uiHidden,
+          child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28),
           child: ClipRect(
             child: AnimatedSwitcher(
@@ -402,6 +441,7 @@ class MaterialPlayerLayout extends StatelessWidget {
             ),
           ),
         ),
+        ),
         SizedBox(height: compact ? 12 : 24),
       ],
       if (showControls) ...[
@@ -415,6 +455,9 @@ class MaterialPlayerLayout extends StatelessWidget {
           compact: compact,
           // The footer's toolbar holds shuffle and repeat.
           showPlaybackModes: false,
+          // The hidden chrome keeps its timeline (wave bar) but fades the
+          // transport away.
+          transportVisible: !uiHidden,
         ),
         if (showVolume)
           // The player menu can hide it; the hardware buttons still apply. The
@@ -424,7 +467,10 @@ class MaterialPlayerLayout extends StatelessWidget {
               padding: EdgeInsets.only(top: compact ? 8 : 12),
               child:
                   ref.watch(settingsProvider.select((s) => s.playerShowVolume))
-                  ? const PlayerVolumeControl()
+                  ? PlayerLyricsControlsVisibility(
+                      hidden: uiHidden,
+                      child: const PlayerVolumeControl(),
+                    )
                   : null,
             ),
           ),

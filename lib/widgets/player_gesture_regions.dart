@@ -8,9 +8,15 @@ class PlayerQueueSwipeRegion extends StatefulWidget {
     super.key,
     required this.onOpenQueue,
     required this.child,
+    this.enabled = true,
   });
 
   final VoidCallback onOpenQueue;
+
+  /// While the player's chrome is hidden, its faded area must not keep a
+  /// hidden gesture: the queue swipe stays armed only while it shows.
+  final bool enabled;
+
   final Widget child;
 
   @override
@@ -23,6 +29,7 @@ class _PlayerQueueSwipeRegionState extends State<PlayerQueueSwipeRegion> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.enabled) return widget.child;
     final route = ModalRoute.of(context);
     final playerRoute = route is NowPlayingRoute ? route : null;
     final pageHeight = MediaQuery.sizeOf(context).height;
