@@ -1,6 +1,6 @@
 # Toadplayer — Cross-Platform Hi-Fi Music Player
 
-**Toadplayer** is a standalone, offline-first music player built on **Flutter/Dart UI + Rust backend + Android/iOS/Desktop native audio bridges** (hi-res/bit-perfect playback, parametric EQ, gapless, USB DAC). Now at production **v1.0.x** (`v1.0.0` first stable release; `v1.0.1` the bug-fix re-release) — bootstrapped from an earlier prototype codebase and fully rebranded, every symbol, module, channel, crate, asset and icon carries the Toadplayer identity (`com.toadplayer.app`).
+**Toadplayer** is a standalone, offline-first music player built on **Flutter/Dart UI + Rust backend + Android/iOS/Desktop native audio bridges** (hi-res/bit-perfect playback, parametric EQ, gapless, USB DAC). Now at production **v1.2.0** — bootstrapped from an earlier prototype codebase and fully rebranded, every symbol, module, channel, crate, asset and icon carries the Toadplayer identity (`com.toadplayer.app`).
 
 ## Releases (CI)
 
@@ -25,6 +25,17 @@ The standalone home is a library, not a button row:
 - **Home lyrics widget** — the current line floats above the mini player (`lib/widgets/lyrics_preview_card.dart`).
 - **Themes** — Appearance offers the default **System Material** (wallpaper-driven Material You), the crafted **Toad** palette (fixed moss green, `lib/theme/toad_theme.dart`) and the frosted **Glass** Toadplayer style.
 - **Per-track actions** — long-press a song for Play next, Add to queue and Add to playlist; playlists support create / rename / delete, play-all from the saved order, and per-row remove.
+
+## State Machines & Concurrency Model
+
+The playback core, player UI, lyrics pipeline and app lifecycle run on a set
+of implicit state machines (generation tokens, serialized future tails,
+desired-vs-applied pairs, mirror predicates, nullable sentinels).
+`docs/STATE_MACHINES.md` is the authoritative field guide: what the machines
+are, their real state sets, invariants and traps, and the safe order in
+which to make them explicit. Read it before touching
+`music_player_service.dart`, `now_playing_screen.dart` or the lyrics
+pipeline.
 
 ## Architecture & Rust <-> Dart FFI Setup
 
