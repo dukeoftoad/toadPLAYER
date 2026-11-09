@@ -46,6 +46,7 @@ import 'package:toadplayer/widgets/material_player_layout.dart';
 import 'package:toadplayer/widgets/toadplayer_player_layout.dart';
 import 'package:toadplayer/widgets/player_lyrics_controls.dart';
 import 'package:toadplayer/widgets/player_lyrics_section.dart';
+import 'package:toadplayer/widgets/player_track_swipe.dart';
 import 'package:toadplayer/widgets/playlist_picker_sheet.dart';
 import 'package:toadplayer/widgets/settings_group.dart';
 import 'package:toadplayer/widgets/sleep_timer_sheet.dart';
@@ -143,6 +144,14 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   Timer? _lyricsIdleTimer;
   final _lyricsPointers = <int, Offset>{};
   bool _lyricsPointerMoved = false;
+  // Feature: a single tap on the cover opens the lyrics, and three seconds
+  // later they fill the screen (the controls fade like immersive lyrics).
+  bool _lyricsForceFullscreen = false;
+  Timer? _lyricsFullscreenTimer;
+  // Features: a double-tap on the cover (or the auto-hide setting) hides the
+  // player's chrome, keeping the cover and the timeline (wave bar) visible.
+  bool _playerUiHidden = false;
+  Timer? _playerUiIdleTimer;
   // Skipping, seeking or opening the queue from the compact player keeps it
   // compact; only a touch elsewhere restores the full player.
   bool _compactPlayerTouched = false;
@@ -180,7 +189,18 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
       if (!playing && _lyricsControlsHidden) {
         setState(() => _lyricsControlsHidden = false);
       }
-      _scheduleLyricsControlsHide();
+      if (!playing && _playerUiHidden) {
+        setState(() => _playerUiHidden = false);
+      }
+      if (!playing && _lyricsForceFullscreen) {
+        setState(() => _lyricsForceFullscreen = false);
+      }
+      if (playing) {
+        _scheduleLyricsControlsHide();
+        _schedulePlayerUiAutoHide();
+      } else {
+        _playerUiIdleTimer?.cancel();
+      }
     });
     _lyricsAutoHideSub = ref.listenManual<bool>(
       settingsProvider.select((settings) => settings.autoHideLyricsControls),
@@ -263,6 +283,8 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     }
     _artworkRoute?.readArtwork = null;
     _lyricsIdleTimer?.cancel();
+    _lyricsFullscreenTimer?.cancel();
+    _playerUiIdleTimer?.cancel();
     _mediaItemSub?.close();
     _lyricsPlayingSub?.close();
     _lyricsAutoHideSub?.close();
@@ -496,15 +518,18 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
               ? MediaQuery.orientationOf(context) == Orientation.landscape ||
                         widget.embedded
                     ? null
-                    : IconButton(
-                        tooltip: context.l10n.nowPlayingMinimize,
-                        onPressed: _minimize,
-                        icon: Container(
-                          width: 36,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.4),
-                            borderRadius: BorderRadius.circular(3),
+                    : PlayerLyricsControlsVisibility(
+                        hidden: _playerUiHidden,
+                        child: IconButton(
+                          tooltip: context.l10n.nowPlayingMinimize,
+                          onPressed: _minimize,
+                          icon: Container(
+                            width: 36,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
                           ),
                         ),
                       )
@@ -556,7 +581,8 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
         child: SafeArea(
           top: !materialLandscapeArtwork,
           bottom: homeIndicatorBelowRow == null,
-          child: Column(
+          child: _trackSwipeScope(
+            Column(
             children: [
               if (materialLandscapeArtwork) ...[
                 SizedBox(height: MediaQuery.viewPaddingOf(context).top),
@@ -595,6 +621,9 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                           artworkForeground: _artworkForeground,
                           lyricsControlsHidden: _lyricsControlsHidden,
                           lyricsOptionsOpen: _lyricsOptionsOpen,
+                          uiHidden: _playerUiHidden,
+                          onArtworkTap: _onArtworkTap,
+                          onArtworkDoubleTap: _onArtworkDoubleTap,
                           lyricsBuilder: (showOptions) => _lyricsSection(
                             colorScheme,
                             isActive: _currentPage == 1,
@@ -639,9 +668,10 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                       ),
               ),
               _autoHidingLyricsControls(
-                PlayerQueueSwipeRegion(
-                  onOpenQueue: () => _showQueueSheet(context, colorScheme),
-                  child: Column(
+                PlayerTrackSwipeRegion(
+                  child: PlayerQueueSwipeRegion(
+                    onOpenQueue: () => _showQueueSheet(context, colorScheme),
+                    child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (toadplayer && !_landscape)
@@ -755,11 +785,14 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                     ],
                   ),
                 ),
+                ),
                 collapse: true,
+                hidden: _playerUiHidden || _lyricsImmersive,
               ),
               if (homeIndicatorBelowRow != null)
                 SizedBox(height: homeIndicatorBelowRow),
             ],
+            ),
           ),
         ),
       ),
@@ -827,7 +860,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   Widget _lyricsPointerListener(Widget child) => Listener(
     behavior: HitTestBehavior.translucent,
     onPointerDown: (event) {
-      if (!_canAutoHideLyricsControls) return;
+      if (!_canAutoHideLyricsControls && !_lyricsForceFullscreen) return;
       if (_lyricsPointers.isEmpty) _lyricsPointerMoved = false;
       _lyricsPointers[event.pointer] = event.position;
       _lyricsIdleTimer?.cancel();
@@ -867,12 +900,20 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
 
   void _setToadplayerPage(int page) {
     if (_toggleInspector(page)) return;
+    _lyricsFullscreenTimer?.cancel();
     setState(() {
       _currentPage = page;
       _lyricsControlsHidden = false;
       _lyricsScrollDistance = 0;
+      if (page != 1) _lyricsForceFullscreen = false;
+      if (page != 0) _playerUiHidden = false;
     });
     _scheduleLyricsControlsHide();
+    if (page == 0) {
+      _schedulePlayerUiAutoHide();
+    } else {
+      _playerUiIdleTimer?.cancel();
+    }
     if (_currentPage == 1) {
       unawaited(
         _trackMetadata.load(
@@ -881,6 +922,57 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
         ),
       );
     }
+  }
+
+  /// Feature 1: a double-tap on the cover hides the player's chrome — the
+  /// header, transport, volume and toolbar fade, leaving the cover and the
+  /// timeline (wave bar). A double-tap brings them back.
+  void _onArtworkDoubleTap() {
+    if (_currentPage != 0) return;
+    _lyricsFullscreenTimer?.cancel();
+    setState(() => _playerUiHidden = !_playerUiHidden);
+    if (!_playerUiHidden) _schedulePlayerUiAutoHide();
+  }
+
+  /// Feature 2: a single tap on the cover shows the lyrics and, three
+  /// seconds later, they fill the screen. While the chrome is hidden, a tap
+  /// only brings it back.
+  void _onArtworkTap() {
+    if (_currentPage != 0) return;
+    if (_playerUiHidden) {
+      setState(() => _playerUiHidden = false);
+      _schedulePlayerUiAutoHide();
+      return;
+    }
+    _setToadplayerPage(1);
+    _lyricsFullscreenTimer?.cancel();
+    _lyricsFullscreenTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted || _currentPage != 1) return;
+      setState(() => _lyricsForceFullscreen = true);
+    });
+  }
+
+  /// Feature 5: with the setting on, the chrome hides itself after five idle
+  /// seconds while playing, exactly like the double-tap hide.
+  bool get _canAutoHidePlayerUi =>
+      context.isToadplayer &&
+      !_landscape &&
+      _currentPage == 0 &&
+      ref.read(settingsProvider).playerAutoHideUi &&
+      ref.read(playbackPlayingProvider) &&
+      !MediaQuery.accessibleNavigationOf(context);
+
+  void _schedulePlayerUiAutoHide() {
+    _playerUiIdleTimer?.cancel();
+    if (!_canAutoHidePlayerUi || _playerUiHidden) return;
+    _playerUiIdleTimer = Timer(const Duration(seconds: 5), () {
+      if (!mounted || !_canAutoHidePlayerUi || _playerUiHidden) return;
+      if (ModalRoute.of(context)?.isCurrent == false) {
+        _schedulePlayerUiAutoHide();
+        return;
+      }
+      setState(() => _playerUiHidden = true);
+    });
   }
 
   /// Lyrics fill the column, so idle controls can hide: Toadplayer in portrait
@@ -926,11 +1018,13 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     }
     final compactTouch = _compactPlayerTouched;
     _compactPlayerTouched = false;
-    if (!cancelled &&
-        !_lyricsPointerMoved &&
-        !compactTouch &&
-        _lyricsControlsHidden) {
-      setState(() => _lyricsControlsHidden = false);
+    if (!cancelled && !_lyricsPointerMoved && !compactTouch) {
+      if (_lyricsControlsHidden) {
+        setState(() => _lyricsControlsHidden = false);
+      }
+      if (_lyricsForceFullscreen) {
+        setState(() => _lyricsForceFullscreen = false);
+      }
     }
     _scheduleLyricsControlsHide();
   }
@@ -957,14 +1051,25 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   }
 
   bool get _lyricsImmersive =>
-      _currentPage == 1 && _lyricsControlsHidden && _lyricsAutoHideLayout;
+      _currentPage == 1 &&
+      _lyricsAutoHideLayout &&
+      (_lyricsControlsHidden || _lyricsForceFullscreen);
 
   /// Toadplayer fades the controls in place; Material folds a [collapse] row
   /// away so the lyrics take its room.
-  Widget _autoHidingLyricsControls(Widget child, {bool collapse = false}) =>
-      !context.isToadplayer && collapse
-      ? PlayerLyricsControlsCollapse(hidden: _lyricsImmersive, child: child)
-      : PlayerLyricsControlsVisibility(hidden: _lyricsImmersive, child: child);
+  Widget _autoHidingLyricsControls(
+    Widget child, {
+    bool collapse = false,
+    bool? hidden,
+  }) => !context.isToadplayer && collapse
+  ? PlayerLyricsControlsCollapse(
+      hidden: hidden ?? _lyricsImmersive,
+      child: child,
+    )
+  : PlayerLyricsControlsVisibility(
+      hidden: hidden ?? _lyricsImmersive,
+      child: child,
+    );
 
   Widget _lyricsSection(
     ColorScheme colorScheme, {
@@ -1319,6 +1424,26 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
         await _openExternally(source);
         break;
     }
+  }
+
+  /// Feature 3: swiping left and right anywhere on the player moves to the
+  /// previous or next song. The scope drives the transport and toolbar swipe
+  /// regions; the cover and the titles carry their own regions already.
+  Widget _trackSwipeScope(Widget child) {
+    final queue = ref.watch(playQueueProvider).value ?? const <MediaItem>[];
+    final currentIndex = ref.watch(currentQueueIndexProvider);
+    return PlayerTrackSwipe(
+      queue: queue,
+      currentIndex: currentIndex,
+      onSelected: (item) async {
+        final latest = ref.read(playQueueProvider).value ?? const <MediaItem>[];
+        final index = latest.indexWhere((entry) => identical(entry, item));
+        if (index >= 0) {
+          await ref.read(musicPlayerControllerProvider).jumpTo(index);
+        }
+      },
+      child: child,
+    );
   }
 
   Future<void> _showPlaybackSpeedSheet(

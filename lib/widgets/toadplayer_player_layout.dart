@@ -59,6 +59,9 @@ class ToadplayerPlayerLayout extends ConsumerWidget {
     required this.onMoreActions,
     this.artworkAspectRatio,
     this.controlsHeadroom = 0,
+    this.uiHidden = false,
+    this.onArtworkTap,
+    this.onArtworkDoubleTap,
   });
 
   final MediaItem mediaItem;
@@ -83,6 +86,15 @@ class ToadplayerPlayerLayout extends ConsumerWidget {
   final ValueChanged<int> onPageChanged;
   final Future<void> Function(BuildContext, MediaItem) onTrackNavigation;
   final Future<void> Function(BuildContext, MediaItem, Rect?) onMoreActions;
+
+  /// Whether the player's chrome (header, transport, volume) is hidden,
+  /// leaving the cover and the timeline visible.
+  final bool uiHidden;
+
+  /// Cover taps: a single tap shows the lyrics (or restores hidden chrome),
+  /// a double-tap toggles the hidden chrome.
+  final VoidCallback? onArtworkTap;
+  final VoidCallback? onArtworkDoubleTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -114,6 +126,12 @@ class ToadplayerPlayerLayout extends ConsumerWidget {
         MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height;
     Widget hideControls(Widget child) => PlayerLyricsControlsVisibility(
       hidden: showLyrics && lyricsControlsHidden && !landscape,
+      child: child,
+    );
+    // The auto-hidden player chrome fades in place; the timeline (wave bar)
+    // and the cover keep their room and their touch targets.
+    Widget hideUi(Widget child) => PlayerLyricsControlsVisibility(
+      hidden: uiHidden,
       child: child,
     );
     // Any rebuild below this builder, such as a position tick, lays it out
@@ -162,7 +180,14 @@ class ToadplayerPlayerLayout extends ConsumerWidget {
                   left: 0,
                   right: 0,
                   height: compact ? compactHeaderHeight + 8 : stage.maxHeight,
-                  child: const PlayerTrackSwipeRegion(child: SizedBox.expand()),
+                  child: PlayerTrackSwipeRegion(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: onArtworkTap,
+                      onDoubleTap: onArtworkDoubleTap,
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
                 ),
                 Positioned.fill(
                   top: 8 + compactHeaderHeight + 16,
@@ -290,61 +315,73 @@ class ToadplayerPlayerLayout extends ConsumerWidget {
                                         : 'compact-player-artwork',
                                   ),
                                   child: PlayerArtworkDragRegion(
-                                    child: Hero(
-                                      tag: kNowPlayingArtworkHeroTag,
-                                      child: expanded
-                                          ? DecoratedBox(
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                boxShadow: const [
-                                                  BoxShadow(
-                                                    color: Color(0x40000000),
-                                                    blurRadius: 28,
-                                                    offset: Offset(0, 16),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: PlayerTransitionArtwork(
-                                                artworkKey:
-                                                    artworkKeys.expanded,
-                                                child: ClipRRect(
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: onArtworkTap,
+                                      onDoubleTap: onArtworkDoubleTap,
+                                      child: Hero(
+                                        tag: kNowPlayingArtworkHeroTag,
+                                        child: expanded
+                                            ? DecoratedBox(
+                                                decoration: BoxDecoration(
                                                   borderRadius:
                                                       BorderRadius.circular(12),
-                                                  child: motionArtwork,
+                                                  boxShadow: const [
+                                                    BoxShadow(
+                                                      color: Color(0x40000000),
+                                                      blurRadius: 28,
+                                                      offset: Offset(0, 16),
+                                                    ),
+                                                  ],
                                                 ),
-                                              ),
-                                            )
-                                          : Semantics(
-                                              button: true,
-                                              label: context
-                                                  .l10n
-                                                  .nowPlayingTabPlayer,
-                                              child: GestureDetector(
-                                                behavior:
-                                                    HitTestBehavior.opaque,
-                                                onTap: () => onPageChanged(0),
                                                 child: PlayerTransitionArtwork(
                                                   artworkKey:
-                                                      artworkKeys.compact,
+                                                      artworkKeys.expanded,
                                                   child: ClipRRect(
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                           12,
                                                         ),
-                                                    child: PlayerArtwork(
-                                                      artUri: mediaItem.artUri
-                                                          ?.toString(),
-                                                      colorScheme: colorScheme,
-                                                      cacheWidth:
-                                                          PlayerArtwork.transitionCacheWidth(
-                                                            context,
-                                                          ),
-                                                    ),
+                                                    child: motionArtwork,
                                                   ),
                                                 ),
+                                              )
+                                            : Semantics(
+                                                button: true,
+                                                label: context
+                                                    .l10n
+                                                    .nowPlayingTabPlayer,
+                                                child: GestureDetector(
+                                                  behavior:
+                                                      HitTestBehavior.opaque,
+                                                  onTap: () =>
+                                                      onPageChanged(0),
+                                                  child:
+                                                      PlayerTransitionArtwork(
+                                                        artworkKey: artworkKeys
+                                                            .compact,
+                                                        child: ClipRRect(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                    12,
+                                                                  ),
+                                                          child: PlayerArtwork(
+                                                            artUri: mediaItem
+                                                                .artUri
+                                                                ?.toString(),
+                                                            colorScheme:
+                                                                colorScheme,
+                                                            cacheWidth: PlayerArtwork
+                                                                .transitionCacheWidth(
+                                                                  context,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                ),
                                               ),
-                                            ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -385,6 +422,7 @@ class ToadplayerPlayerLayout extends ConsumerWidget {
             metadata: metadata,
             compact: landscape,
             transportTopPadding: 16 + transportShift,
+            transportVisible: !uiHidden,
           ),
         );
 
@@ -432,13 +470,15 @@ class ToadplayerPlayerLayout extends ConsumerWidget {
                 id: _PlayerHeaderSlot.header,
                 child: KeyedSubtree(
                   key: const ValueKey('player-track-header'),
-                  child: AnimatedBuilder(
-                    key: artworkKeys.header,
-                    animation: artworkForeground,
-                    builder: (context, _) => _trackHeader(
-                      context,
-                      foreground('header'),
-                      compactProgress: progress,
+                  child: hideUi(
+                    AnimatedBuilder(
+                      key: artworkKeys.header,
+                      animation: artworkForeground,
+                      builder: (context, _) => _trackHeader(
+                        context,
+                        foreground('header'),
+                        compactProgress: progress,
+                      ),
                     ),
                   ),
                 ),
@@ -458,11 +498,13 @@ class ToadplayerPlayerLayout extends ConsumerWidget {
                 controls(),
                 if (showVolume) ...[
                   SizedBox(height: volumeGap - transportShift + headroom),
-                  AnimatedBuilder(
-                    animation: artworkForeground,
-                    builder: (context, _) => PlayerVolumeControl(
-                      key: artworkKeys.volume,
-                      foreground: foreground('volume').onSurface,
+                  hideUi(
+                    AnimatedBuilder(
+                      animation: artworkForeground,
+                      builder: (context, _) => PlayerVolumeControl(
+                        key: artworkKeys.volume,
+                        foreground: foreground('volume').onSurface,
+                      ),
                     ),
                   ),
                 ],

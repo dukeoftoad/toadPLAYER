@@ -192,6 +192,16 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   playerShowPronunciation: json['playerShowPronunciation'] as bool? ?? true,
   playerShowTranslation: json['playerShowTranslation'] as bool? ?? true,
   playerShowVolume: json['playerShowVolume'] as bool? ?? true,
+  crossfadePlayback: json['crossfadePlayback'] as bool? ?? false,
+  crossfadeDuration: json['crossfadeDuration'] == null
+      ? 4
+      : crossfadeDurationFromJson(json['crossfadeDuration']),
+  fadePlayback: json['fadePlayback'] as bool? ?? false,
+  fadeDuration: json['fadeDuration'] == null
+      ? 2
+      : fadeDurationFromJson(json['fadeDuration']),
+  playerAutoHideUi: json['playerAutoHideUi'] as bool? ?? false,
+  sleepModeEnabled: json['sleepModeEnabled'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$AppSettingsToJson(
@@ -326,6 +336,12 @@ Map<String, dynamic> _$AppSettingsToJson(
   'playerShowPronunciation': instance.playerShowPronunciation,
   'playerShowTranslation': instance.playerShowTranslation,
   'playerShowVolume': instance.playerShowVolume,
+  'crossfadePlayback': instance.crossfadePlayback,
+  'crossfadeDuration': instance.crossfadeDuration,
+  'fadePlayback': instance.fadePlayback,
+  'fadeDuration': instance.fadeDuration,
+  'playerAutoHideUi': instance.playerAutoHideUi,
+  'sleepModeEnabled': instance.sleepModeEnabled,
 };
 
 const _$AutoMixEffectEnumMap = {

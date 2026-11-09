@@ -1104,6 +1104,24 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   void setPlayerShowVolume(bool visible) =>
       _commit(state.copyWith(playerShowVolume: visible));
+
+  void setCrossfadePlayback(bool enabled) =>
+      _commit(state.copyWith(crossfadePlayback: enabled));
+
+  void setCrossfadeDuration(int seconds) =>
+      _commit(state.copyWith(crossfadeDuration: seconds.clamp(1, 12)));
+
+  void setFadePlayback(bool enabled) =>
+      _commit(state.copyWith(fadePlayback: enabled));
+
+  void setFadeDuration(int seconds) =>
+      _commit(state.copyWith(fadeDuration: seconds.clamp(1, 10)));
+
+  void setPlayerAutoHideUi(bool enabled) =>
+      _commit(state.copyWith(playerAutoHideUi: enabled));
+
+  void setSleepModeEnabled(bool enabled) =>
+      _commit(state.copyWith(sleepModeEnabled: enabled));
 }
 
 final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(

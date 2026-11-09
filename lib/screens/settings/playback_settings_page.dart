@@ -27,6 +27,7 @@ import 'package:toadplayer/widgets/app_alert_dialog.dart';
 import 'package:toadplayer/widgets/app_progress_indicator.dart';
 import 'package:toadplayer/widgets/app_bottom_sheet.dart';
 import 'package:toadplayer/widgets/app_icon.dart';
+import 'package:toadplayer/widgets/app_slider.dart';
 import 'package:toadplayer/widgets/app_sliver_header.dart';
 import 'package:toadplayer/widgets/beta_badge.dart';
 import 'package:toadplayer/widgets/player_volume_control.dart';
@@ -36,6 +37,7 @@ import 'package:toadplayer/widgets/lastfm_settings.dart';
 import 'package:toadplayer/widgets/automix_settings.dart';
 import 'package:toadplayer/widgets/music_haptics_settings.dart';
 import 'package:toadplayer/widgets/playback_normalization_settings.dart';
+import 'package:toadplayer/widgets/slider_value_header.dart';
 
 class PlaybackSettingsPage extends ConsumerStatefulWidget {
   const PlaybackSettingsPage({super.key});
@@ -195,6 +197,33 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
                 onTap: () => ref
                     .read(settingsProvider.notifier)
                     .setPlayerMode('internal'),
+              ),
+              SettingsSwitchItem(
+                icon: Icons.visibility_off_outlined,
+                title: 'Auto-hide player controls',
+                subtitle:
+                    'Hide the player chrome after a few idle seconds while '
+                    'playing; the cover and timeline stay visible. Any touch '
+                    'brings the controls back.',
+                value: settings.playerAutoHideUi,
+                enabled: settings.playerMode == 'internal',
+                onChanged: (value) => ref
+                    .read(settingsProvider.notifier)
+                    .setPlayerAutoHideUi(value),
+              ),
+              SettingsSwitchItem(
+                icon: Icons.bedtime_outlined,
+                title: 'Sleep mode',
+                subtitle:
+                    'Black the screen for as long as a sleep timer runs. '
+                    'Double-tap the left side for the previous song and the '
+                    'right side for the next; tap anywhere to wake the '
+                    'screen.',
+                value: settings.sleepModeEnabled,
+                enabled: settings.playerMode == 'internal',
+                onChanged: (value) => ref
+                    .read(settingsProvider.notifier)
+                    .setSleepModeEnabled(value),
                 showDivider: false,
               ),
             ],
@@ -261,8 +290,61 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
                     !(isDesktopPlatform && settings.exclusiveOutput),
                 onChanged: (value) =>
                     ref.read(settingsProvider.notifier).setAutoMix(value),
-                showDivider: false,
               ),
+              SettingsSwitchItem(
+                icon: Icons.swap_horiz,
+                title: 'Crossfade',
+                subtitle:
+                    'Start the next song before the current one ends and swap '
+                    'their volumes across the overlap. Off keeps the quick '
+                    'anti-pop transition.',
+                value: settings.crossfadePlayback,
+                enabled:
+                    settings.playerMode == 'internal' &&
+                    !settings.usbBitPerfect &&
+                    !autoMixActive,
+                onChanged: (value) => ref
+                    .read(settingsProvider.notifier)
+                    .setCrossfadePlayback(value),
+              ),
+              if (settings.crossfadePlayback && !autoMixActive)
+                _TransitionDurationSetting(
+                  enabled: settings.playerMode == 'internal',
+                  label: 'Crossfade length',
+                  value: settings.crossfadeDuration,
+                  min: 1,
+                  max: 12,
+                  onChanged: (seconds) => ref
+                      .read(settingsProvider.notifier)
+                      .setCrossfadeDuration(seconds),
+                ),
+              SettingsSwitchItem(
+                icon: Icons.fade,
+                title: 'Fade transitions',
+                subtitle:
+                    'Fade out a song\'s last seconds and fade in the next '
+                    'one when playback moves on by itself. Manual skips stay '
+                    'instant. Off keeps the anti-pop fix alone.',
+                value: settings.fadePlayback,
+                enabled:
+                    settings.playerMode == 'internal' &&
+                    !settings.usbBitPerfect &&
+                    !autoMixActive,
+                onChanged: (value) =>
+                    ref.read(settingsProvider.notifier).setFadePlayback(value),
+                showDivider: settings.fadePlayback && !autoMixActive,
+              ),
+              if (settings.fadePlayback && !autoMixActive)
+                _TransitionDurationSetting(
+                  enabled: settings.playerMode == 'internal',
+                  label: 'Fade length',
+                  value: settings.fadeDuration,
+                  min: 1,
+                  max: 10,
+                  onChanged: (seconds) => ref
+                      .read(settingsProvider.notifier)
+                      .setFadeDuration(seconds),
+                ),
             ],
           ),
           if (autoMixActive) ...[
@@ -715,6 +797,77 @@ class _AlsaDeviceItemState extends ConsumerState<_AlsaDeviceItem> {
           showDivider: false,
         );
       },
+    );
+  }
+}
+
+/// The seconds slider shown under the Crossfade and Fade switches: dragging
+/// drafts locally, releasing persists.
+class _TransitionDurationSetting extends ConsumerStatefulWidget {
+  const _TransitionDurationSetting({
+    required this.enabled,
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+  });
+
+  final bool enabled;
+  final String label;
+  final int value;
+  final int min;
+  final int max;
+  final ValueChanged<int> onChanged;
+
+  @override
+  ConsumerState<_TransitionDurationSetting> createState() =>
+      _TransitionDurationSettingState();
+}
+
+class _TransitionDurationSettingState
+    extends ConsumerState<_TransitionDurationSetting> {
+  double? _draft;
+
+  @override
+  Widget build(BuildContext context) {
+    final seconds = (_draft ?? widget.value.toDouble()).clamp(
+      widget.min,
+      widget.max,
+    );
+    final text = '${seconds.round()} s';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (context.isToadplayer)
+            Text('${widget.label}: $text')
+          else
+            SliderValueHeader(
+              title: widget.label,
+              value: text,
+              enabled: widget.enabled,
+            ),
+          AppSlider(
+            value: seconds,
+            min: widget.min.toDouble(),
+            max: widget.max.toDouble(),
+            divisions: widget.max - widget.min,
+            label: text,
+            semanticLabel: widget.label,
+            onChanged: widget.enabled
+                ? (slider) => setState(() => _draft = slider)
+                : null,
+            onChangeEnd: widget.enabled
+                ? (slider) {
+                    widget.onChanged(slider.round().clamp(widget.min, widget.max));
+                    _draft = null;
+                  }
+                : null,
+          ),
+        ],
+      ),
     );
   }
 }
