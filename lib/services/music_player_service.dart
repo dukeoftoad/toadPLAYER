@@ -667,6 +667,27 @@ class MusicPlayerHandler extends BaseAudioHandler
     return true;
   }
 
+  static const _antiPopFadeSteps = 5;
+  static const _antiPopFadeStepGap = Duration(milliseconds: 8);
+
+  /// Rides a deck's volume from [from] to [to] in small steps (~40 ms) so a
+  /// source that starts or stops on audible content does not click: many
+  /// devices output a drum-like thump when an AudioTrack opens or closes
+  /// mid-sample.
+  Future<void> _rideVolume(PlaybackDeck player, double from, double to) async {
+    for (var step = 1; step <= _antiPopFadeSteps; step++) {
+      if (_disposed) return;
+      try {
+        await player.setVolume(from + (to - from) * step / _antiPopFadeSteps);
+      } catch (_) {
+        return;
+      }
+      if (step < _antiPopFadeSteps) {
+        await Future<void>.delayed(_antiPopFadeStepGap);
+      }
+    }
+  }
+
   /// Drops a prepared AutoMix or gapless transition.
   Future<void> _cancelTransitions() async {
     await _autoMix.cancel();
@@ -1775,6 +1796,14 @@ class MusicPlayerHandler extends BaseAudioHandler
         await _cancelTransitions();
         if (!_isCurrentPlayRequest(generation, media)) return;
         // Retire the audible source before publishing another song's title.
+        // Ride the volume down first: stopping an AudioTrack mid-sample
+        // clicks on many devices. Cast volume is a remote round-trip, so
+        // the ride is skipped there.
+        if (!_cast.active &&
+            _sourceReady &&
+            _player.state == PlaybackDeckState.playing) {
+          await _rideVolume(_player, _normalizationVolume, 0);
+        }
         await _player.stop();
         if (!_isCurrentPlayRequest(generation, media)) return;
         await _loadIndex(
@@ -2007,7 +2036,9 @@ class MusicPlayerHandler extends BaseAudioHandler
       await _player.stop();
       _sourceReady = false;
       if (!_isCurrentPlayRequest(generation, media)) return;
-      await _player.setVolume(normalizationVolume);
+      // Open silent and ride up once the source is audible: a track that
+      // starts on audible content clicks on many devices.
+      await _player.setVolume(startPaused ? normalizationVolume : 0);
       _normalizationVolume = normalizationVolume;
       if (!_isCurrentPlayRequest(generation, media)) return;
       final startAt = effectiveStartPosition > Duration.zero
@@ -2050,12 +2081,19 @@ class MusicPlayerHandler extends BaseAudioHandler
           cacheKey: media.source,
         );
         if (!_isCurrentPlayRequest(generation, media)) return;
-        await _player.setVolume(normalizationVolume);
+        await _player.setVolume(0);
         if (!_isCurrentPlayRequest(generation, media)) return;
         _normalizationVolume = normalizationVolume;
         await _startResolvedSource(fallback, generation, media, startAt);
       }
       if (!_isCurrentPlayRequest(generation, media)) return;
+      // Ride up unless the track must stay paused; the deck state can lag
+      // an awaited resume, so startPaused alone decides the silent case.
+      if (!_cast.active &&
+          (!startPaused || _player.state == PlaybackDeckState.playing)) {
+        await _rideVolume(_player, 0, normalizationVolume);
+        if (!_isCurrentPlayRequest(generation, media)) return;
+      }
       _sourceReady = true;
       // Apply the persisted playback rate to the new track. AutoMix manages
       // the rate itself when active, so only apply when it is idle.
@@ -2239,6 +2277,7 @@ class MusicPlayerHandler extends BaseAudioHandler
   }
 
   Future<void> _onComplete() async {
+    _log.i('Advancing after ${mediaItem.value?.title}');
     if (_repeatMode == AudioServiceRepeatMode.one &&
         _index >= 0 &&
         _index < _media.length) {
@@ -2689,6 +2728,20 @@ class MusicPlayerHandler extends BaseAudioHandler
     await _persistSession(position: playbackState.value.position);
   }
 
+  /// Whether [next] shows the media session the same song as [old]: every
+  /// field the session, the widgets and the queue screens display. A
+  /// lyrics-only edit rebuilds an item with identical facts here.
+  static bool _sameSessionFacts(MediaItem old, MediaItem next) =>
+      old.id == next.id &&
+      old.title == next.title &&
+      old.artist == next.artist &&
+      old.album == next.album &&
+      old.duration == next.duration &&
+      old.artUri == next.artUri &&
+      old.extras?['source'] == next.extras?['source'] &&
+      old.extras?['resolvedSource'] == next.extras?['resolvedSource'] &&
+      old.extras?['explicit'] == next.extras?['explicit'];
+
   /// Refreshes every occurrence without reopening the decoder or seeking.
   Future<void> onSourceMetadataChanged(String source) async {
     // An edited network file must not play from its copy before the edit.
@@ -2763,6 +2816,15 @@ class MusicPlayerHandler extends BaseAudioHandler
         );
         final old = _queueItems[i];
         final next = replace(old);
+        if (_sameSessionFacts(old, next)) {
+          // A lyrics-only edit rebuilds the item with identical display
+          // facts. Keep the old instances: re-sending an unchanged queue
+          // and metadata to the media session makes some system media
+          // controllers react as if a transport key was pressed (observed
+          // as an instant skip to the next song), and a fresh instance
+          // would drop an armed gapless handoff for the same song.
+          continue;
+        }
         _media[i] = updated;
         _queueItems[i] = next;
         final originalIndex = _originalQueueOrder?.indexWhere(
