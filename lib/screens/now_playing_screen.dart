@@ -236,9 +236,11 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final size = MediaQuery.sizeOf(context);
-    _landscape = context.isToadplayer && size.width > size.height;
-    if (_landscape) {
-      // The landscape player has no zen surface to leave it through.
+    final wide = size.width > size.height;
+    _landscape = context.isToadplayer && wide;
+    if (wide) {
+      // The landscape players have no zen surface to leave it through:
+      // both players read their cover taps in portrait only.
       _playerUiHidden = false;
       _playerUiBlackout = false;
       _playerUiIdleTimer?.cancel();
@@ -374,9 +376,8 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     // back; pausing, a page change or rotation exits it as well.
     if (_playerUiHidden &&
         _playerUiBlackout &&
-        toadplayer &&
-        !_landscape &&
-        !widget.embedded) {
+        !widget.embedded &&
+        MediaQuery.orientationOf(context) == Orientation.portrait) {
       return ColoredBox(
         color: Colors.black,
         child: GestureDetector(
@@ -537,7 +538,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
           : colorScheme.surface,
       appBar: _FadingAppBar(
         opacity: contentOpacity,
-        hidden: !toadplayer && _lyricsImmersive,
+        hidden: !toadplayer && (_lyricsImmersive || _playerUiHidden),
         child: AppBar(
           backgroundColor: toadplayer || materialBackdrop
               ? Colors.transparent
@@ -686,6 +687,9 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                         colorScheme: colorScheme,
                         showLyrics: _currentPage == 1,
                         immersive: _lyricsImmersive,
+                        uiHidden: _playerUiHidden,
+                        onArtworkTap: _onArtworkTap,
+                        onArtworkDoubleTap: _onArtworkDoubleTap,
                         compactPlayer: ref.watch(
                           settingsProvider.select((s) => s.compactPlayer),
                         ),
