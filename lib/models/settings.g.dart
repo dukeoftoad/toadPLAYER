@@ -201,6 +201,7 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
       ? 2
       : fadeDurationFromJson(json['fadeDuration']),
   playerAutoHideUi: json['playerAutoHideUi'] as bool? ?? false,
+  playerZenBlackout: json['playerZenBlackout'] as bool? ?? false,
   sleepModeEnabled: json['sleepModeEnabled'] as bool? ?? false,
 );
 
@@ -341,6 +342,7 @@ Map<String, dynamic> _$AppSettingsToJson(
   'fadePlayback': instance.fadePlayback,
   'fadeDuration': instance.fadeDuration,
   'playerAutoHideUi': instance.playerAutoHideUi,
+  'playerZenBlackout': instance.playerZenBlackout,
   'sleepModeEnabled': instance.sleepModeEnabled,
 };
 

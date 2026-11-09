@@ -212,6 +212,20 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
                     .setPlayerAutoHideUi(value),
               ),
               SettingsSwitchItem(
+                icon: Icons.dark_mode_outlined,
+                title: 'Blackout screen',
+                subtitle:
+                    'Double-tapping the cover hides the interface. Keep the '
+                    'cover and the wave bar visible, or turn this on for a '
+                    'plain black screen. Double-tap again to bring '
+                    'everything back.',
+                value: settings.playerZenBlackout,
+                enabled: settings.playerMode == 'internal',
+                onChanged: (value) => ref
+                    .read(settingsProvider.notifier)
+                    .setPlayerZenBlackout(value),
+              ),
+              SettingsSwitchItem(
                 icon: Icons.bedtime_outlined,
                 title: 'Sleep mode',
                 subtitle:

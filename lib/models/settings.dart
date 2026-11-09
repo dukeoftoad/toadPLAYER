@@ -316,6 +316,10 @@ class AppSettings {
   /// visible; a double-tap on the cover or any touch restores them.
   final bool playerAutoHideUi;
 
+  /// What double-tapping the cover shows while the interface is hidden: the
+  /// cover with its timeline (wave bar), or a plain black screen.
+  final bool playerZenBlackout;
+
   /// Blacks the display for as long as a sleep timer runs; while dark, a
   /// double-tap on the screen's left third goes back a song and on the right
   /// third goes forward. The app never wakes the display itself.
@@ -461,6 +465,7 @@ class AppSettings {
     this.fadePlayback = false,
     this.fadeDuration = 2,
     this.playerAutoHideUi = false,
+    this.playerZenBlackout = false,
     this.sleepModeEnabled = false,
   });
 
@@ -619,6 +624,7 @@ class AppSettings {
     bool? fadePlayback,
     int? fadeDuration,
     bool? playerAutoHideUi,
+    bool? playerZenBlackout,
     bool? sleepModeEnabled,
   }) {
     return AppSettings(
@@ -801,6 +807,7 @@ class AppSettings {
       fadePlayback: fadePlayback ?? this.fadePlayback,
       fadeDuration: fadeDuration ?? this.fadeDuration,
       playerAutoHideUi: playerAutoHideUi ?? this.playerAutoHideUi,
+      playerZenBlackout: playerZenBlackout ?? this.playerZenBlackout,
       sleepModeEnabled: sleepModeEnabled ?? this.sleepModeEnabled,
     );
   }

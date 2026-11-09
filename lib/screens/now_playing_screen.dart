@@ -150,7 +150,10 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   Timer? _lyricsFullscreenTimer;
   // Features: a double-tap on the cover (or the auto-hide setting) hides the
   // player's chrome, keeping the cover and the timeline (wave bar) visible.
+  // With the blackout style set, the explicit double-tap shows a plain black
+  // screen instead; the idle auto-hide always keeps the cover visible.
   bool _playerUiHidden = false;
+  bool _playerUiBlackout = false;
   Timer? _playerUiIdleTimer;
   // Skipping, seeking or opening the queue from the compact player keeps it
   // compact; only a touch elsewhere restores the full player.
@@ -190,7 +193,10 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
         setState(() => _lyricsControlsHidden = false);
       }
       if (!playing && _playerUiHidden) {
-        setState(() => _playerUiHidden = false);
+        setState(() {
+          _playerUiHidden = false;
+          _playerUiBlackout = false;
+        });
       }
       if (!playing && _lyricsForceFullscreen) {
         setState(() => _lyricsForceFullscreen = false);
@@ -231,6 +237,12 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     super.didChangeDependencies();
     final size = MediaQuery.sizeOf(context);
     _landscape = context.isToadplayer && size.width > size.height;
+    if (_landscape) {
+      // The landscape player has no zen surface to leave it through.
+      _playerUiHidden = false;
+      _playerUiBlackout = false;
+      _playerUiIdleTimer?.cancel();
+    }
     if (!_lyricsAutoHideLayout || MediaQuery.accessibleNavigationOf(context)) {
       _lyricsControlsHidden = false;
     }
@@ -354,6 +366,24 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
           ),
         ),
         body: Center(child: Text(context.l10n.nowPlayingNothingPlaying)),
+      );
+    }
+
+    // Feature 1's blackout style: the double-tap-hidden state renders as a
+    // plain black surface. A double-tap anywhere on it brings the player
+    // back; pausing, a page change or rotation exits it as well.
+    if (_playerUiHidden &&
+        _playerUiBlackout &&
+        toadplayer &&
+        !_landscape &&
+        !widget.embedded) {
+      return ColoredBox(
+        color: Colors.black,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onDoubleTap: _onArtworkDoubleTap,
+          child: const SizedBox.expand(),
+        ),
       );
     }
 
@@ -862,10 +892,12 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   }
 
   /// A touch on the lyrics page holds the controls; a tap brings hidden
-  /// ones back.
+  /// ones back. Any touch also cancels the pending three-second countdown
+  /// that would expand the lyrics, so active reading never jumps the view.
   Widget _lyricsPointerListener(Widget child) => Listener(
     behavior: HitTestBehavior.translucent,
     onPointerDown: (event) {
+      _lyricsFullscreenTimer?.cancel();
       if (!_canAutoHideLyricsControls && !_lyricsForceFullscreen) return;
       if (_lyricsPointers.isEmpty) _lyricsPointerMoved = false;
       _lyricsPointers[event.pointer] = event.position;
@@ -912,7 +944,11 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
       _lyricsControlsHidden = false;
       _lyricsScrollDistance = 0;
       if (page != 1) _lyricsForceFullscreen = false;
-      if (page != 0) _playerUiHidden = false;
+      if (page != 0) {
+        _playerUiHidden = false;
+        _playerUiBlackout = false;
+        _playerUiIdleTimer?.cancel();
+      }
     });
     _scheduleLyricsControlsHide();
     if (page == 0) {
@@ -932,11 +968,16 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
 
   /// Feature 1: a double-tap on the cover hides the player's chrome — the
   /// header, transport, volume and toolbar fade, leaving the cover and the
-  /// timeline (wave bar). A double-tap brings them back.
+  /// timeline (wave bar). A double-tap brings them back. With the blackout
+  /// style set, the hidden state renders as a plain black screen instead.
   void _onArtworkDoubleTap() {
     if (_currentPage != 0) return;
     _lyricsFullscreenTimer?.cancel();
-    setState(() => _playerUiHidden = !_playerUiHidden);
+    setState(() {
+      _playerUiHidden = !_playerUiHidden;
+      _playerUiBlackout =
+          _playerUiHidden && ref.read(settingsProvider).playerZenBlackout;
+    });
     if (!_playerUiHidden) _schedulePlayerUiAutoHide();
   }
 
@@ -946,7 +987,12 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   void _onArtworkTap() {
     if (_currentPage != 0) return;
     if (_playerUiHidden) {
-      setState(() => _playerUiHidden = false);
+      // The blackout screen has no tap surface; the single tap here only
+      // reaches the code when the cover and timeline are still visible.
+      setState(() {
+        _playerUiHidden = false;
+        _playerUiBlackout = false;
+      });
       _schedulePlayerUiAutoHide();
       return;
     }
@@ -977,7 +1023,12 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
         _schedulePlayerUiAutoHide();
         return;
       }
-      setState(() => _playerUiHidden = true);
+      // The idle hide keeps the cover visible; the blackout style arms
+      // through the explicit double-tap only.
+      setState(() {
+        _playerUiHidden = true;
+        _playerUiBlackout = false;
+      });
     });
   }
 
