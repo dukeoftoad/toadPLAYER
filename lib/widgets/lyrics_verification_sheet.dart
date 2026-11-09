@@ -3,7 +3,6 @@ import 'package:toadplayer/controllers/player_metadata_controller.dart';
 import 'package:toadplayer/l10n/l10n.dart';
 import 'package:toadplayer/utils/logger.dart';
 import 'package:toadplayer/utils/lyrics_metadata_helper.dart';
-import 'package:toadplayer/utils/lyrics_parser.dart';
 import 'package:toadplayer/widgets/app_bottom_sheet.dart';
 import 'package:toadplayer/widgets/app_text_field.dart';
 import 'package:toadplayer/widgets/expressive_button.dart';
@@ -14,17 +13,15 @@ final _log = AppLogger('LyricsVerification');
 /// the rest.
 const _previewLineLimit = 12;
 
-/// One fetched result held for review: the raw lyrics text and its parse.
+/// Fetches one result held for review, bound to the source and generation
+/// it was fetched under ([OnlineLyricsReview]).
 typedef LyricsReviewFetch =
-    Future<({String raw, ParsedLyrics parsed})?> Function(
-      String track,
-      String artist,
-    );
+    Future<OnlineLyricsReview?> Function(String track, String artist);
 
 /// What a refine round returns: the details the user searched with, plus
 /// the lyrics found for them.
 typedef LyricsRefineResult =
-    ({String track, String artist, ({String raw, ParsedLyrics parsed}) result});
+    ({String track, String artist, OnlineLyricsReview result});
 
 enum _ReviewAction { save, refine }
 
@@ -44,10 +41,21 @@ Future<void> runLyricsVerificationFlow(
   var fetched = await metadata.fetchOnlineForReview();
   while (fetched != null) {
     if (!context.mounted) return;
-    final action = await _showReviewSheet(context, metadata, fetched);
+    // The sheet outlives track changes on the root navigator, so it is
+    // labelled by the details the search actually used, not by the live
+    // controller state.
+    final subtitle = [lastTrack, lastArtist]
+        .where((part) => part.trim().isNotEmpty)
+        .join(' · ');
+    final action = await _showReviewSheet(context, fetched, subtitle);
     if (!context.mounted) return;
     if (action == _ReviewAction.save) {
-      await metadata.saveFetchedOnlineLyrics(fetched.raw, fetched.parsed);
+      await metadata.saveFetchedOnlineLyrics(
+        fetched.raw,
+        fetched.parsed,
+        source: fetched.source,
+        generation: fetched.generation,
+      );
       return;
     }
     if (action != _ReviewAction.refine) return;
@@ -69,15 +77,10 @@ Future<void> runLyricsVerificationFlow(
 /// the save / mismatch choice.
 Future<_ReviewAction?> _showReviewSheet(
   BuildContext context,
-  PlayerMetadataController metadata,
-  ({String raw, ParsedLyrics parsed}) fetched,
+  OnlineLyricsReview fetched,
+  String subtitle,
 ) {
   final l10n = context.l10n;
-  final item = metadata.item;
-  final subtitle = [
-    ?item?.title,
-    ?item?.artist?.trim(),
-  ].where((part) => part.trim().isNotEmpty).join(' · ');
   final preview = _preview(fetched.raw);
   final scheme = Theme.of(context).colorScheme;
   return showAppScrollableBottomSheet<_ReviewAction>(
@@ -224,7 +227,7 @@ class _LyricsRefineSheetState extends State<_LyricsRefineSheet> {
       _searching = true;
       _error = null;
     });
-    final ({String raw, ParsedLyrics parsed})? fetched;
+    final OnlineLyricsReview? fetched;
     try {
       fetched = await widget.fetch(track, artist);
     } catch (error) {
