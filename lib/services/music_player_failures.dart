@@ -139,6 +139,7 @@ class _MusicFailures {
   }
 
   void playNext() {
+    _log.w('Auto-skipping to the next song after a failed source');
     final next = handler._index + 1 < handler._media.length
         ? handler._index + 1
         : handler._beginRepeatPass(handler._repeatPassStart());

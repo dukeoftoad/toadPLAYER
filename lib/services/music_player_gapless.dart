@@ -184,7 +184,11 @@ class _MusicGapless {
       );
       handler._listenToPlayer(deck);
       await deck.configureOutput();
-      await deck.setVolume(volume);
+      // The prepared deck waits silent: whether the native chain or the
+      // handoff makes it audible, the volume rides up at the transition, so
+      // the new AudioTrack never opens on audible content (a click on many
+      // devices).
+      await deck.setVolume(0);
       if (!_current(generation)) return;
       if (const {'http', 'https'}.contains(Uri.tryParse(path)?.scheme)) {
         await deck.setNetworkSource(
@@ -259,6 +263,13 @@ class _MusicGapless {
     // Another request (Next, a new queue) took over meanwhile.
     if (generation != _generation) {
       return playGeneration != handler._playRequestGeneration;
+    }
+    // The prepared deck waited silent so the native chain never opened on
+    // audible content; ride it up now that it is the current source. The
+    // intent in this path is always an audible start, and the state read
+    // can lag the native chain, so it is not consulted here.
+    if (queued == null) {
+      await handler._rideVolume(incoming, 0, _nextVolume);
     }
     final outgoing = handler._player;
     final path = _nextPath;
