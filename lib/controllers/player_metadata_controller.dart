@@ -161,9 +161,6 @@ class PlayerMetadataController extends ChangeNotifier {
     try {
       await _saveOnline(source, raw);
       await _metadataEvents.publish(source);
-      // The file now carries lyrics the user (or a first, unchallenged
-      // search) accepted, so the deletion signal that led here is resolved.
-      await LyricsVerificationStore.instance.resetFor(source);
       if (_disposed || generation != _generation) return true;
       _metadata = Map.unmodifiable({...?_metadata, 'lyrics': raw});
       _lyrics = parsed;
@@ -226,7 +223,18 @@ class PlayerMetadataController extends ChangeNotifier {
     if (_disposed || _item == null || source == null || parsed.isEmpty) {
       return false;
     }
-    return _persistFetchedOnlineLyrics(source, raw, parsed, _generation);
+    final saved = await _persistFetchedOnlineLyrics(
+      source,
+      raw,
+      parsed,
+      _generation,
+    );
+    // Only an approved match resolves the song's deletion signal. The
+    // automatic search must not clear it: a wrong auto-embed followed by a
+    // deletion is exactly the signal the verification layer counts, and
+    // resetting here would keep the count below the threshold forever.
+    if (saved) await LyricsVerificationStore.instance.resetFor(source);
+    return saved;
   }
 
   /// Embeds [raw] in the original audio file and shows it. Throws when the
@@ -252,12 +260,9 @@ class PlayerMetadataController extends ChangeNotifier {
     } finally {
       _savingLyricsSources.remove(source);
     }
-    if (_disposed || generation != _generation) return;
-    _metadata = Map.unmodifiable({...?_metadata, 'lyrics': raw});
-    _lyrics = parsed;
-    _lyricsRaw = raw;
-    _onlineSearchMissed = false;
-    _onlineLyricsSaveFailed = false;
+    // Deletion bookkeeping is per-song: it must survive a track change that
+    // lands while the file write publishes its refresh, so record it before
+    // the generation guard that protects this controller's track state.
     if (parsed.isEmpty) {
       if (hadLyrics) {
         await LyricsVerificationStore.instance.recordDeletion(source);
@@ -267,6 +272,12 @@ class PlayerMetadataController extends ChangeNotifier {
       // signal this song had accumulated.
       await LyricsVerificationStore.instance.resetFor(source);
     }
+    if (_disposed || generation != _generation) return;
+    _metadata = Map.unmodifiable({...?_metadata, 'lyrics': raw});
+    _lyrics = parsed;
+    _lyricsRaw = raw;
+    _onlineSearchMissed = false;
+    _onlineLyricsSaveFailed = false;
     notifyListeners();
   }
 
