@@ -60,25 +60,38 @@ class _PlayerQueueSwipeRegionState extends State<PlayerQueueSwipeRegion> {
 
 /// Artwork forwards vertical drags inside scroll views to the player route.
 class PlayerArtworkDragRegion extends StatelessWidget {
-  const PlayerArtworkDragRegion({super.key, required this.child});
+  const PlayerArtworkDragRegion({
+    super.key,
+    required this.child,
+    this.enableTrackSwipe = true,
+  });
 
   final Widget child;
+
+  /// Track swipe belongs to the expanded cover: the compact cover on the
+  /// lyrics and queue pages must not change songs.
+  final bool enableTrackSwipe;
 
   @override
   Widget build(BuildContext context) {
     final route = ModalRoute.of(context);
-    if (route is! NowPlayingRoute) return PlayerTrackSwipeRegion(child: child);
+    if (route is! NowPlayingRoute) {
+      return enableTrackSwipe
+          ? PlayerTrackSwipeRegion(child: child)
+          : child;
+    }
     final pageHeight = MediaQuery.sizeOf(context).height;
-    return PlayerTrackSwipeRegion(
-      child: GestureDetector(
-        onVerticalDragStart: (_) => route.startDrag(),
-        onVerticalDragUpdate: (details) =>
-            route.updateDrag(details, pageHeight),
-        onVerticalDragEnd: (details) => route.endDrag(details, pageHeight),
-        onVerticalDragCancel: route.cancelDrag,
-        child: child,
-      ),
+    final verticalDrag = GestureDetector(
+      onVerticalDragStart: (_) => route.startDrag(),
+      onVerticalDragUpdate: (details) =>
+          route.updateDrag(details, pageHeight),
+      onVerticalDragEnd: (details) => route.endDrag(details, pageHeight),
+      onVerticalDragCancel: route.cancelDrag,
+      child: child,
     );
+    return enableTrackSwipe
+        ? PlayerTrackSwipeRegion(child: verticalDrag)
+        : verticalDrag;
   }
 }
 

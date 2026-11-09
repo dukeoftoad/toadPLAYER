@@ -180,14 +180,23 @@ class ToadplayerPlayerLayout extends ConsumerWidget {
                   left: 0,
                   right: 0,
                   height: compact ? compactHeaderHeight + 8 : stage.maxHeight,
-                  child: PlayerTrackSwipeRegion(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTap: onArtworkTap,
-                      onDoubleTap: onArtworkDoubleTap,
-                      child: const SizedBox.expand(),
-                    ),
-                  ),
+                  // Track swipe lives over the cover area only: on the
+                  // lyrics and queue pages the strip must not change songs.
+                  child: compact
+                      ? GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onTap: onArtworkTap,
+                          onDoubleTap: onArtworkDoubleTap,
+                          child: const SizedBox.expand(),
+                        )
+                      : PlayerTrackSwipeRegion(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTap: onArtworkTap,
+                            onDoubleTap: onArtworkDoubleTap,
+                            child: const SizedBox.expand(),
+                          ),
+                        ),
                 ),
                 Positioned.fill(
                   top: 8 + compactHeaderHeight + 16,
@@ -315,6 +324,10 @@ class ToadplayerPlayerLayout extends ConsumerWidget {
                                         : 'compact-player-artwork',
                                   ),
                                   child: PlayerArtworkDragRegion(
+                                    // Only the expanded cover swipes tracks;
+                                    // the compact cover on the lyrics and
+                                    // queue pages does not.
+                                    enableTrackSwipe: expanded,
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.opaque,
                                       onTap: onArtworkTap,

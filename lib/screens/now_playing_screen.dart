@@ -480,6 +480,11 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
         : routeAnimation.drive(
             CurveTween(curve: const Interval(0.4, 1.0, curve: Curves.easeOut)),
           );
+    // Feature 2: three seconds after the cover tap, the lyrics go full
+    // screen — the header, transport, volume and toolbar all fade, the same
+    // way the auto-hidden chrome does, so the lyrics own the display.
+    final lyricsFullscreen =
+        _currentPage == 1 && _lyricsForceFullscreen && _lyricsAutoHideLayout;
 
     // The embedded desktop player keeps a toolbar for its minimize button,
     // which a route reaches by swiping down instead.
@@ -519,7 +524,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                         widget.embedded
                     ? null
                     : PlayerLyricsControlsVisibility(
-                        hidden: _playerUiHidden,
+                        hidden: _playerUiHidden || lyricsFullscreen,
                         child: IconButton(
                           tooltip: context.l10n.nowPlayingMinimize,
                           onPressed: _minimize,
@@ -619,9 +624,10 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                             compact: _compactArtworkKey,
                           ),
                           artworkForeground: _artworkForeground,
-                          lyricsControlsHidden: _lyricsControlsHidden,
+                          lyricsControlsHidden:
+                              _lyricsControlsHidden || lyricsFullscreen,
                           lyricsOptionsOpen: _lyricsOptionsOpen,
-                          uiHidden: _playerUiHidden,
+                          uiHidden: _playerUiHidden || lyricsFullscreen,
                           onArtworkTap: _onArtworkTap,
                           onArtworkDoubleTap: _onArtworkDoubleTap,
                           lyricsBuilder: (showOptions) => _lyricsSection(
@@ -668,12 +674,13 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                       ),
               ),
               _autoHidingLyricsControls(
-                PlayerTrackSwipeRegion(
-                  child: PlayerQueueSwipeRegion(
-                    onOpenQueue: () => _showQueueSheet(context, colorScheme),
-                    child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                // The toolbar keeps its own press targets: track swipe lives
+                // over the cover area only.
+                PlayerQueueSwipeRegion(
+                  onOpenQueue: () => _showQueueSheet(context, colorScheme),
+                  child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                       if (toadplayer && !_landscape)
                         FractionallySizedBox(
                           widthFactor: 0.72,
@@ -784,7 +791,6 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                       ],
                     ],
                   ),
-                ),
                 ),
                 collapse: true,
                 hidden: _playerUiHidden || _lyricsImmersive,
@@ -1426,9 +1432,10 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     }
   }
 
-  /// Feature 3: swiping left and right anywhere on the player moves to the
-  /// previous or next song. The scope drives the transport and toolbar swipe
-  /// regions; the cover and the titles carry their own regions already.
+  /// Feature 3: swiping left and right over the cover area moves to the
+  /// previous or next song. The scope lives above the player so every swipe
+  /// region shares one commit path; the cover region starts the gesture and
+  /// the titles play the translation.
   Widget _trackSwipeScope(Widget child) {
     final queue = ref.watch(playQueueProvider).value ?? const <MediaItem>[];
     final currentIndex = ref.watch(currentQueueIndexProvider);
