@@ -1120,6 +1120,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void setPlayerAutoHideUi(bool enabled) =>
       _commit(state.copyWith(playerAutoHideUi: enabled));
 
+  void setPlayerZenBlackout(bool enabled) =>
+      _commit(state.copyWith(playerZenBlackout: enabled));
+
   void setSleepModeEnabled(bool enabled) =>
       _commit(state.copyWith(sleepModeEnabled: enabled));
 }
