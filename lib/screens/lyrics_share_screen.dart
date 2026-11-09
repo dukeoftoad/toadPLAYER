@@ -758,14 +758,16 @@ class LyricsShareCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // The asset is the bare mark, so it only needs the
-                          // card's text color.
-                          Image.asset(
-                            'assets/images/logo-transparent.png',
-                            width: 26,
-                            height: 26,
-                            color: foreground,
-                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                          // The watermark carries the current app icon, so it
+                          // reads on any card without recoloring.
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.asset(
+                              'assets/brand/logo/png/toadplayer-icon.png',
+                              width: 26,
+                              height: 26,
+                              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Text(
