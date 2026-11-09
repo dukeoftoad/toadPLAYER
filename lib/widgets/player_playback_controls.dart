@@ -27,6 +27,8 @@ import 'package:toadplayer/widgets/toadplayer_playback_time.dart';
 import 'package:toadplayer/widgets/toadplayer_player_slider.dart';
 import 'package:toadplayer/widgets/playback_seek_slider.dart';
 import 'package:toadplayer/widgets/playback_time_builder.dart';
+import 'package:toadplayer/widgets/player_lyrics_controls.dart';
+import 'package:toadplayer/widgets/player_track_swipe.dart';
 
 const _toadplayerTimelinePadding = 28.0;
 
@@ -47,6 +49,10 @@ class PlayerPlaybackControls extends ConsumerWidget {
   /// shows them elsewhere, as the phone player's [PlayerPlaybackModeToolbar].
   final bool showPlaybackModes;
 
+  /// Whether the play/pause and skip buttons show. The auto-hidden player
+  /// keeps its timeline (wave bar) but fades the transport away.
+  final bool transportVisible;
+
   const PlayerPlaybackControls({
     super.key,
     required this.mediaId,
@@ -58,6 +64,7 @@ class PlayerPlaybackControls extends ConsumerWidget {
     this.transportTopPadding = 16,
     this.edgeAligned = false,
     this.showPlaybackModes = true,
+    this.transportVisible = true,
   });
 
   @override
@@ -203,45 +210,57 @@ class PlayerPlaybackControls extends ConsumerWidget {
           SizedBox(
             height: compact ? 8 : transportTopPadding + (toadplayer ? 0 : 8),
           ),
-          if (!toadplayer && materialExpressiveEnabled(context))
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: edgeAligned ? 0 : 16),
-              child: ExpressivePlaybackTransport(
-                colorScheme: colorScheme,
-                playing: isPlaying,
-                loading: isLoading,
-                compact: compact,
-                // Shuffle and repeat line up with the timeline's ends. Without
-                // them, the full-size transport spans the timeline alone.
-                fill: edgeAligned || (!showPlaybackModes && !compact),
-                playTooltip: isPlaying
-                    ? context.l10n.actionPause
-                    : context.l10n.tooltipPlay,
-                previousTooltip: context.l10n.nowPlayingPreviousTrack,
-                nextTooltip: context.l10n.nowPlayingNextTrack,
-                onPlayPause: () => controller.togglePlayPause(isPlaying),
-                onPrevious: controller.previous,
-                onNext: controller.next,
-                leading: showPlaybackModes
-                    ? PlayerPlaybackModeButton(
-                        mode: PlayerPlaybackMode.shuffle,
-                        colorScheme: colorScheme,
-                      )
-                    : null,
-                trailing: showPlaybackModes
-                    ? PlayerPlaybackModeButton(
-                        mode: PlayerPlaybackMode.repeat,
-                        colorScheme: colorScheme,
-                      )
-                    : null,
-              ),
-            )
-          else
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: toadplayer && !edgeAligned ? (compact ? 16 : 32) : 0,
-              ),
-              child: Row(
+          PlayerLyricsControlsVisibility(
+            hidden: !transportVisible,
+            // Feature 3: the transport swipes left and right like the cover
+            // and titles, so moving between songs works across the display.
+            child: PlayerTrackSwipeRegion(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                if (!toadplayer && materialExpressiveEnabled(context))
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: edgeAligned ? 0 : 16,
+                    ),
+                    child: ExpressivePlaybackTransport(
+                      colorScheme: colorScheme,
+                      playing: isPlaying,
+                      loading: isLoading,
+                      compact: compact,
+                      // Shuffle and repeat line up with the timeline's ends. Without
+                      // them, the full-size transport spans the timeline alone.
+                      fill: edgeAligned || (!showPlaybackModes && !compact),
+                      playTooltip: isPlaying
+                          ? context.l10n.actionPause
+                          : context.l10n.tooltipPlay,
+                      previousTooltip: context.l10n.nowPlayingPreviousTrack,
+                      nextTooltip: context.l10n.nowPlayingNextTrack,
+                      onPlayPause: () => controller.togglePlayPause(isPlaying),
+                      onPrevious: controller.previous,
+                      onNext: controller.next,
+                      leading: showPlaybackModes
+                          ? PlayerPlaybackModeButton(
+                              mode: PlayerPlaybackMode.shuffle,
+                              colorScheme: colorScheme,
+                            )
+                          : null,
+                      trailing: showPlaybackModes
+                          ? PlayerPlaybackModeButton(
+                              mode: PlayerPlaybackMode.repeat,
+                              colorScheme: colorScheme,
+                            )
+                          : null,
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: toadplayer && !edgeAligned
+                          ? (compact ? 16 : 32)
+                          : 0,
+                    ),
+                    child: Row(
                 // Edge to edge, the shuffle and repeat buttons line up with
                 // the timeline's ends.
                 mainAxisAlignment: edgeAligned
@@ -328,6 +347,10 @@ class PlayerPlaybackControls extends ConsumerWidget {
                 ],
               ),
             ),
+              ],
+            ),
+            ),
+          ),
         ],
       ),
     );

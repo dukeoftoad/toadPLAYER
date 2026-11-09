@@ -15,6 +15,8 @@ import 'package:toadplayer/providers/runtime_profile_provider.dart';
 import 'package:toadplayer/providers/theme_provider.dart';
 import 'package:toadplayer/theme/app_tokens.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
+import 'package:toadplayer/models/theme_settings.dart'
+    show normalizeLyricsTextScale;
 import 'package:toadplayer/utils/desktop_platform.dart';
 import 'package:toadplayer/utils/lyrics_parser.dart';
 import 'package:toadplayer/utils/lyrics_timeline.dart';
@@ -127,6 +129,10 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
   /// estimated offset, before settling on the line.
   bool _awaitingFirstScroll = false;
   bool _tickerEnabled = true;
+
+  /// Feature 6: the text scale when a two-finger pinch on the lyrics began,
+  /// so the gesture multiplies from where the user found the text.
+  double? _pinchBaseScale;
   // An inactive app is still on screen: a desktop window behind another
   // app's window, or a phone under a system overlay.
   bool get _visible =>
@@ -1259,11 +1265,47 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
             },
           );
           // Laid out but not painted while it finds the playing line.
-          return Opacity(opacity: _awaitingFirstScroll ? 0 : 1, child: list);
+          return Opacity(
+            opacity: _awaitingFirstScroll ? 0 : 1,
+            child: _pinchToZoom(list),
+          );
         },
       ),
     );
   }
+
+  /// Feature 6: pinching with two fingers zooms the lyrics in and out. The
+  /// scale lands on the same 80–140% range the Settings slider offers and is
+  /// remembered; single-finger scrolling is untouched.
+  Widget _pinchToZoom(Widget child) => GestureDetector(
+    behavior: HitTestBehavior.translucent,
+    onScaleStart: (details) {
+      if (details.pointerCount > 1) {
+        _pinchBaseScale = ref.read(themeProvider).lyricsTextScale;
+      }
+    },
+    onScaleUpdate: (details) {
+      final base = _pinchBaseScale;
+      if (base == null || details.pointerCount < 2) return;
+      final next = normalizeLyricsTextScale(base * details.scale);
+      if ((next - ref.read(themeProvider).lyricsTextScale).abs() < 0.01) {
+        return;
+      }
+      ref
+          .read(themeProvider.notifier)
+          .setLyricsTextScale(next, persist: false);
+    },
+    onScaleEnd: (_) {
+      final active = _pinchBaseScale != null;
+      _pinchBaseScale = null;
+      if (active) {
+        ref
+            .read(themeProvider.notifier)
+            .setLyricsTextScale(ref.read(themeProvider).lyricsTextScale);
+      }
+    },
+    child: child,
+  );
 
   Widget _revealRow(
     int index,

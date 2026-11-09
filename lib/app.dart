@@ -12,6 +12,7 @@ import 'package:toadplayer/screens/library_home_screen.dart';
 import 'package:toadplayer/theme/dynamic_color_wrapper.dart';
 import 'package:toadplayer/widgets/android_keyboard_lifecycle.dart';
 import 'package:toadplayer/widgets/app_snack_bar.dart';
+import 'package:toadplayer/widgets/sleep_mode_overlay.dart';
 import 'package:toadplayer/widgets/toadplayer_glass_preparation.dart';
 import 'package:toadplayer/widgets/playback_feedback.dart';
 
@@ -53,7 +54,7 @@ class ToadplayerPlayerApp extends ConsumerWidget {
             child: ToadplayerGlassPreparation(
               child: AndroidKeyboardLifecycle(
                 child: PlaybackFeedback(
-                  child: child ?? const SizedBox.shrink(),
+                  child: SleepModeGate(child: child ?? const SizedBox.shrink()),
                 ),
               ),
             ),
