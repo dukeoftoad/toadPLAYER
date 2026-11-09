@@ -1889,6 +1889,13 @@ class MusicPlayerHandler extends BaseAudioHandler
       _pendingRestorePosition = null;
     }
     final generation = ++_playRequestGeneration;
+    // Capture the outgoing song's audibility before _sourceReady clears: the
+    // ride-down below must know whether audio is actually playing, not
+    // whether a new request has already begun.
+    final outgoingAudible =
+        !_cast.active &&
+        _sourceReady &&
+        _player.state == PlaybackDeckState.playing;
     _sourceReady = false;
     _playbackError = null;
     // A new song begins its fade lifecycle afresh; a ride left over from the
@@ -1911,9 +1918,7 @@ class MusicPlayerHandler extends BaseAudioHandler
         // Ride the volume down first: stopping an AudioTrack mid-sample
         // clicks on many devices. Cast volume is a remote round-trip, so
         // the ride is skipped there.
-        if (!_cast.active &&
-            _sourceReady &&
-            _player.state == PlaybackDeckState.playing) {
+        if (outgoingAudible) {
           await _rideVolume(_player, _normalizationVolume, 0);
         }
         await _player.stop();
@@ -2684,6 +2689,14 @@ class MusicPlayerHandler extends BaseAudioHandler
       await _persistSession(position: position);
       if (generation != _playRequestGeneration || _disposed) return;
       resumeMedia = _media[_index].toJson();
+    }
+    // Ride the volume down while the song is still audible: stopping an
+    // AudioTrack mid-sample clicks on many devices. Cast volume is a remote
+    // round-trip, so the ride is skipped there.
+    if (!_cast.active &&
+        _sourceReady &&
+        _player.state == PlaybackDeckState.playing) {
+      await _rideVolume(_player, _normalizationVolume, 0);
     }
     await _player.stop();
     if (generation != _playRequestGeneration || _disposed) return;

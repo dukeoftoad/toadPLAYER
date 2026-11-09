@@ -28,7 +28,6 @@ import 'package:toadplayer/widgets/toadplayer_player_slider.dart';
 import 'package:toadplayer/widgets/playback_seek_slider.dart';
 import 'package:toadplayer/widgets/playback_time_builder.dart';
 import 'package:toadplayer/widgets/player_lyrics_controls.dart';
-import 'package:toadplayer/widgets/player_track_swipe.dart';
 
 const _toadplayerTimelinePadding = 28.0;
 
@@ -212,12 +211,11 @@ class PlayerPlaybackControls extends ConsumerWidget {
           ),
           PlayerLyricsControlsVisibility(
             hidden: !transportVisible,
-            // Feature 3: the transport swipes left and right like the cover
-            // and titles, so moving between songs works across the display.
-            child: PlayerTrackSwipeRegion(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+            // Swiping between songs belongs to the cover area: the transport
+            // buttons keep their own press targets only.
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 if (!toadplayer && materialExpressiveEnabled(context))
                   Padding(
                     padding: EdgeInsets.symmetric(
@@ -348,7 +346,6 @@ class PlayerPlaybackControls extends ConsumerWidget {
               ),
             ),
               ],
-            ),
             ),
           ),
         ],
