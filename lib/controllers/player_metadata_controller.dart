@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:toadplayer/services/platform_bridge.dart';
 import 'package:toadplayer/services/playback_metadata.dart';
 import 'package:toadplayer/services/player_lyrics_persistence.dart';
+import 'package:toadplayer/services/lyrics_verification_store.dart';
 import 'package:toadplayer/services/source_metadata_events.dart';
 import 'package:toadplayer/utils/int_utils.dart';
 import 'package:toadplayer/utils/logger.dart';
@@ -12,15 +13,22 @@ import 'package:toadplayer/utils/lyrics_parser.dart';
 
 final _log = AppLogger('PlayerMetadata');
 
-/// Returns LRC text from the configured lyrics providers, or empty.
-typedef OnlineLyricsFetcher = Future<String> Function(MediaItem item);
+/// Returns LRC text from the configured lyrics providers, or empty. The
+/// optional [track] and [artist] override the item's tags so the lyrics
+/// verification flow can search again with details the user corrected.
+typedef OnlineLyricsFetcher =
+    Future<String> Function(MediaItem item, {String? track, String? artist});
 typedef OnlineLyricsSaver = Future<void> Function(String source, String lyrics);
 
-Future<String> _fetchOnlineLyrics(MediaItem item) async {
+Future<String> _fetchOnlineLyrics(
+  MediaItem item, {
+  String? track,
+  String? artist,
+}) async {
   final result = await PlatformBridge.getLyricsLRCWithSource(
     '',
-    item.title,
-    item.artist ?? '',
+    track ?? item.title,
+    artist ?? item.artist ?? '',
     durationMs: item.duration?.inMilliseconds ?? 0,
   ).timeout(const Duration(seconds: 30));
   return result['lyrics']?.toString() ?? '';
@@ -136,32 +144,110 @@ class PlayerMetadataController extends ChangeNotifier {
     notifyListeners();
     if (parsed.isEmpty) return;
 
+    await _persistFetchedOnlineLyrics(source, raw, parsed, generation);
+  }
+
+  /// Saves fetched online lyrics into the source file and shows them.
+  /// Returns whether they are now visible; a failed embed reports false
+  /// through [onlineLyricsSaveFailed] while the fetched text stays shown.
+  Future<bool> _persistFetchedOnlineLyrics(
+    String source,
+    String raw,
+    ParsedLyrics parsed,
+    int generation,
+  ) async {
     _savingLyricsSources.add(source);
+    var saved = true;
     try {
       await _saveOnline(source, raw);
       await _metadataEvents.publish(source);
-      if (_disposed || generation != _generation) return;
+      if (_disposed || generation != _generation) return true;
       _metadata = Map.unmodifiable({...?_metadata, 'lyrics': raw});
       _lyrics = parsed;
       _lyricsRaw = raw;
     } catch (error) {
       _log.w('Could not embed online lyrics: $error');
-      if (_disposed || generation != _generation) return;
+      saved = false;
+      if (_disposed || generation != _generation) return false;
       _onlineLyricsSaveFailed = true;
     } finally {
       _savingLyricsSources.remove(source);
     }
     if (!_disposed && generation == _generation) notifyListeners();
+    return saved;
+  }
+
+  /// Fetches lyrics for the current item without saving anything, for the
+  /// verification flow: after repeated deletions a track searches
+  /// verify-first, so the result goes to a review sheet and reaches the file
+  /// only through [saveFetchedOnlineLyrics]. Returns null on a miss, which
+  /// shows up as the usual no-lyrics-found state.
+  Future<({String raw, ParsedLyrics parsed})?> fetchOnlineForReview({
+    String? track,
+    String? artist,
+  }) async {
+    final item = _item;
+    if (_disposed ||
+        item == null ||
+        _searchingOnline ||
+        _savingLyricsSources.contains(source) ||
+        !canSearchOnline) {
+      return null;
+    }
+    final generation = _generation;
+    _searchingOnline = true;
+    _onlineSearchMissed = false;
+    _onlineLyricsSaveFailed = false;
+    notifyListeners();
+    var parsed = ParsedLyrics.empty;
+    var raw = '';
+    try {
+      raw = await _fetchOnline(item, track: track, artist: artist);
+      if (_disposed || generation != _generation) return null;
+      if (raw.trim().isNotEmpty) parsed = await _parseLyrics(raw);
+    } catch (error) {
+      _log.w('Failed to fetch lyrics for review: $error');
+    }
+    if (_disposed || generation != _generation) return null;
+    _searchingOnline = false;
+    if (parsed.isEmpty) _onlineSearchMissed = true;
+    notifyListeners();
+    if (parsed.isEmpty) return null;
+    return (raw: raw, parsed: parsed);
+  }
+
+  /// Saves lyrics the user approved in the verification flow. Returns
+  /// whether they were embedded and are now visible.
+  Future<bool> saveFetchedOnlineLyrics(String raw, ParsedLyrics parsed) async {
+    final source = this.source;
+    if (_disposed || _item == null || source == null || parsed.isEmpty) {
+      return false;
+    }
+    final saved = await _persistFetchedOnlineLyrics(
+      source,
+      raw,
+      parsed,
+      _generation,
+    );
+    // Only an approved match resolves the song's deletion signal. The
+    // automatic search must not clear it: a wrong auto-embed followed by a
+    // deletion is exactly the signal the verification layer counts, and
+    // resetting here would keep the count below the threshold forever.
+    if (saved) await LyricsVerificationStore.instance.resetFor(source);
+    return saved;
   }
 
   /// Embeds [raw] in the original audio file and shows it. Throws when the
-  /// file can't be written, leaving the current lyrics in place.
+  /// file can't be written, leaving the current lyrics in place. Saving
+  /// empty lyrics deletes the embedded ones and counts as a deletion for
+  /// the lyrics verification layer — but only when lyrics existed before.
   Future<void> saveEditedLyrics(String raw) async {
     final source = this.source;
     if (_disposed || _item == null || source == null) {
       throw StateError('No editable track is loaded');
     }
     final generation = _generation;
+    final hadLyrics = _lyricsRaw.trim().isNotEmpty;
     final parsed = raw.trim().isEmpty
         ? ParsedLyrics.empty
         : await _parseLyrics(raw);
@@ -173,6 +259,18 @@ class PlayerMetadataController extends ChangeNotifier {
       await _metadataEvents.publish(source);
     } finally {
       _savingLyricsSources.remove(source);
+    }
+    // Deletion bookkeeping is per-song: it must survive a track change that
+    // lands while the file write publishes its refresh, so record it before
+    // the generation guard that protects this controller's track state.
+    if (parsed.isEmpty) {
+      if (hadLyrics) {
+        await LyricsVerificationStore.instance.recordDeletion(source);
+      }
+    } else {
+      // Lyrics the user wrote or imported themselves resolve any wrong-match
+      // signal this song had accumulated.
+      await LyricsVerificationStore.instance.resetFor(source);
     }
     if (_disposed || generation != _generation) return;
     _metadata = Map.unmodifiable({...?_metadata, 'lyrics': raw});

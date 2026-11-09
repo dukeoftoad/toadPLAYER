@@ -15,6 +15,8 @@ import 'package:toadplayer/providers/runtime_profile_provider.dart';
 import 'package:toadplayer/providers/theme_provider.dart';
 import 'package:toadplayer/theme/app_tokens.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
+import 'package:toadplayer/models/theme_settings.dart'
+    show normalizeLyricsTextScale;
 import 'package:toadplayer/utils/desktop_platform.dart';
 import 'package:toadplayer/utils/lyrics_parser.dart';
 import 'package:toadplayer/utils/lyrics_timeline.dart';
@@ -127,6 +129,16 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
   /// estimated offset, before settling on the line.
   bool _awaitingFirstScroll = false;
   bool _tickerEnabled = true;
+
+  /// Feature 6: raw-pointer pinch tracking. The gesture arena lets the
+  /// scroll view's drag recognizer win vertical pinches, so the zoom reads
+  /// the pointers directly and never competes with scrolling.
+  final _pinchPointers = <int, Offset>{};
+  double? _pinchBaseScale;
+  double? _pinchBaseSpan;
+  int? _pinchPrimaryPointer;
+  int? _pinchSecondaryPointer;
+  bool _pinching = false;
   // An inactive app is still on screen: a desktop window behind another
   // app's window, or a phone under a system overlay.
   bool get _visible =>
@@ -1259,10 +1271,85 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
             },
           );
           // Laid out but not painted while it finds the playing line.
-          return Opacity(opacity: _awaitingFirstScroll ? 0 : 1, child: list);
+          return Opacity(
+            opacity: _awaitingFirstScroll ? 0 : 1,
+            child: _pinchToZoom(list),
+          );
         },
       ),
     );
+  }
+
+  /// Feature 6: pinching with two fingers zooms the lyrics in and out. The
+  /// scale lands on the same 80–140% range the Settings slider offers and is
+  /// remembered; single-finger scrolling is untouched. The pointers are read
+  /// through a Listener because the arena hands vertical pinches to the
+  /// scroll view's drag recognizer — a GestureDetector's onScale loses that
+  /// race and the zoom would often never fire.
+  Widget _pinchToZoom(Widget child) => Listener(
+    behavior: HitTestBehavior.translucent,
+    onPointerDown: (event) {
+      _pinchPointers[event.pointer] = event.position;
+      if (_pinchPointers.length == 2) _beginLyricsPinch();
+    },
+    onPointerMove: (event) {
+      if (_pinchPointers[event.pointer] == null) return;
+      _pinchPointers[event.pointer] = event.position;
+      _updateLyricsPinch();
+    },
+    onPointerUp: (event) => _endLyricsPinch(event.pointer),
+    onPointerCancel: (event) => _endLyricsPinch(event.pointer),
+    child: child,
+  );
+
+  void _beginLyricsPinch() {
+    final ids = _pinchPointers.keys.toList()..sort();
+    _pinchPrimaryPointer = ids[0];
+    _pinchSecondaryPointer = ids[1];
+    final a = _pinchPointers[_pinchPrimaryPointer!]!;
+    final b = _pinchPointers[_pinchSecondaryPointer!]!;
+    _pinchBaseSpan = (a - b).distance.clamp(1.0, double.infinity);
+    _pinchBaseScale = ref.read(themeProvider).lyricsTextScale;
+    _pinching = true;
+  }
+
+  void _updateLyricsPinch() {
+    if (!_pinching) return;
+    final base = _pinchBaseScale;
+    final baseSpan = _pinchBaseSpan;
+    final a = _pinchPointers[_pinchPrimaryPointer];
+    final b = _pinchPointers[_pinchSecondaryPointer];
+    if (base == null || baseSpan == null || a == null || b == null) return;
+    final span = (a - b).distance.clamp(1.0, double.infinity);
+    final next = normalizeLyricsTextScale(base * span / baseSpan);
+    if ((next - ref.read(themeProvider).lyricsTextScale).abs() < 0.005) {
+      return;
+    }
+    ref
+        .read(themeProvider.notifier)
+        .setLyricsTextScale(next, persist: false);
+  }
+
+  void _endLyricsPinch(int pointer) {
+    if (_pinchPointers.remove(pointer) == null) return;
+    if (_pinchPointers.length >= 2) {
+      // The pinching pair changed (a finger lifted, another was down):
+      // rebase so the remaining pair keeps zooming smoothly.
+      if (pointer == _pinchPrimaryPointer ||
+          pointer == _pinchSecondaryPointer) {
+        _beginLyricsPinch();
+      }
+      return;
+    }
+    if (!_pinching) return;
+    _pinching = false;
+    _pinchPrimaryPointer = null;
+    _pinchSecondaryPointer = null;
+    _pinchBaseSpan = null;
+    _pinchBaseScale = null;
+    ref
+        .read(themeProvider.notifier)
+        .setLyricsTextScale(ref.read(themeProvider).lyricsTextScale);
   }
 
   Widget _revealRow(

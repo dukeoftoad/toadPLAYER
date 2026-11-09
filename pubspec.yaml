@@ -123,7 +123,7 @@ flutter:
     - LICENSE
     - COPYING
     - NOTICE
-    - assets/images/
+    - assets/brand/logo/png/toadplayer-icon.png
     - assets/brand/logo/png/toadplayer-lockup-horizontal-white@1x.png
     - assets/fonts/Inter-LICENSE.txt
     - assets/fonts/GoogleSansFlex-LICENSE.txt

@@ -28,11 +28,24 @@ class _MusicGapless {
   String? _attempt;
   bool _preparing = false;
 
+  // Crossfade state: the overlap between the current deck and the prepared
+  // one, timed by a stopwatch with 50 ms envelope steps.
+  bool _crossfading = false;
+  Timer? _crossfadeTimer;
+  Stopwatch? _crossfadeClock;
+  bool _writing = false;
+
   Set<String> get pinnedPaths => _pins;
+
+  /// Whether an overlap between the current deck and the prepared one is in
+  /// flight; a seek must drop it, since the overlap tracks the old position.
+  bool get crossfading => _crossfading;
 
   bool get _enabled {
     final settings = handler._settings;
-    return settings.gaplessPlayback &&
+    // Crossfade rides the same preparation: the next song's deck must exist
+    // before the overlap can start.
+    return (settings.gaplessPlayback || settings.crossfadePlayback) &&
         !handler._cast.active &&
         (!settings.autoMix || playbackExclusiveOutput.value) &&
         !settings.usbBitPerfect &&
@@ -43,6 +56,24 @@ class _MusicGapless {
         handler._sourceReady &&
         handler._repeatMode != AudioServiceRepeatMode.one;
   }
+
+  /// Whether a simple crossfade replaces the native handoff: the prepared
+  /// deck starts [crossfadeDuration] before the current song ends and the
+  /// two decks swap volumes across the overlap.
+  bool get _crossfadeEnabled {
+    final settings = handler._settings;
+    return settings.crossfadePlayback &&
+        !settings.autoMix &&
+        !handler._cast.active &&
+        !settings.usbBitPerfect &&
+        !playbackExclusiveOutput.value &&
+        !handler._player.isDirect &&
+        !handler._disposed &&
+        handler._repeatMode != AudioServiceRepeatMode.one;
+  }
+
+  Duration get _crossfadeOverlap =>
+      Duration(seconds: handler._settings.crossfadeDuration.clamp(1, 12));
 
   bool get _canQueue =>
       handler._player is QueuedPlaybackDeck &&
@@ -60,7 +91,14 @@ class _MusicGapless {
   /// Keep in step with the early returns of [onPosition].
   bool wantsPosition(Duration estimate) {
     if (_preparing) return false;
-    if (_prepared != null || _queuedDeck != null) return !_current(_generation);
+    if (_prepared != null || _queuedDeck != null) {
+      // A crossfade reads 200 ms ticks so the overlap starts on time; the
+      // ordinary handoff needs none once the deck is prepared.
+      if (_crossfadeEnabled && _queuedDeck == null && !_crossfading) {
+        return true;
+      }
+      return !_current(_generation);
+    }
     if (!_enabled) return false;
     final duration = handler.mediaItem.value?.duration;
     return duration != null &&
@@ -73,7 +111,11 @@ class _MusicGapless {
   void onPosition(Duration position) {
     if (_preparing) return;
     if (_prepared != null || _queuedDeck != null) {
-      if (!_current(_generation)) unawaited(cancel());
+      if (!_current(_generation)) {
+        unawaited(cancel());
+        return;
+      }
+      _maybeStartCrossfade(position);
       return;
     }
     if (!_enabled) return;
@@ -89,6 +131,115 @@ class _MusicGapless {
     _attempt = key;
     unawaited(_prepare(duration - position));
   }
+
+  /// Starts the overlap once the current song reaches the crossfade window.
+  /// Ticks arrive every 200 ms, so the start may land up to a fifth of a
+  /// second late — inaudible against an overlap seconds long.
+  void _maybeStartCrossfade(Duration position) {
+    if (!_crossfadeEnabled || _crossfading) return;
+    // The native queue cannot overlap (the engine owns the transition); only
+    // a prepared second deck crossfades.
+    if (_prepared == null || _queuedDeck != null) return;
+    final duration = handler.mediaItem.value?.duration;
+    if (duration == null || duration <= Duration.zero) return;
+    final remaining = duration - position;
+    if (remaining <= Duration.zero || remaining > _crossfadeOverlap) return;
+    unawaited(_startCrossfade());
+  }
+
+  /// Starts the prepared deck silently and swaps the two decks' volumes
+  /// across the overlap. Pausing, seeking or skipping mid-overlap cancels it
+  /// back to the ordinary path.
+  Future<void> _startCrossfade() async {
+    final incoming = _prepared;
+    if (incoming == null || _crossfading) return;
+    if (!_current(_generation) ||
+        _nextIndex >= handler._media.length ||
+        !identical(handler._media[_nextIndex], _next)) {
+      await cancel();
+      return;
+    }
+    final generation = _generation;
+    final outgoing = handler._player;
+    final outgoingVolume = handler._normalizationVolume;
+    final incomingVolume = _nextVolume;
+    final overlap = _crossfadeOverlap;
+    _crossfading = true;
+    _crossfadeClock = Stopwatch()..start();
+    try {
+      await incoming.resume();
+    } catch (error) {
+      _log.w('Crossfade start failed: $error');
+      _crossfading = false;
+      _crossfadeClock = null;
+      if (generation == _generation) await cancel();
+      return;
+    }
+    if (generation != _generation) {
+      _crossfading = false;
+      _crossfadeClock = null;
+      return;
+    }
+    _log.d('Crossfade started (${overlap.inSeconds} s overlap)');
+    _crossfadeTimer?.cancel();
+    _crossfadeTimer = Timer.periodic(const Duration(milliseconds: 50), (_) {
+      _crossfadeTick(
+        generation,
+        outgoing,
+        incoming,
+        outgoingVolume,
+        incomingVolume,
+        overlap,
+      );
+    });
+  }
+
+  /// One envelope step: the outgoing deck rides down while the incoming one
+  /// rides up; at the end the incoming deck becomes the current song.
+  Future<void> _crossfadeTick(
+    int generation,
+    PlaybackDeck outgoing,
+    PlaybackDeck incoming,
+    double outgoingVolume,
+    double incomingVolume,
+    Duration overlap,
+  ) async {
+    if (_writing) return;
+    _writing = true;
+    try {
+      final clock = _crossfadeClock;
+      if (clock == null ||
+          generation != _generation ||
+          handler._disposed ||
+          handler._settings.crossfadePlayback == false) {
+        unawaited(_abortCrossfade());
+        return;
+      }
+      final t = (clock.elapsedMicroseconds / overlap.inMicroseconds).clamp(
+        0.0,
+        1.0,
+      );
+      try {
+        await outgoing.setVolume(outgoingVolume * (1 - t));
+        await incoming.setVolume(incomingVolume * t);
+      } catch (error) {
+        _log.w('Crossfade volume failed: $error');
+        unawaited(_abortCrossfade());
+        return;
+      }
+      if (t >= 1.0) {
+        _crossfadeTimer?.cancel();
+        _crossfadeTimer = null;
+        await handoff();
+      }
+    } finally {
+      _writing = false;
+    }
+  }
+
+  /// Drops the overlap and restores the current song's volume, leaving the
+  /// ordinary completion to bring the next song.
+  Future<void> _abortCrossfade() => cancel();
 
   /// How long before the end a network song stops waiting for its local
   /// copy and loads from the server instead.
@@ -140,7 +291,7 @@ class _MusicGapless {
         displayName: lease?.displayName,
       );
       if (!_current(generation)) return;
-      if (_canQueue) {
+      if (_canQueue && !_crossfadeEnabled) {
         final output = handler._player;
         _queuedDeck = output;
         _next = next;
@@ -184,7 +335,11 @@ class _MusicGapless {
       );
       handler._listenToPlayer(deck);
       await deck.configureOutput();
-      await deck.setVolume(volume);
+      // The prepared deck waits silent: whether the native chain or the
+      // handoff makes it audible, the volume rides up at the transition, so
+      // the new AudioTrack never opens on audible content (a click on many
+      // devices).
+      await deck.setVolume(0);
       if (!_current(generation)) return;
       if (const {'http', 'https'}.contains(Uri.tryParse(path)?.scheme)) {
         await deck.setNetworkSource(
@@ -197,7 +352,11 @@ class _MusicGapless {
       if (!_current(generation)) return;
       final duration = await deck.getDuration();
       if (!_current(generation)) return;
-      final chained = await handler._player.setNextDeck(deck);
+      // A crossfade starts the deck itself; a native chain would fire at
+      // completion and fight the overlap.
+      final chained = _crossfadeEnabled
+          ? false
+          : await handler._player.setNextDeck(deck);
       if (!_current(generation)) {
         if (chained) await handler._player.setNextDeck(null);
         return;
@@ -244,10 +403,22 @@ class _MusicGapless {
     }
     final generation = _generation;
     final playGeneration = handler._playRequestGeneration;
+    // A crossfade promotion: the envelope already moved both decks; the
+    // incoming one is audible and needs no resume or ride.
+    _crossfadeTimer?.cancel();
+    _crossfadeTimer = null;
+    _crossfadeClock = null;
+    final crossfading = _crossfading;
+    _crossfading = false;
     try {
       // A natively chained deck already plays; this confirms its state.
       if (queued == null) {
-        await incoming.resume();
+        if (crossfading) {
+          handler._runtime.personalization.finish();
+          await incoming.setVolume(_nextVolume);
+        } else {
+          await incoming.resume();
+        }
       } else {
         handler._runtime.personalization.finish();
       }
@@ -259,6 +430,22 @@ class _MusicGapless {
     // Another request (Next, a new queue) took over meanwhile.
     if (generation != _generation) {
       return playGeneration != handler._playRequestGeneration;
+    }
+    // The prepared deck waited silent so the native chain never opened on
+    // audible content; ride it up now that it is the current source. The
+    // intent in this path is always an audible start, and the state read
+    // can lag the native chain, so it is not consulted here. The fade
+    // setting stretches the same ride across the configured seconds.
+    if (queued == null && !crossfading) {
+      await handler._rideVolume(
+        incoming,
+        0,
+        _nextVolume,
+        duration: handler._fadeInRideDuration(
+          userSkip: false,
+          startPaused: false,
+        ),
+      );
     }
     final outgoing = handler._player;
     final path = _nextPath;
@@ -318,6 +505,19 @@ class _MusicGapless {
     _generation++;
     _preparing = false;
     _attempt = null;
+    _crossfadeTimer?.cancel();
+    _crossfadeTimer = null;
+    _crossfadeClock = null;
+    if (_crossfading) {
+      _crossfading = false;
+      // The overlap was swapping volumes; leave the current song at full
+      // loudness so the ordinary completion can fade or hand off normally.
+      if (!handler._disposed && !handler._cast.active) {
+        try {
+          await handler._player.setVolume(handler._normalizationVolume);
+        } catch (_) {}
+      }
+    }
     final prepared = _prepared;
     final queued = _queuedDeck;
     _prepared = null;

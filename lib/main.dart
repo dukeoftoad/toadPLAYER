@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toadplayer/app.dart';
 import 'package:toadplayer/constants/app_info.dart';
 import 'package:toadplayer/l10n/supported_locales.dart';
+import 'package:toadplayer/models/settings.dart' show AppSettings;
 import 'package:toadplayer/models/theme_settings.dart';
 import 'package:toadplayer/providers/runtime_profile_provider.dart';
 import 'package:toadplayer/providers/lyrics_widget_sync_provider.dart';
@@ -210,9 +211,20 @@ class StandalonePlayerBootstrap extends ConsumerStatefulWidget {
 
 class _StandalonePlayerBootstrapState
     extends ConsumerState<StandalonePlayerBootstrap> {
+  ProviderSubscription<AppSettings>? _settingsPush;
+
   @override
   void initState() {
     super.initState();
+    // The player reads its AppSettings snapshot through the runtime, which is
+    // configured once at boot; forward later changes (gapless, AutoMix, the
+    // fade/crossfade and display settings) so they apply without a restart.
+    _settingsPush = ref.listenManual<AppSettings>(settingsProvider, (
+      _,
+      settings,
+    ) {
+      musicPlayerRuntime.configure(settings);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       if (isDesktopPlatform) {
@@ -224,6 +236,12 @@ class _StandalonePlayerBootstrapState
       await AudioFileOpenService.instance.initialize();
       await restorePersistedPlaybackSession();
     });
+  }
+
+  @override
+  void dispose() {
+    _settingsPush?.close();
+    super.dispose();
   }
 
   @override

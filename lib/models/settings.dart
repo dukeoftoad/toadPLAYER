@@ -10,6 +10,14 @@ part 'settings.g.dart';
 String playerCoverStyleFromJson(Object? value) =>
     value == 'default' || value == 'fullscreen' ? value as String : '';
 
+/// How long a crossfade overlaps two songs, in whole seconds.
+int crossfadeDurationFromJson(Object? value) =>
+    value is num && value.isFinite ? value.toInt().clamp(1, 12) : 4;
+
+/// How long a fade transition takes at a song's end and start, in seconds.
+int fadeDurationFromJson(Object? value) =>
+    value is num && value.isFinite ? value.toInt().clamp(1, 10) : 2;
+
 /// Pre-amp applied on top of ReplayGain during playback, in whole dB.
 /// -7 dB targets -25 LUFS from the -18 LUFS tag reference.
 double playbackNormalizationPreampFromJson(Object? value) =>
@@ -285,6 +293,38 @@ class AppSettings {
   /// Whether the phone Now Playing screen shows its volume slider.
   final bool playerShowVolume;
 
+  /// Start the next song before the current one ends and swap their volumes
+  /// across [crossfadeDuration] seconds. Off keeps the drum-sound fix's
+  /// quick anti-pop transition.
+  final bool crossfadePlayback;
+
+  /// Whole seconds the crossfade overlap lasts.
+  @JsonKey(fromJson: crossfadeDurationFromJson)
+  final int crossfadeDuration;
+
+  /// Fade the volume out across a song's last [fadeDuration] seconds and in
+  /// at the next song's audible start, on natural transitions only; manual
+  /// skips stay instant. Off keeps the anti-pop fix alone.
+  final bool fadePlayback;
+
+  /// Whole seconds each side of a fade transition lasts.
+  @JsonKey(fromJson: fadeDurationFromJson)
+  final int fadeDuration;
+
+  /// Hide the player's chrome (header, transport, volume, toolbar) after a
+  /// few idle seconds while playing, keeping the cover and the timeline
+  /// visible; a double-tap on the cover or any touch restores them.
+  final bool playerAutoHideUi;
+
+  /// What double-tapping the cover shows while the interface is hidden: the
+  /// cover with its timeline (wave bar), or a plain black screen.
+  final bool playerZenBlackout;
+
+  /// Blacks the display for as long as a sleep timer runs; while dark, a
+  /// double-tap on the screen's left third goes back a song and on the right
+  /// third goes forward. The app never wakes the display itself.
+  final bool sleepModeEnabled;
+
   const AppSettings({
     this.defaultService = '',
     this.audioQuality = 'LOSSLESS',
@@ -420,6 +460,13 @@ class AppSettings {
     this.playerShowPronunciation = true,
     this.playerShowTranslation = true,
     this.playerShowVolume = true,
+    this.crossfadePlayback = false,
+    this.crossfadeDuration = 4,
+    this.fadePlayback = false,
+    this.fadeDuration = 2,
+    this.playerAutoHideUi = false,
+    this.playerZenBlackout = false,
+    this.sleepModeEnabled = false,
   });
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -572,6 +619,13 @@ class AppSettings {
     bool? playerShowPronunciation,
     bool? playerShowTranslation,
     bool? playerShowVolume,
+    bool? crossfadePlayback,
+    int? crossfadeDuration,
+    bool? fadePlayback,
+    int? fadeDuration,
+    bool? playerAutoHideUi,
+    bool? playerZenBlackout,
+    bool? sleepModeEnabled,
   }) {
     return AppSettings(
       defaultService: defaultService ?? this.defaultService,
@@ -748,6 +802,13 @@ class AppSettings {
       playerShowTranslation:
           playerShowTranslation ?? this.playerShowTranslation,
       playerShowVolume: playerShowVolume ?? this.playerShowVolume,
+      crossfadePlayback: crossfadePlayback ?? this.crossfadePlayback,
+      crossfadeDuration: crossfadeDuration ?? this.crossfadeDuration,
+      fadePlayback: fadePlayback ?? this.fadePlayback,
+      fadeDuration: fadeDuration ?? this.fadeDuration,
+      playerAutoHideUi: playerAutoHideUi ?? this.playerAutoHideUi,
+      playerZenBlackout: playerZenBlackout ?? this.playerZenBlackout,
+      sleepModeEnabled: sleepModeEnabled ?? this.sleepModeEnabled,
     );
   }
 

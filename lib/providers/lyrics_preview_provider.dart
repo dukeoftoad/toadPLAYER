@@ -4,7 +4,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:toadplayer/providers/music_player_provider.dart';
 import 'package:toadplayer/services/platform_bridge.dart';
+import 'package:toadplayer/utils/logger.dart';
 import 'package:toadplayer/utils/lyrics_parser.dart';
+
+final _log = AppLogger('LyricsPreview');
 
 /// The parsed lyrics of the current source. Empty while nothing plays, for
 /// network streams, and for files without embedded lyrics.
@@ -24,7 +27,10 @@ final lyricsPreviewProvider = FutureProvider.autoDispose<ParsedLyrics>((
     final raw = metadata['lyrics']?.toString() ?? '';
     if (raw.trim().isEmpty) return ParsedLyrics.empty;
     return await LyricsParser.parseAsyncNative(raw);
-  } on Object {
+  } on Object catch (error) {
+    // Never blank the widget feed silently: a transient read failure should
+    // be visible in logs, and the provider re-runs when the source changes.
+    _log.e('Lyrics preview read failed for $source: $error');
     return ParsedLyrics.empty;
   }
 });

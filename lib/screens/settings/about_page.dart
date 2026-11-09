@@ -23,7 +23,7 @@ class AboutPage extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: Image.asset(
-                  'assets/images/logo.png',
+                  'assets/brand/logo/png/toadplayer-icon.png',
                   width: 96,
                   height: 96,
                   fit: BoxFit.cover,

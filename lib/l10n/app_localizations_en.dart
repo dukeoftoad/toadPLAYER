@@ -9808,4 +9808,63 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get lyricsEditReadOnly =>
       'Lyrics can\'t be saved to this song\'s file';
+
+  @override
+  String get lyricsImportTitle => 'Import lyrics file';
+
+  @override
+  String get lyricsImportFailed => 'Couldn\'t import lyrics from that file';
+
+  @override
+  String get lyricsImportInvalid => 'That file doesn\'t contain usable lyrics';
+
+  @override
+  String get lyricsDeleteAction => 'Delete lyrics';
+
+  @override
+  String get lyricsDeleteConfirmTitle => 'Delete lyrics?';
+
+  @override
+  String get lyricsDeleteConfirmBody =>
+      'Lyrics embedded in this file will be removed. This can\'t be undone.';
+
+  @override
+  String get lyricsDeleted => 'Lyrics deleted';
+
+  @override
+  String get lyricsVerifyTitle => 'Do these lyrics match?';
+
+  @override
+  String get lyricsVerifyQuestion =>
+      'This song\'s lyrics were deleted more than once, so toadPLAYER will only save lyrics you confirm. Does this look like the lyrics you intended?';
+
+  @override
+  String get lyricsVerifyLooksRight => 'Looks right — save';
+
+  @override
+  String get lyricsVerifyWrong => 'Wrong lyrics';
+
+  @override
+  String lyricsVerifyMoreLines(int count) {
+    return '+$count more';
+  }
+
+  @override
+  String get lyricsVerifyRefineTitle => 'Help find the right lyrics';
+
+  @override
+  String get lyricsVerifyRefineDescription =>
+      'Adjust the details used to search for lyrics, then search again.';
+
+  @override
+  String get lyricsVerifyTrackField => 'Track name';
+
+  @override
+  String get lyricsVerifyArtistField => 'Artist';
+
+  @override
+  String get lyricsVerifySearch => 'Search with these details';
+
+  @override
+  String get lyricsVerifyNoResults => 'No lyrics found for these details';
 }
