@@ -677,7 +677,6 @@ class MusicPlayerHandler extends BaseAudioHandler
   }
 
   static const _antiPopFadeSteps = 5;
-  static const _antiPopFadeStepGap = Duration(milliseconds: 8);
   static const _antiPopFadeDuration = Duration(milliseconds: 40);
 
   /// Rides grow past the anti-pop default only when the fade setting asks

@@ -319,7 +319,7 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
                       .setCrossfadeDuration(seconds),
                 ),
               SettingsSwitchItem(
-                icon: Icons.fade,
+                icon: Icons.waves,
                 title: 'Fade transitions',
                 subtitle:
                     'Fade out a song\'s last seconds and fade in the next '
@@ -850,7 +850,7 @@ class _TransitionDurationSettingState
               enabled: widget.enabled,
             ),
           AppSlider(
-            value: seconds,
+            value: seconds.toDouble(),
             min: widget.min.toDouble(),
             max: widget.max.toDouble(),
             divisions: widget.max - widget.min,
