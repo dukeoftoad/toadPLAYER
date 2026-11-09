@@ -20,6 +20,13 @@ typedef OnlineLyricsFetcher =
     Future<String> Function(MediaItem item, {String? track, String? artist});
 typedef OnlineLyricsSaver = Future<void> Function(String source, String lyrics);
 
+/// One fetched result held for review by the verification flow. The
+/// [source] and [generation] it was fetched under travel with it, so a
+/// late approval embeds the fetched file — not whatever track is playing
+/// when the user finally taps "Looks right".
+typedef OnlineLyricsReview =
+    ({String raw, ParsedLyrics parsed, String source, int generation});
+
 Future<String> _fetchOnlineLyrics(
   MediaItem item, {
   String? track,
@@ -181,14 +188,17 @@ class PlayerMetadataController extends ChangeNotifier {
   /// verification flow: after repeated deletions a track searches
   /// verify-first, so the result goes to a review sheet and reaches the file
   /// only through [saveFetchedOnlineLyrics]. Returns null on a miss, which
-  /// shows up as the usual no-lyrics-found state.
-  Future<({String raw, ParsedLyrics parsed})?> fetchOnlineForReview({
+  /// shows up as the usual no-lyrics-found state. The result is bound to
+  /// the source and generation it was fetched under.
+  Future<OnlineLyricsReview?> fetchOnlineForReview({
     String? track,
     String? artist,
   }) async {
     final item = _item;
+    final source = this.source;
     if (_disposed ||
         item == null ||
+        source == null ||
         _searchingOnline ||
         _savingLyricsSources.contains(source) ||
         !canSearchOnline) {
@@ -213,21 +223,31 @@ class PlayerMetadataController extends ChangeNotifier {
     if (parsed.isEmpty) _onlineSearchMissed = true;
     notifyListeners();
     if (parsed.isEmpty) return null;
-    return (raw: raw, parsed: parsed);
+    return (raw: raw, parsed: parsed, source: source, generation: generation);
   }
 
   /// Saves lyrics the user approved in the verification flow. Returns
-  /// whether they were embedded and are now visible.
-  Future<bool> saveFetchedOnlineLyrics(String raw, ParsedLyrics parsed) async {
-    final source = this.source;
-    if (_disposed || _item == null || source == null || parsed.isEmpty) {
+  /// whether they were embedded and are now visible. The review's
+  /// [source] and [generation] bind the approval to the fetch: the review
+  /// sheet survives a track change on the root navigator, and approval
+  /// must embed into the fetched file rather than whatever is playing by
+  /// then. With the fetch-time generation, [_persistFetchedOnlineLyrics]
+  /// writes and publishes the file while skipping the display update for
+  /// a track that has since moved on.
+  Future<bool> saveFetchedOnlineLyrics(
+    String raw,
+    ParsedLyrics parsed, {
+    required String source,
+    required int generation,
+  }) async {
+    if (_disposed || parsed.isEmpty) {
       return false;
     }
     final saved = await _persistFetchedOnlineLyrics(
       source,
       raw,
       parsed,
-      _generation,
+      generation,
     );
     // Only an approved match resolves the song's deletion signal. The
     // automatic search must not clear it: a wrong auto-embed followed by a
@@ -247,10 +267,17 @@ class PlayerMetadataController extends ChangeNotifier {
       throw StateError('No editable track is loaded');
     }
     final generation = _generation;
-    final hadLyrics = _lyricsRaw.trim().isNotEmpty;
+    var hadLyrics = _lyricsRaw.trim().isNotEmpty;
     final parsed = raw.trim().isEmpty
         ? ParsedLyrics.empty
         : await _parseLyrics(raw);
+    // The deletion signal counts a file that actually had lyrics. When the
+    // editor opened before the file probe finished, the in-memory view is
+    // empty while the file may still carry lyrics — ask the file itself,
+    // so the verification threshold is not skipped by UI timing.
+    if (parsed.isEmpty && !hadLyrics) {
+      hadLyrics = await _fileHasLyrics(source);
+    }
     // A document plays from a copy, so reloading after the save would read
     // the old lyrics back; show what was written instead.
     _savingLyricsSources.add(source);
@@ -279,6 +306,31 @@ class PlayerMetadataController extends ChangeNotifier {
     _onlineSearchMissed = false;
     _onlineLyricsSaveFailed = false;
     notifyListeners();
+  }
+
+  /// Whether the file behind [source] carries embedded lyrics, used for
+  /// deletion counting when the in-memory lyrics are not (yet) known.
+  /// Unresolved documents and remote sources answer false, matching the
+  /// in-memory-only behavior they always had.
+  Future<bool> _fileHasLyrics(String source) async {
+    final resolvedSource = _item?.extras?['resolvedSource']?.toString().trim();
+    final path = _metadataPath(source, resolvedSource);
+    if (path.isEmpty ||
+        (path == source && source.startsWith('content://')) ||
+        const {
+          'http',
+          'https',
+          'network',
+        }.contains(Uri.tryParse(path)?.scheme)) {
+      return false;
+    }
+    try {
+      final probed = await _readMetadata(path);
+      return (probed['lyrics'] ?? '').toString().trim().isNotEmpty;
+    } catch (error) {
+      _log.w('Could not probe lyrics for deletion counting: $error');
+      return false;
+    }
   }
 
   /// Reads deferred file tags when opening technical details. Already loaded
