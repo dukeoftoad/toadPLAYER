@@ -44,10 +44,18 @@ class PlayerWidgetService {
   Future<void> _writes = Future.value();
   Future<void> _commands = Future.value();
   bool _initialized = false;
+  Future<void>? _initOperation;
 
-  Future<void> initialize(Future<void> Function(String) onCommand) async {
-    if (_initialized) return;
-    _initialized = true;
+  Future<void> initialize(Future<void> Function(String) onCommand) {
+    if (_initialized) return Future.value();
+    // Join an in-flight handshake instead of racing a second one; the
+    // operation clears itself so a failed handshake can be retried.
+    return _initOperation ??= _initialize(onCommand).whenComplete(() {
+      _initOperation = null;
+    });
+  }
+
+  Future<void> _initialize(Future<void> Function(String) onCommand) async {
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'installedWidgetCountChanged' &&
           call.arguments is int) {
@@ -80,10 +88,15 @@ class PlayerWidgetService {
       await _channel.invokeMethod<void>('ready');
       await _refreshConsumers();
     } on MissingPluginException {
-      // Desktop and tests do not install the mobile widget bridge.
+      // Desktop and tests do not install the mobile widget bridge: there
+      // is nothing to retry later, so latch and skip future handshakes.
     } on PlatformException catch (error) {
       _log.w('Widget bridge unavailable: ${error.code}');
+      // The bridge exists but hiccuped: stay unlatched so a later
+      // initialize() can retry instead of the bridge staying dead.
+      return;
     }
+    _initialized = true;
   }
 
   Future<void> _refreshConsumers() => _consumerQuery ??= () async {
