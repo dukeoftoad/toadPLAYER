@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 class AppInfo {
-  static const String version = '1.3.0';
+  static const String version = '1.3.1';
 
   /// The GitHub Actions run number the installed build came from ("#16"),
   /// injected by CI via --dart-define. Empty in local builds — the version
