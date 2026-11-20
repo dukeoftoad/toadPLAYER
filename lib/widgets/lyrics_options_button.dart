@@ -316,14 +316,22 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
           colorScheme.onSurface.withValues(alpha: _open ? 0.85 : 0.16),
         ),
       ),
-      onPressed: _edit,
+      onPressed: () => _edit(context),
     );
   }
 
-  Future<void> _edit() async {
+  /// Opens the editor from [buttonContext] when it still exists — the track
+  /// can change under an open menu and rebuild the button away — falling
+  /// back to this widget's own context, which hosts the same overlays.
+  Future<void> _edit([BuildContext? buttonContext]) async {
+    final editContext =
+        buttonContext != null && buttonContext.mounted
+            ? buttonContext
+            : context;
+    if (!mounted || !editContext.mounted) return;
     _setOpen(true);
     try {
-      await openLyricsEditor(context, widget.metadata);
+      await openLyricsEditor(editContext, widget.metadata);
     } finally {
       _setOpen(false);
     }
@@ -496,7 +504,9 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
     }
     if (action == 'edit') {
       try {
-        if (mounted) await openLyricsEditor(context, widget.metadata);
+        // The menu outlives its button, so the edit keeps the button's own
+        // context when it can and falls back to this widget above.
+        if (mounted) await _edit(buttonContext);
       } finally {
         _setOpen(false);
       }

@@ -84,17 +84,12 @@ class DynamicColorWrapper extends ConsumerWidget {
         }
 
         if (themeSettings.style == AppThemeStyle.toadmark) {
+          // The Toadmark paper keeps the hand-written Sketchbook fonts on
+          // purpose, like the Sketchbook style: a custom or system font pick
+          // would erase the handwriting itself.
           return builder(
-            ToadmarkTheme.build(
-              Brightness.light,
-              useSystemFont: themeSettings.useSystemFont,
-              fontFamily: fontFamily,
-            ),
-            ToadmarkTheme.build(
-              Brightness.dark,
-              useSystemFont: themeSettings.useSystemFont,
-              fontFamily: fontFamily,
-            ),
+            ToadmarkTheme.build(Brightness.light),
+            ToadmarkTheme.build(Brightness.dark),
             themeSettings.themeMode,
           );
         }

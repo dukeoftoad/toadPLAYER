@@ -34,8 +34,11 @@ import 'package:toadplayer/widgets/desktop/desktop_inspector.dart';
 import 'package:toadplayer/widgets/link/link_actions.dart';
 import 'package:toadplayer/widgets/network_offline_actions.dart';
 import 'package:toadplayer/widgets/link/link_devices_sheet.dart';
+import 'package:toadplayer/widgets/lyrics_options_activity.dart';
 import 'package:toadplayer/widgets/lyrics_options_button.dart';
 import 'package:toadplayer/widgets/lyrics_screen_awake.dart';
+import 'package:toadplayer/theme/sketch_theme_mark.dart';
+import 'package:toadplayer/widgets/sketchbook/sketch_decor.dart';
 import 'package:toadplayer/widgets/player_artwork.dart';
 import 'package:toadplayer/widgets/player_gesture_regions.dart';
 import 'package:toadplayer/widgets/player_playback_controls.dart';
@@ -617,8 +620,12 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
         child: SafeArea(
           top: !materialLandscapeArtwork,
           bottom: homeIndicatorBelowRow == null,
-          child: _trackSwipeScope(
-            Column(
+          // One activity region covers the full player — its controls and
+          // the lyrics pane both — so a touch anywhere keeps the lyrics
+          // options revealed, including the landscape header button.
+          child: LyricsOptionsActivity(
+            child: _trackSwipeScope(
+              Column(
             children: [
               if (materialLandscapeArtwork) ...[
                 SizedBox(height: MediaQuery.viewPaddingOf(context).top),
@@ -834,11 +841,28 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
             ],
             ),
           ),
+          ),
         ),
       ),
     );
     if (!toadplayer) {
-      if (!materialBackdrop) return _lyricsPointerListener(player);
+      // The family toad stamps a quiet watermark on the paper player.
+      final watermark = context.isSketchPaper
+          ? const PositionedDirectional(
+              end: 10,
+              bottom: 6,
+              child: ToadMark(size: 72, opacity: 0.12),
+            )
+          : null;
+      if (!materialBackdrop) {
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            if (watermark != null) watermark,
+            _lyricsPointerListener(player),
+          ],
+        );
+      }
       return Stack(
         fit: StackFit.expand,
         children: [
@@ -847,6 +871,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
             colorScheme: colorScheme,
             showArtwork: materialFullScreen && _currentPage != 1,
           ),
+          if (watermark != null) watermark,
           _lyricsPointerListener(player),
         ],
       );

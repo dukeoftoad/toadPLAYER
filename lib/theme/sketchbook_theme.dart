@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:toadplayer/theme/app_theme.dart';
+import 'package:toadplayer/theme/sketch_theme_mark.dart';
 
 /// The Sketchbook theme: toadHEALTH's hand-drawn ink-on-paper look, ported
 /// into Toadplayer as a fourth style.
@@ -120,6 +121,11 @@ abstract final class SketchbookTheme {
     );
 
     return base.copyWith(
+      // Publishing the mark turns the app-wide ink decor on with the style.
+      extensions: [
+        for (final extension in base.extensions.values) extension,
+        const SketchThemeMark(),
+      ],
       textTheme: textTheme,
       primaryTextTheme: textTheme,
       appBarTheme: base.appBarTheme.copyWith(

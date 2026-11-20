@@ -41,13 +41,18 @@ class AppearanceSettingsPage extends ConsumerWidget {
                 ref.read(themeProvider.notifier).setStyle(AppThemeStyle.toad),
           ),
           _StyleCard(
-            icon: Icons.eco_outlined,
             title: 'Toadmark',
-            subtitle: 'Shared frog-lime and pond palette, with warm paper in light mode',
+            subtitle: 'The frog-lime brand in the toadHEALTH handwriting — ink on warm paper',
             selected: theme.style == AppThemeStyle.toadmark,
             onTap: () => ref
                 .read(themeProvider.notifier)
                 .setStyle(AppThemeStyle.toadmark),
+            preview: SizedBox.square(
+              dimension: 40,
+              child: CustomPaint(
+                painter: ToadPainter(pose: ToadPose.cheer, phase: 0.4),
+              ),
+            ),
           ),
           _StyleCard(
             title: 'Sketchbook',

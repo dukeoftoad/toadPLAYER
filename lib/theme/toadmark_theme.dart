@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:toadplayer/theme/app_theme.dart';
+import 'package:toadplayer/theme/sketch_theme_mark.dart';
+import 'package:toadplayer/theme/sketchbook_theme.dart';
 
-/// The Toadmark family theme: warm paper in light mode and deep ink in dark mode,
-/// with frog-lime, emerald and pond-teal accents. Unlike the Material style it
-/// never follows the wallpaper, so the personality is identical on every
-/// device, and unlike the Toadplayer style it stays a plain Material look.
+/// The Toadmark family theme: warm paper in light mode and deep ink in dark
+/// mode, with frog-lime, emerald and pond-teal accents — drawn in the same
+/// hand-written pen as the Sketchbook style, so the Toadmark brand reads as
+/// ink on paper rather than a plain Material skin.
+///
+/// Like the Sketchbook style it keeps its hand-written fonts on purpose:
+/// honouring the custom-font or system-font pick would erase exactly what
+/// makes the theme itself. And like the Toad style it never follows the
+/// wallpaper, so the personality is identical on every device.
 class ToadmarkTheme {
   ToadmarkTheme._();
 
@@ -20,11 +27,7 @@ class ToadmarkTheme {
   /// Shared deep-ink family background.
   static const Color darkSurface = Color(0xFF0B100F);
 
-  static ThemeData build(
-    Brightness brightness, {
-    bool useSystemFont = false,
-    String? fontFamily,
-  }) {
+  static ThemeData build(Brightness brightness) {
     final light = brightness == Brightness.light;
     final scheme = (light
             ? ColorScheme.fromSeed(
@@ -60,16 +63,55 @@ class ToadmarkTheme {
           outline: light ? const Color(0xFFA9A38B) : const Color(0xFF53645B),
           outlineVariant: light ? const Color(0xFFD8D1B8) : const Color(0xFF334139),
         );
-    return light
+    // The body keeps PatrickHand through the base font family, exactly the
+    // Sketchbook swap: the shared handwriting is the point of the theme.
+    final base = light
         ? AppTheme.light(
             dynamicScheme: scheme,
-            useSystemFont: useSystemFont,
-            fontFamily: fontFamily,
+            fontFamily: SketchbookTheme.bodyFont,
           )
         : AppTheme.dark(
             dynamicScheme: scheme,
-            useSystemFont: useSystemFont,
-            fontFamily: fontFamily,
+            fontFamily: SketchbookTheme.bodyFont,
           );
+
+    // Caveat signs every display and headline role, with the same sizing
+    // bumps the Sketchbook style gives the script weight.
+    TextStyle heading(TextStyle? style, double bump) {
+      final size = style?.fontSize ?? 24.0;
+      return (style ?? const TextStyle()).copyWith(
+        fontFamily: SketchbookTheme.headingFont,
+        fontWeight: FontWeight.w700,
+        fontSize: size + bump,
+        height: 1.05,
+      );
+    }
+
+    final textTheme = base.textTheme.copyWith(
+      displayLarge: heading(base.textTheme.displayLarge, 5),
+      displayMedium: heading(base.textTheme.displayMedium, 5),
+      displaySmall: heading(base.textTheme.displaySmall, 4),
+      headlineLarge: heading(base.textTheme.headlineLarge, 4),
+      headlineMedium: heading(base.textTheme.headlineMedium, 3),
+      headlineSmall: heading(base.textTheme.headlineSmall, 2),
+    );
+
+    return base.copyWith(
+      // Publishing the mark turns the app-wide ink decor on with the style.
+      extensions: [
+        for (final extension in base.extensions.values) extension,
+        const SketchThemeMark(toadmark: true),
+      ],
+      textTheme: textTheme,
+      primaryTextTheme: textTheme,
+      appBarTheme: base.appBarTheme.copyWith(
+        titleTextStyle: TextStyle(
+          fontFamily: SketchbookTheme.headingFont,
+          fontSize: 26,
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+        ),
+      ),
+    );
   }
 }
