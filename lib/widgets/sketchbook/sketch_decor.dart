@@ -280,8 +280,8 @@ class _SketchActionButtonState extends State<SketchActionButton> {
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (widget.icon case Icon(:final glyph?))
-                          Icon(glyph, size: 20)
+                        if (widget.icon case Icon(:final icon?))
+                          Icon(icon, size: 20)
                         else
                           widget.icon,
                         const SizedBox(width: 8),
