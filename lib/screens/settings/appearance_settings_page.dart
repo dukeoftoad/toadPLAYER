@@ -34,8 +34,8 @@ class AppearanceSettingsPage extends ConsumerWidget {
           ),
           _StyleCard(
             icon: Icons.emoji_nature_outlined,
-            title: 'Toad',
-            subtitle: 'The crafted Toad palette — moss green, every device',
+            title: 'Toadmark',
+            subtitle: 'Shared frog-lime and pond palette, with warm paper in light mode',
             selected: theme.style == AppThemeStyle.toad,
             onTap: () =>
                 ref.read(themeProvider.notifier).setStyle(AppThemeStyle.toad),
