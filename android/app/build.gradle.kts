@@ -221,6 +221,7 @@ flutter {
 }
 
 dependencies {
+    implementation("androidx.media3:media3-exoplayer:${rootProject.extra[\"media3Version\"]}")
     val discordSdk = file("../../third_party/toadplayer_discord/sdk/discord_partner_sdk.aar")
     if (discordSdkEnabled && discordSdk.exists()) {
         implementation(files(discordSdk))

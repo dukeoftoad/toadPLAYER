@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:toadplayer/providers/player_artwork_video_provider.dart';
 import 'package:toadplayer/providers/settings_provider.dart';
+import 'package:toadplayer/theme/app_motion.dart';
 import 'package:toadplayer/widgets/motion_header_banner.dart';
 import 'package:toadplayer/widgets/player_artwork.dart';
 import 'package:video_player/video_player.dart';
@@ -15,6 +16,8 @@ class ToadplayerPlayerArtwork extends ConsumerStatefulWidget {
     this.onAspectRatioChanged,
     this.onError,
     this.resolvingVideo = false,
+    this.squareWhileLoading = true,
+    this.crossfade,
   });
 
   final MediaItem mediaItem;
@@ -23,12 +26,22 @@ class ToadplayerPlayerArtwork extends ConsumerStatefulWidget {
   final VoidCallback? onError;
   final bool resolvingVideo;
 
+  /// While a video loads, keep the square cover at the top of its box.
+  /// False fills the box at once, for a backdrop that crops the sides.
+  final bool squareWhileLoading;
+
+  /// Fades a new track's artwork in over the previous one, like
+  /// [PlayerArtwork.crossfade]. Null, a zero duration or reduced motion
+  /// swap the artwork at once.
+  final AppMotionSpec? crossfade;
+
   @override
   ConsumerState<ToadplayerPlayerArtwork> createState() =>
       _ToadplayerPlayerArtworkState();
 }
 
-class _ToadplayerPlayerArtworkState extends ConsumerState<ToadplayerPlayerArtwork> {
+class _ToadplayerPlayerArtworkState
+    extends ConsumerState<ToadplayerPlayerArtwork> {
   String? _displayedSource;
   VideoPlayerController? _displayedController;
 
@@ -42,7 +55,7 @@ class _ToadplayerPlayerArtworkState extends ConsumerState<ToadplayerPlayerArtwor
     // Without a video, the still cover fills its box (a full-screen box is
     // taller than wide and crops the sides). A video keeps the square cover
     // at its top while it loads, since its own frame may be wider.
-    final fallback = widget.videoUrl == null
+    final fallback = widget.videoUrl == null || !widget.squareWhileLoading
         ? SizedBox.expand(child: cover)
         : Align(
             alignment: Alignment.topCenter,
@@ -52,7 +65,7 @@ class _ToadplayerPlayerArtworkState extends ConsumerState<ToadplayerPlayerArtwor
         !ref.watch(settingsProvider.select((s) => s.motionArtworkEnabled))) {
       _displayedSource = null;
       _displayedController = null;
-      return fallback;
+      return _crossfaded(context, fallback);
     }
     final videoUrl = widget.videoUrl;
     final prepared = videoUrl == null
@@ -77,26 +90,55 @@ class _ToadplayerPlayerArtworkState extends ConsumerState<ToadplayerPlayerArtwor
     if (_displayedSource != null && _displayedSource != videoUrl) {
       ref.watch(playerArtworkVideoProvider(_displayedSource!));
     }
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        fallback,
-        if (_displayedController != null)
-          MotionHeaderBanner(
-            videoUrl: _displayedSource!,
-            fallback: const SizedBox.shrink(),
-            controller: _displayedController,
-            fadeDuration: Duration.zero,
-            onAspectRatioChanged: (ratio) {
-              if (_displayedSource == widget.videoUrl) {
-                widget.onAspectRatioChanged?.call(ratio);
-              }
-            },
-            onError: () {
-              if (_displayedSource == widget.videoUrl) widget.onError?.call();
-            },
-          ),
-      ],
+    return _crossfaded(
+      context,
+      Stack(
+        fit: StackFit.expand,
+        children: [
+          fallback,
+          if (_displayedController != null)
+            MotionHeaderBanner(
+              videoUrl: _displayedSource!,
+              fallback: const SizedBox.shrink(),
+              controller: _displayedController,
+              fadeDuration: Duration.zero,
+              onAspectRatioChanged: (ratio) {
+                if (_displayedSource == widget.videoUrl) {
+                  widget.onAspectRatioChanged?.call(ratio);
+                }
+              },
+              onError: () {
+                if (_displayedSource == widget.videoUrl) widget.onError?.call();
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Fades a changed track's artwork in over the previous one; the outgoing
+  /// frame stays behind until the fade ends, so a skip never blanks.
+  Widget _crossfaded(BuildContext context, Widget content) {
+    final motion = widget.crossfade;
+    if (motion == null ||
+        motion.duration <= Duration.zero ||
+        MediaQuery.disableAnimationsOf(context)) {
+      return content;
+    }
+    return AnimatedSwitcher(
+      duration: motion.duration,
+      switchInCurve: motion.curve,
+      transitionBuilder: (child, animation) =>
+          FadeTransition(opacity: animation, child: child),
+      layoutBuilder: (current, previous) => Stack(
+        fit: StackFit.passthrough,
+        alignment: Alignment.center,
+        children: [...previous, ?current],
+      ),
+      child: KeyedSubtree(
+        key: ValueKey(widget.mediaItem.artUri?.toString()),
+        child: content,
+      ),
     );
   }
 }

@@ -1,13 +1,13 @@
 # Local FFmpegKit patch
 
-Based on ffmpeg_kit_flutter_new_audio 2.5.7 (license retained in LICENSE).
-The upstream `example` app is not copied.
+Based on ffmpeg_kit_flutter_new_audio 2.5.8 (license retained in LICENSE).
+The upstream `example` app and `test` folder are not copied.
 
 The root `pubspec.yaml` overrides the package with this copy
 (`dependency_overrides: ffmpeg_kit_flutter_new_audio: path:
 third_party/ffmpeg_kit_flutter_new_audio`), next to the pinned
-`ffmpeg_kit_flutter_new_audio: 2.5.7`. The version is the one in this
-folder's `pubspec.yaml` (2.5.7, unchanged).
+`ffmpeg_kit_flutter_new_audio: 2.5.8`. The version is the one in this
+folder's `pubspec.yaml` (2.5.8, unchanged).
 
 ## Patches
 
@@ -23,7 +23,7 @@ without a crash dump, that report cannot establish which caller unloaded it.
 
 This fork no longer declares a Windows native plugin. Flutter therefore
 does not register, link or bundle it and its FFmpegKit DLL dependencies.
-Toadplayer already routes desktop conversion, probing, analysis and cancellation
+Mornye already routes desktop conversion, probing, analysis and cancellation
 through `FFmpegExecution` to the standalone `ffmpeg.exe` and `ffprobe.exe`
 processes. The package's pure Dart argument parser and media information
 models remain available. Mobile plugins and Windows libmpv playback are
@@ -45,7 +45,7 @@ could not be built for Linux arm64 at all.
 On an architecture without a bundle, and with no `FFMPEGKIT_LOCAL_DIR`, the
 plugin is now built without `libffmpegkit.so` and a CMake warning says so.
 The plugin already loads the library with `dlopen()` and answers every call
-with an error when it is missing. Toadplayer desktop never calls FFmpegKit's
+with an error when it is missing. Mornye desktop never calls FFmpegKit's
 native layer: it runs the bundled `ffmpeg` and `ffprobe` executables
 (`lib/services/ffmpeg_desktop.dart` in the app) and uses only the package's
 Dart code (argument parsing and the media information model).
@@ -102,14 +102,3 @@ checked against it; `build.gradle` adds JUnit and forks one JVM per test
 class, since `FFmpegKitConfig` initializes once per JVM).
 From the app's `android/` folder:
 `gradle --offline :ffmpeg_kit_flutter_new_audio:testDebugUnitTest -x buildRustBackend`.
-
-
-### Android: silence foreign activity results
-
-`onActivityResult` logged "ignored unsupported activity result" for every
-result that was not this plugin's own SAF request codes. The Flutter engine
-forwards every activity result to all registered listeners, so the host
-app's pickers (SAF tree, document, folder) triggered the log line each time.
-The handler now declines foreign request codes without logging, and clears
-the pending `Result` after answering so a stale result can never be
-answered twice.

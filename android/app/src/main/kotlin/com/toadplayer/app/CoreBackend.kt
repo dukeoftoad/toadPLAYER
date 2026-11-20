@@ -45,7 +45,12 @@ internal fun parseCoreFFmpegCommands(raw: String): List<CoreFFmpegCommand> {
 
 private object CoreFFmpegStaging {
     private val directories = mutableSetOf<String>()
-    private val prefix = ".toadplayer-ffmpeg-${BuildConfig.APPLICATION_ID}-"
+    // No leading dot: some file systems keep a dot name's hidden attribute
+    // through the rename onto the song. Library scans skip `.partial.<ext>`.
+    private val prefix = "toadplayer-ffmpeg-${BuildConfig.APPLICATION_ID}-"
+
+    /** Earlier versions' prefix, still swept after an interrupted run. */
+    private val legacyPrefix = ".$prefix"
 
     @Synchronized
     fun create(target: File): File {
@@ -55,8 +60,8 @@ private object CoreFFmpegStaging {
         if (directory.path !in directories) {
             val entries = checkNotNull(directory.listFiles()) { "Cannot read FFmpeg output directory" }
             for (file in entries) {
-                if (!file.name.startsWith(prefix)) continue
-                val suffix = file.name.removePrefix(prefix)
+                val own = listOf(prefix, legacyPrefix).firstOrNull { file.name.startsWith(it) } ?: continue
+                val suffix = file.name.removePrefix(own)
                 if (suffix.length <= 36 || suffix[36] != '.') continue
                 if (runCatching { UUID.fromString(suffix.take(36)) }.isFailure) continue
                 if (Files.isRegularFile(file.toPath(), LinkOption.NOFOLLOW_LINKS)) {
@@ -65,7 +70,7 @@ private object CoreFFmpegStaging {
             }
             directories.add(directory.path)
         }
-        val staged = File(directory, "$prefix${UUID.randomUUID()}.${target.extension}")
+        val staged = File(directory, "$prefix${UUID.randomUUID()}.partial.${target.extension}")
         check(staged.createNewFile()) { "Failed to create FFmpeg staging" }
         return staged
     }
@@ -99,7 +104,7 @@ internal fun executeCoreFFmpegCommand(
 internal fun withCoreFFmpegExecution(
     execution: CoreExtensionExecution,
     execute: (Array<String>, () -> Boolean) -> Pair<Boolean, String> = { arguments, cancelled ->
-        false to "FFmpeg download finalizer is disabled in isolated player"
+        NativeDownloadFinalizer.runFFmpegArguments(arguments, cancelled, trackFinalizerSession = false)
     },
     block: (CoreExtensionExecution) -> String,
 ): String {
@@ -190,6 +195,9 @@ internal interface CoreBackend {
     fun readAudioMetadataObject(path: String, hint: String, cacheKey: String): JSONObject =
         JSONObject(readAudioMetadata(path, hint, cacheKey))
     fun setLibraryCoverCacheDirectory(path: String)
+    /** Stores the Library thumbnail of the folder image open at the
+     * `/proc/self/fd` [path]. Null without a Library cover directory. */
+    fun cacheLibraryFolderCover(path: String): String?
     fun scanLibraryFolderToNdjsonFile(folder: String, output: String): Long
     fun scanLibraryFolderIncremental(folder: String, existing: String): String
     fun getLibraryScanProgress(): String

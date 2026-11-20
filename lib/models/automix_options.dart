@@ -11,6 +11,14 @@ double autoMixSpeedFromJson(Object? value) =>
 double autoMixPitchFromJson(Object? value) =>
     value is num && value.isFinite ? value.toDouble().clamp(-6, 6) : 0;
 
+/// The whole-song pitch shift setting: semitones, clamped to -12..12.
+double playbackPitchFromJson(Object? value) =>
+    value is num && value.isFinite ? value.toDouble().clamp(-12, 12) : 0;
+
+/// Autoplay variety, clamped to 0..1 (0 keeps the ordinary ranking).
+double autoplayRandomnessFromJson(Object? value) =>
+    value is num && value.isFinite ? value.toDouble().clamp(0, 1) : 0;
+
 class AutoMixOptions {
   const AutoMixOptions({
     this.durationSeconds = 0,

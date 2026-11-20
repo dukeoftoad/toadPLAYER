@@ -240,6 +240,18 @@ class _AudioInfoSheetState extends State<_AudioInfoSheet>
                       SizedBox(height: context.tokens.gapLg),
                       HiResCheckCard(filePath: path, formatHint: format),
                     ],
+                    SizedBox(height: context.tokens.gapLg),
+                    ExpressiveButton(
+                      onPressed: _fileSize == null
+                          ? null
+                          : () => pickAndShowAudioCompare(
+                              context,
+                              referencePath: path,
+                              referenceSize: _fileSize ?? 0,
+                            ),
+                      icon: const Icon(Icons.compare, size: 18),
+                      child: Text(context.l10n.audioInfoCompare),
+                    ),
                   ],
                 ),
               ),

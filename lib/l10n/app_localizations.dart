@@ -5,7 +5,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
-// Only English is shipped.
 import 'app_localizations_en.dart';
 
 // ignore_for_file: type=lint
@@ -93,10 +92,7 @@ abstract class AppLocalizations {
       ];
 
   /// A list of this localizations delegate's supported locales.
-  /// Only English is shipped.
-  static const List<Locale> supportedLocales = <Locale>[
-    Locale('en'),
-  ];
+  static const List<Locale> supportedLocales = <Locale>[Locale('en')];
 
   /// No description provided for @libraryLyricsSearchDescription.
   ///
@@ -11462,6 +11458,30 @@ abstract class AppLocalizations {
   /// **'Learn from songs you listen to and skip, privately on this device. Turning this off stops learning and restores ordinary autoplay.'**
   String get autoplayPersonalizationDescription;
 
+  /// No description provided for @autoplayRandomness.
+  ///
+  /// In en, this message translates to:
+  /// **'Autoplay variety'**
+  String get autoplayRandomness;
+
+  /// No description provided for @autoplayRandomnessDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'How far Autoplay reaches past the songs it played lately: higher values lean more towards songs you have not heard in a while.'**
+  String get autoplayRandomnessDescription;
+
+  /// No description provided for @autoplayLeastRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Least recent'**
+  String get autoplayLeastRecent;
+
+  /// No description provided for @autoplayMoreRandom.
+  ///
+  /// In en, this message translates to:
+  /// **'More variety'**
+  String get autoplayMoreRandom;
+
   /// No description provided for @autoplayResetLearning.
   ///
   /// In en, this message translates to:
@@ -15716,7 +15736,7 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save the lyrics to this file'**
   String get lyricsEditSaveFailed;
 
-  /// No description provided for @lyricsEditReadOnly.
+  /// Shown when the lyrics editor cannot write to the song's file
   ///
   /// In en, this message translates to:
   /// **'Lyrics can\'t be saved to this song\'s file'**
@@ -15829,6 +15849,564 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No lyrics found for these details'**
   String get lyricsVerifyNoResults;
+
+  /// No description provided for @audioCompareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio compare'**
+  String get audioCompareTitle;
+
+  /// No description provided for @audioComparePickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the other version of the song'**
+  String get audioComparePickTitle;
+
+  /// No description provided for @audioCompareSameFile.
+  ///
+  /// In en, this message translates to:
+  /// **'That is the same file the player is using. Pick a different version to compare.'**
+  String get audioCompareSameFile;
+
+  /// No description provided for @audioCompareReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference'**
+  String get audioCompareReference;
+
+  /// No description provided for @audioCompareOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other file'**
+  String get audioCompareOther;
+
+  /// No description provided for @audioCompareOverall.
+  ///
+  /// In en, this message translates to:
+  /// **'Overall difference'**
+  String get audioCompareOverall;
+
+  /// No description provided for @audioCompareOverallDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Residual level after the files are lined up and level-matched, in dB. Lower is closer.'**
+  String get audioCompareOverallDetail;
+
+  /// No description provided for @audioCompareMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Correlation'**
+  String get audioCompareMatch;
+
+  /// No description provided for @audioCompareGain.
+  ///
+  /// In en, this message translates to:
+  /// **'Gain difference'**
+  String get audioCompareGain;
+
+  /// No description provided for @audioCompareGainDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'How much louder the other file plays than the reference.'**
+  String get audioCompareGainDetail;
+
+  /// No description provided for @audioCompareGainInverted.
+  ///
+  /// In en, this message translates to:
+  /// **'Polarity is inverted: the files cancel each other out when summed.'**
+  String get audioCompareGainInverted;
+
+  /// No description provided for @audioCompareOffset.
+  ///
+  /// In en, this message translates to:
+  /// **'Offset'**
+  String get audioCompareOffset;
+
+  /// No description provided for @audioCompareOffsetValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{frames} frames ({ms} ms)'**
+  String audioCompareOffsetValue(String frames, String ms);
+
+  /// No description provided for @audioCompareOffsetLater.
+  ///
+  /// In en, this message translates to:
+  /// **'The other file starts later; the player lines it up.'**
+  String get audioCompareOffsetLater;
+
+  /// No description provided for @audioCompareOffsetEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'The other file starts earlier; the player lines it up.'**
+  String get audioCompareOffsetEarlier;
+
+  /// No description provided for @audioComparePeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Largest residual at {clock}: {db}'**
+  String audioComparePeak(String clock, String db);
+
+  /// No description provided for @audioCompareSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get audioCompareSummaryTitle;
+
+  /// No description provided for @audioCompareStagePreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing'**
+  String get audioCompareStagePreparing;
+
+  /// No description provided for @audioCompareStageAligning.
+  ///
+  /// In en, this message translates to:
+  /// **'Aligning'**
+  String get audioCompareStageAligning;
+
+  /// No description provided for @audioCompareStageMeasuring.
+  ///
+  /// In en, this message translates to:
+  /// **'Measuring'**
+  String get audioCompareStageMeasuring;
+
+  /// No description provided for @audioCompareStageSpectrogram.
+  ///
+  /// In en, this message translates to:
+  /// **'Spectrogram'**
+  String get audioCompareStageSpectrogram;
+
+  /// No description provided for @audioCompareStepLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {step} of {total}'**
+  String audioCompareStepLabel(String step, String total);
+
+  /// No description provided for @audioCompareExplainTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What is a null test?'**
+  String get audioCompareExplainTitle;
+
+  /// No description provided for @audioCompareExplainBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The player lines the two files up, flips one\'s phase and plays the sum. What is left over is exactly what differs: silence means the files carry the same sound.'**
+  String get audioCompareExplainBody;
+
+  /// No description provided for @audioCompareNoticeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get audioCompareNoticeTitle;
+
+  /// No description provided for @audioCompareNoticeWeakAlignment.
+  ///
+  /// In en, this message translates to:
+  /// **'The files did not line up cleanly, so the numbers are rough.'**
+  String get audioCompareNoticeWeakAlignment;
+
+  /// No description provided for @audioCompareNoticeResidualHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'A large difference remains even after alignment: the files may be different mixes or masters.'**
+  String get audioCompareNoticeResidualHigh;
+
+  /// No description provided for @audioCompareNoticeDrift.
+  ///
+  /// In en, this message translates to:
+  /// **'The files drift apart by {ms} ms over their length.'**
+  String audioCompareNoticeDrift(String ms);
+
+  /// No description provided for @audioCompareNoticeDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'The files differ in length by {seconds} s after alignment.'**
+  String audioCompareNoticeDuration(String seconds);
+
+  /// No description provided for @audioCompareNoticeFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare similar files: two copies of the same master give the clearest read.'**
+  String get audioCompareNoticeFooter;
+
+  /// No description provided for @audioCompareNoteResampled.
+  ///
+  /// In en, this message translates to:
+  /// **'Resampled to {rate} to compare.'**
+  String audioCompareNoteResampled(String rate);
+
+  /// No description provided for @audioCompareNoteChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Downmixed to one channel to compare.'**
+  String get audioCompareNoteChannels;
+
+  /// No description provided for @audioCompareTimelineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Residual over time'**
+  String get audioCompareTimelineTitle;
+
+  /// No description provided for @audioCompareTimelineCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Where the files differ the most. Tap a point to inspect it.'**
+  String get audioCompareTimelineCaption;
+
+  /// No description provided for @audioCompareTimelineHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the timeline to inspect a moment'**
+  String get audioCompareTimelineHint;
+
+  /// No description provided for @audioComparePlayFromHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Play from here'**
+  String get audioComparePlayFromHere;
+
+  /// No description provided for @audioCompareSpectrogramTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Spectrogram'**
+  String get audioCompareSpectrogramTitle;
+
+  /// No description provided for @audioCompareSpectrogramCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'The difference signal: darker means the files agree.'**
+  String get audioCompareSpectrogramCaption;
+
+  /// No description provided for @audioCompareBandHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'Mainly high frequencies'**
+  String get audioCompareBandHigh;
+
+  /// No description provided for @audioCompareBandLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Mainly low frequencies'**
+  String get audioCompareBandLow;
+
+  /// No description provided for @audioCompareBandBroadband.
+  ///
+  /// In en, this message translates to:
+  /// **'Across all frequencies'**
+  String get audioCompareBandBroadband;
+
+  /// No description provided for @audioCompareChannelLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Mainly left channel'**
+  String get audioCompareChannelLeft;
+
+  /// No description provided for @audioCompareChannelRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Mainly right channel'**
+  String get audioCompareChannelRight;
+
+  /// No description provided for @audioCompareChannelBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'Both channels'**
+  String get audioCompareChannelBoth;
+
+  /// No description provided for @audioCompareLevelIdentical.
+  ///
+  /// In en, this message translates to:
+  /// **'Identical'**
+  String get audioCompareLevelIdentical;
+
+  /// No description provided for @audioCompareLevelNearlyIdentical.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearly identical'**
+  String get audioCompareLevelNearlyIdentical;
+
+  /// No description provided for @audioCompareLevelMostlyIdentical.
+  ///
+  /// In en, this message translates to:
+  /// **'Mostly identical'**
+  String get audioCompareLevelMostlyIdentical;
+
+  /// No description provided for @audioCompareLevelModerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Audibly different'**
+  String get audioCompareLevelModerate;
+
+  /// No description provided for @audioCompareLevelLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Very different'**
+  String get audioCompareLevelLarge;
+
+  /// No description provided for @audioCompareErrorUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read {fileName}.'**
+  String audioCompareErrorUnreadable(String fileName);
+
+  /// No description provided for @audioCompareErrorTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Files shorter than two seconds cannot be lined up.'**
+  String get audioCompareErrorTooShort;
+
+  /// No description provided for @audioCompareErrorDecode.
+  ///
+  /// In en, this message translates to:
+  /// **'A file would not decode, so the comparison stopped.'**
+  String get audioCompareErrorDecode;
+
+  /// No description provided for @audioCompareErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Comparison failed: {error}'**
+  String audioCompareErrorGeneric(String error);
+
+  /// No description provided for @audioInfoCompare.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare with another file'**
+  String get audioInfoCompare;
+
+  /// No description provided for @spatialAudioDirectUsb.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing through the USB DAC directly; the system spatializer is bypassed.'**
+  String get spatialAudioDirectUsb;
+
+  /// No description provided for @spatialAudioDirectAAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing through AAudio exclusively; the system spatializer is bypassed.'**
+  String get spatialAudioDirectAAudio;
+
+  /// No description provided for @spatialAudioExclusive.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing through the exclusive output; the system spatializer is bypassed.'**
+  String get spatialAudioExclusive;
+
+  /// No description provided for @spatialAudioSystemOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Spatial audio is off in the system sound settings.'**
+  String get spatialAudioSystemOff;
+
+  /// No description provided for @spatialAudioUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Spatial audio is not available on this device or output.'**
+  String get spatialAudioUnavailable;
+
+  /// No description provided for @spatialAudioStereo.
+  ///
+  /// In en, this message translates to:
+  /// **'The system spatializes this stereo output.'**
+  String get spatialAudioStereo;
+
+  /// No description provided for @spatialAudioStereoHeadTracking.
+  ///
+  /// In en, this message translates to:
+  /// **'The system spatializes this stereo output with head tracking.'**
+  String get spatialAudioStereoHeadTracking;
+
+  /// No description provided for @spatialAudioMultichannelOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'The system spatializes multichannel content only.'**
+  String get spatialAudioMultichannelOnly;
+
+  /// No description provided for @spatialAudioOutputOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Spatial audio is on for this output.'**
+  String get spatialAudioOutputOn;
+
+  /// No description provided for @spatialAudioOutputOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Spatial audio is off for this output.'**
+  String get spatialAudioOutputOff;
+
+  /// No description provided for @lyricsOffsetAllSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'All songs'**
+  String get lyricsOffsetAllSongs;
+
+  /// No description provided for @lyricsOffsetThisSong.
+  ///
+  /// In en, this message translates to:
+  /// **'This song'**
+  String get lyricsOffsetThisSong;
+
+  /// No description provided for @lyricsOffsetOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Lyrics timing'**
+  String get lyricsOffsetOptions;
+
+  /// No description provided for @lyricsTranslateSongDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate into {language}'**
+  String lyricsTranslateSongDefault(String language);
+
+  /// No description provided for @nowPlayingTranslateInto.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate into the song\'s language'**
+  String get nowPlayingTranslateInto;
+
+  /// No description provided for @nowPlayingSaveTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Save translated lyrics'**
+  String get nowPlayingSaveTranslation;
+
+  /// No description provided for @nowPlayingTranslationSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation saved into the song'**
+  String get nowPlayingTranslationSaved;
+
+  /// No description provided for @nowPlayingTranslationSavedMlrc.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation saved next to the song'**
+  String get nowPlayingTranslationSavedMlrc;
+
+  /// No description provided for @showMenuTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Show menu'**
+  String get showMenuTooltip;
+
+  /// No description provided for @lyricsTranslationSaveToTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save translations into'**
+  String get lyricsTranslationSaveToTitle;
+
+  /// No description provided for @lyricsTranslationSaveIntoSong.
+  ///
+  /// In en, this message translates to:
+  /// **'The song'**
+  String get lyricsTranslationSaveIntoSong;
+
+  /// No description provided for @lyricsTranslationSaveIntoSongSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Write the translation into the song\'s own tags.'**
+  String get lyricsTranslationSaveIntoSongSubtitle;
+
+  /// No description provided for @lyricsTranslationSaveNextToSong.
+  ///
+  /// In en, this message translates to:
+  /// **'A lyrics file next to it'**
+  String get lyricsTranslationSaveNextToSong;
+
+  /// No description provided for @lyricsTranslationSaveNextToSongSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a `.mlrc` file next to the song, read back like a `.lrc`.'**
+  String get lyricsTranslationSaveNextToSongSubtitle;
+
+  /// No description provided for @lyricsRomanize.
+  ///
+  /// In en, this message translates to:
+  /// **'Romanize Lyrics Offline'**
+  String get lyricsRomanize;
+
+  /// No description provided for @lyricsRomanizeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows how lyrics in other alphabets are sung, worked out on this device without AI'**
+  String get lyricsRomanizeSubtitle;
+
+  /// No description provided for @lyricsRomanizedMainLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Romanize Main Lines'**
+  String get lyricsRomanizedMainLine;
+
+  /// No description provided for @lyricsRomanizedMainLineSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Also show the romanization under each main line, not only the reading line'**
+  String get lyricsRomanizedMainLineSubtitle;
+
+  /// No description provided for @lyricsAiSecondLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Second Target Language'**
+  String get lyricsAiSecondLanguage;
+
+  /// No description provided for @lyricsAiSecondLanguageApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Falls back to {language} when the song is already in the first target'**
+  String lyricsAiSecondLanguageApp(String language);
+
+  /// No description provided for @trackConvertResamplerSwrDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'{taps}-tap filter'**
+  String trackConvertResamplerSwrDetail(int taps);
+
+  /// No description provided for @trackConvertResamplerSoxrDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'{bits}-bit precision'**
+  String trackConvertResamplerSoxrDetail(int bits);
+
+  /// No description provided for @trackConvertResamplerSoxrPresetDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'{bits}-bit precision, SoX {preset}'**
+  String trackConvertResamplerSoxrPresetDetail(int bits, String preset);
+
+  /// Lossless conversion fast resampler quality
+  ///
+  /// In en, this message translates to:
+  /// **'Fast'**
+  String get trackConvertResamplerQualityFast;
+
+  /// Lossless conversion medium resampler quality
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get trackConvertResamplerQualityMedium;
+
+  /// Lossless conversion high resampler quality
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get trackConvertResamplerQualityHigh;
+
+  /// Lossless conversion very high resampler quality
+  ///
+  /// In en, this message translates to:
+  /// **'Very high'**
+  String get trackConvertResamplerQualityVeryHigh;
+
+  /// Lossless conversion best resampler quality
+  ///
+  /// In en, this message translates to:
+  /// **'Best'**
+  String get trackConvertResamplerQualityBest;
+
+  /// No description provided for @trackConvertDitherSmart.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get trackConvertDitherSmart;
 }
 
 class _AppLocalizationsDelegate
@@ -15841,9 +16419,8 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) => const <String>[
-    'en',
-  ].contains(locale.languageCode);
+  bool isSupported(Locale locale) =>
+      <String>['en'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -15851,11 +16428,15 @@ class _AppLocalizationsDelegate
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
   // Lookup logic when only language code is specified.
-  // Only English is shipped; anything else falls back to English.
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
-    default:
-      return AppLocalizationsEn();
   }
+
+  throw FlutterError(
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
 }

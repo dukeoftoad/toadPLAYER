@@ -65,6 +65,7 @@ String buildAudioSpectrogramFilter({
   double? durationSeconds,
   int? sampleRate,
   int? channels,
+  String inputLabel = '[0:a:0]',
 }) {
   final channelFilter = channel >= 0 ? 'pan=mono|c0=c$channel,' : '';
   final samplingFilter = _buildAudioSpectrogramSamplingFilter(
@@ -74,7 +75,7 @@ String buildAudioSpectrogramFilter({
     channels: channels,
   );
   final input =
-      '[0:a:0]$channelFilter${samplingFilter}aformat=sample_fmts=fltp';
+      '$inputLabel$channelFilter${samplingFilter}aformat=sample_fmts=fltp';
   final display = _buildShowspectrumOptions(
     width: audioSpectrogramWidth,
     color: 'intensity',

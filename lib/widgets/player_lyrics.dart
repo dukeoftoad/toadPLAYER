@@ -7,20 +7,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show ValueListenable, listEquals;
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter/rendering.dart'
-    show OverflowBoxFit, RenderAbstractViewport, ScrollDirection;
+    show
+        ItemExtentBuilder,
+        OverflowBoxFit,
+        RenderAbstractViewport,
+        ScrollDirection;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:toadplayer/l10n/l10n.dart';
 import 'package:toadplayer/providers/music_player_provider.dart';
 import 'package:toadplayer/providers/runtime_profile_provider.dart';
+import 'package:toadplayer/providers/song_lyrics_offset_provider.dart';
 import 'package:toadplayer/providers/theme_provider.dart';
+import 'package:toadplayer/theme/app_motion.dart';
 import 'package:toadplayer/theme/app_tokens.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
-import 'package:toadplayer/models/theme_settings.dart'
-    show normalizeLyricsTextScale;
 import 'package:toadplayer/utils/desktop_platform.dart';
 import 'package:toadplayer/utils/lyrics_parser.dart';
 import 'package:toadplayer/utils/lyrics_timeline.dart';
 import 'package:toadplayer/utils/synced_lyrics_scroll.dart';
+import 'package:toadplayer/utils/text_direction.dart';
+import 'package:toadplayer/utils/view_display.dart';
 import 'package:toadplayer/widgets/aligned_lyric_pronunciation.dart';
 import 'package:toadplayer/widgets/lyric_blur.dart';
 import 'package:toadplayer/widgets/lyric_supplement_transition.dart';
@@ -39,7 +45,8 @@ const _toadplayerLyricFontSize = 34.0;
 /// a phone. Null keeps the text theme's size (phones and tablets).
 double? get _materialLyricFontSize => isDesktopPlatform ? 32 : null;
 double get _materialBackgroundLyricFontSize => isDesktopPlatform ? 24 : 18;
-const toadplayerLyricsContentInset = 28.0 + ToadplayerPlayerSlider.horizontalInset;
+const toadplayerLyricsContentInset =
+    28.0 + ToadplayerPlayerSlider.horizontalInset;
 
 /// How much of the lyrics area's bottom the player's controls cover. The
 /// Toadplayer phone player lays lyrics out under its controls so they can grow
@@ -65,6 +72,31 @@ class LyricsCoveredBottom extends InheritedWidget {
       height != oldWidget.height;
 }
 
+/// Keeps lyrics out of the last row of a [ShaderMask] that fades them out.
+///
+/// The mask only partly covers a bottom edge that falls between device pixels,
+/// so the text in that row would show through as a thin line.
+class LyricsMaskEdgeClip extends StatelessWidget {
+  const LyricsMaskEdgeClip({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      ClipRect(clipper: const _LyricsMaskEdgeClipper(), child: child);
+}
+
+class _LyricsMaskEdgeClipper extends CustomClipper<Rect> {
+  const _LyricsMaskEdgeClipper();
+
+  @override
+  Rect getClip(Size size) =>
+      Rect.fromLTRB(0, 0, size.width, (size.height - 1).clamp(0, size.height));
+
+  @override
+  bool shouldReclip(_LyricsMaskEdgeClipper oldClipper) => false;
+}
+
 class SyncedLyricsView extends ConsumerStatefulWidget {
   final ParsedLyrics lyrics;
   final ValueListenable<Duration?> seekPreview;
@@ -80,6 +112,10 @@ class SyncedLyricsView extends ConsumerStatefulWidget {
   /// Long-pressing a sung line starts sharing it.
   final ValueChanged<LyricLine>? onLongPressLine;
 
+  /// The song's [songLyricsOffsetKey], whose own timing offset is added to
+  /// the app-wide one. Empty for none.
+  final String songKey;
+
   const SyncedLyricsView({
     super.key,
     required this.lyrics,
@@ -91,6 +127,7 @@ class SyncedLyricsView extends ConsumerStatefulWidget {
     required this.showTranslation,
     this.animateWords = true,
     this.onLongPressLine,
+    this.songKey = '',
   });
 
   @override
@@ -105,7 +142,8 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
   ProviderSubscription<bool>? _loadingSubscription;
   ProviderSubscription<int>? _offsetSubscription;
 
-  /// The listener's lyrics timing setting, already applied to [_lines].
+  /// The listener's lyrics timing, app-wide plus the song's own, already
+  /// applied to [_lines].
   Duration _offset = Duration.zero;
   Timer? _lineBoundaryTimer;
   Timer? _userScrollIdleTimer;
@@ -121,6 +159,45 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
   Duration _activeTransitionPosition = Duration.zero;
   bool _playing = false;
   bool _loading = false;
+  Duration _displayLead = Duration.zero;
+
+  /// How far ahead of the audio lines change while lyrics advance, in track
+  /// time; see [lyricsDisplayLead]. Paused, loading and scrubbed lyrics show
+  /// the exact position.
+  Duration get _lead {
+    if (!_playing || _loading || widget.seekPreview.value != null) {
+      return Duration.zero;
+    }
+    final speed = ref.read(playbackStateProvider).value?.speed ?? 1.0;
+    return speed.isFinite && speed > 0 ? _displayLead * speed : Duration.zero;
+  }
+
+  /// The position the lines were last set for, and how far [_steady] held
+  /// it ahead of the one it was given.
+  Duration? _shownPosition;
+  Duration _heldAhead = Duration.zero;
+
+  /// [position], or the later one already shown when playback advances and
+  /// [position] is only a little behind it. Position reports land a few
+  /// tens of milliseconds either side of the lyric clock. One just behind
+  /// the end of a line brought that line back for a moment: it lit again,
+  /// and a list holding on it scrolled back and forward again. A seek back
+  /// is further away and moves at once.
+  Duration _steady(Duration position) {
+    final shown = _shownPosition;
+    if (shown != null &&
+        _playing &&
+        !_loading &&
+        widget.seekPreview.value == null &&
+        position < shown &&
+        shown - position < const Duration(milliseconds: 750)) {
+      _heldAhead = shown - position;
+      return shown;
+    }
+    _heldAhead = Duration.zero;
+    return _shownPosition = position;
+  }
+
   bool _hasStarted = false;
   bool _userScrolling = false;
 
@@ -129,16 +206,6 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
   /// estimated offset, before settling on the line.
   bool _awaitingFirstScroll = false;
   bool _tickerEnabled = true;
-
-  /// Feature 6: raw-pointer pinch tracking. The gesture arena lets the
-  /// scroll view's drag recognizer win vertical pinches, so the zoom reads
-  /// the pointers directly and never competes with scrolling.
-  final _pinchPointers = <int, Offset>{};
-  double? _pinchBaseScale;
-  double? _pinchBaseSpan;
-  int? _pinchPrimaryPointer;
-  int? _pinchSecondaryPointer;
-  bool _pinching = false;
   // An inactive app is still on screen: a desktop window behind another
   // app's window, or a phone under a system overlay.
   bool get _visible =>
@@ -149,6 +216,10 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
         _ => false,
       };
   static const double _estimatedLyricExtent = 64;
+
+  /// Each line's own direction, worked out once for these lyrics; null
+  /// follows the app's.
+  List<TextDirection?> _lineDirections = const [];
   _LyricExtentSnapshot? _lineExtents;
   List<(double, double, double)> _lineMeasurements = [];
   List<LyricPronunciationLayout?> _pronunciationLayouts = [];
@@ -163,10 +234,18 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
   bool _measurementFramePending = false;
   double? _viewportHeight;
   Offset? _layoutVisibility;
-  late final AnimationController _rowReveal = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 420),
-  )..addListener(_revealTick);
+  late final AnimationController _rowReveal =
+      AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 420),
+        )
+        ..addListener(_revealTick)
+        ..addStatusListener(_revealStatusChanged);
+  // Rows are rebuilt only when their inputs change. A reveal tick moves row
+  // extents and the rows being revealed, which listen to it themselves.
+  bool _rowsDirty = true;
+  int _rowsRevision = 0;
+  Object? _rowInputs;
   List<double> _revealFrom = [];
   List<double> _revealTo = [];
   _LyricExtentSnapshot? _targetLineExtents;
@@ -204,8 +283,21 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
     _scrollMotion.forward(from: 0);
   }
 
+  @override
+  void setState(VoidCallback fn) {
+    _rowsDirty = true;
+    super.setState(fn);
+  }
+
+  /// Rebuilds the list shell for the new extents and leaves the rows alone:
+  /// rebuilding every visible row on each frame of a reveal made backing
+  /// vocals and instrumental gaps stutter as they opened.
   void _revealTick() {
-    if (mounted) setState(() {});
+    if (mounted) super.setState(() {});
+  }
+
+  void _revealStatusChanged(AnimationStatus status) {
+    if (mounted && status.isCompleted) setState(() {});
   }
 
   List<double> get _rowVisibility {
@@ -215,6 +307,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
   }
 
   void _updateRowVisibility({bool immediate = false, bool sameFocus = false}) {
+    _rowsDirty = true;
     _preserveRevealAnchor = sameFocus;
     final target = List.generate(_lines.length, (index) {
       final line = _lines[index];
@@ -243,24 +336,39 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _offsetSubscription = ref.listenManual<int>(
-      themeProvider.select((theme) => theme.lyricsOffsetMs),
-      (previous, next) {
-        setState(() {
-          _offset = Duration(milliseconds: next);
-          _resetLineKeys();
-        });
-        _syncPositionSubscription(resetUserScroll: false);
-      },
-    );
-    _offset = Duration(milliseconds: _offsetSubscription!.read());
+    _listenOffset();
     _resetLineKeys();
     widget.seekPreview.addListener(_previewChanged);
+  }
+
+  /// Follows the offset of [SyncedLyricsView.songKey]; a change re-times the
+  /// lines at once.
+  void _listenOffset() {
+    _offsetSubscription?.close();
+    _offsetSubscription = ref.listenManual<int>(
+      lyricsOffsetMsForSongProvider(widget.songKey),
+      (previous, next) => _setOffset(next),
+    );
+    _offset = Duration(milliseconds: _offsetSubscription!.read());
+  }
+
+  void _setOffset(int offsetMs) {
+    final offset = Duration(milliseconds: offsetMs);
+    if (offset == _offset) return;
+    setState(() {
+      _offset = offset;
+      _resetLineKeys();
+    });
+    _syncPositionSubscription(resetUserScroll: false);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _rowsDirty = true;
+    _displayLead = lyricsDisplayLead(
+      displayOf(View.maybeOf(context))?.refreshRate,
+    );
     // Appearance can rebuild when transport controls fade (for example with
     // custom glass clarity). Keep the existing playback subscription and the
     // user's scroll ownership; only new lyrics/page activation should reset it.
@@ -282,11 +390,32 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
   @override
   void didUpdateWidget(covariant SyncedLyricsView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // A parent rebuild with the same inputs leaves the rows as they are. A
+    // row's long press reads the current callback when it fires.
+    if (oldWidget.colorScheme != widget.colorScheme ||
+        oldWidget.isActive != widget.isActive ||
+        oldWidget.animateWords != widget.animateWords ||
+        oldWidget.showPronunciation != widget.showPronunciation ||
+        oldWidget.showTranslation != widget.showTranslation ||
+        oldWidget.seekPreview != widget.seekPreview ||
+        (oldWidget.onLongPressLine == null) !=
+            (widget.onLongPressLine == null) ||
+        oldWidget.credits?.writers != widget.credits?.writers ||
+        oldWidget.credits?.provider != widget.credits?.provider ||
+        (oldWidget.credits == null) != (widget.credits == null)) {
+      _rowsDirty = true;
+    }
     if (oldWidget.seekPreview != widget.seekPreview) {
       oldWidget.seekPreview.removeListener(_previewChanged);
       widget.seekPreview.addListener(_previewChanged);
     }
-    if (oldWidget.lyrics != widget.lyrics) {
+    var offsetChanged = false;
+    if (oldWidget.songKey != widget.songKey) {
+      final before = _offset;
+      _listenOffset();
+      offsetChanged = _offset != before;
+    }
+    if (oldWidget.lyrics != widget.lyrics || offsetChanged) {
       _resetLineKeys();
     }
     if (oldWidget.showPronunciation != widget.showPronunciation ||
@@ -300,12 +429,14 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
       });
     }
     if (oldWidget.isActive != widget.isActive ||
-        oldWidget.lyrics != widget.lyrics) {
+        oldWidget.lyrics != widget.lyrics ||
+        offsetChanged) {
       _syncPositionSubscription();
     }
   }
 
   void _resetLineKeys() {
+    _rowsDirty = true;
     _stopScrollMotion();
     _measurementTimer?.cancel();
     _measurementTimer = null;
@@ -320,6 +451,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
     _lines = lyricsWithDisplayEnds(
       lyricsTimelineWithGaps(lyricsShiftedBy(widget.lyrics.lines, _offset)),
     );
+    _lineDirections = lyricLineDirections(_lines.map((line) => line.text));
     _timeline = LyricTimelineIndex(_lines);
     _rowReveal.stop();
     _revealFrom = _revealTo = [
@@ -338,6 +470,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
   }
 
   void _syncPositionSubscription({bool resetUserScroll = true}) {
+    _rowsDirty = true;
     _positionSubscription?.close();
     _playingSubscription?.close();
     _loadingSubscription?.close();
@@ -358,14 +491,15 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
     if (_userScrolling) _scheduleUserScrollReturn();
     _scheduleLineMeasurements();
 
-    final position = _displayPosition;
     _playing = ref.read(playbackPlayingProvider);
     _loading = ref.read(playbackLoadingProvider);
+    _shownPosition = null;
+    final position = _steady(_displayPosition);
     _active = _activeIndexAt(position);
     _activeLines = _timeline.activeIndices(position, _active);
     _focus = _focusFor(_active, _activeLines, position);
     _updateRowVisibility(immediate: true);
-    _activeTransitionPosition = position;
+    _activeTransitionPosition = position - _lead;
     // Only before the first layout: a list already on screen keeps its
     // lines while it moves.
     _awaitingFirstScroll = !_scroll.hasClients && _focus >= 0;
@@ -381,9 +515,10 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
       playbackPositionProvider,
       (previous, next) {
         if (widget.seekPreview.value != null) return;
-        final active = _activeIndexAt(next);
-        _setActiveLine(active, position: next);
-        _scheduleNextLine(next);
+        final shown = _steady(next + _lead);
+        final active = _steadyActiveIndex(_activeIndexAt(shown), shown);
+        _setActiveLine(active, position: shown);
+        _scheduleNextLine(shown);
       },
     );
     _playingSubscription = ref.listenManual<bool>(playbackPlayingProvider, (
@@ -391,7 +526,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
       next,
     ) {
       _playing = next;
-      final position = _displayPosition;
+      final position = _steady(_displayPosition);
       _setActiveLine(_activeIndexAt(position), position: position);
       _scheduleNextLine(position);
     });
@@ -400,7 +535,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
       next,
     ) {
       _loading = next;
-      final position = _displayPosition;
+      final position = _steady(_displayPosition);
       _setActiveLine(_activeIndexAt(position), position: position);
       _scheduleNextLine(position);
     });
@@ -418,10 +553,12 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
     return time < Duration.zero ? Duration.zero : time;
   }
 
+  /// The position lyrics are drawn for: the scrub preview, else the audio
+  /// position plus [_lead].
   Duration get _displayPosition =>
       widget.seekPreview.value ??
-      ref.read(playbackStateProvider).value?.position ??
-      Duration.zero;
+      (ref.read(playbackStateProvider).value?.position ?? Duration.zero) +
+          _lead;
 
   void _scheduleUserScrollReturn() {
     _userScrollIdleTimer?.cancel();
@@ -435,7 +572,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
 
   void _previewChanged() {
     if (!mounted || !_visible) return;
-    final position = _displayPosition;
+    final position = _steady(_displayPosition);
     final wasUserScrolling = _userScrolling;
     _userScrolling = false;
     _userScrollIdleTimer?.cancel();
@@ -465,6 +602,26 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
       if (!_hasStarted) return -1;
     }
     return LyricsParser.activeIndex(_lines, position);
+  }
+
+  /// [active] at [position], keeping the line already shown while playback
+  /// advances. The boundary timer moves to a line at its start, and a
+  /// position report that arrives late (common over Link) would otherwise
+  /// step back to the line before for a moment.
+  int _steadyActiveIndex(int active, Duration position) {
+    final shown = _active;
+    if (!_playing ||
+        _loading ||
+        shown < 0 ||
+        shown >= _timeline.starts.length) {
+      return active;
+    }
+    return steadySyncedLyricsIndex(
+      index: active,
+      shown: shown,
+      shownStart: _timeline.starts[shown],
+      position: position,
+    );
   }
 
   /// The scroll anchor for [active]. When the next line starts while the
@@ -503,7 +660,8 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
       _active = active;
       _activeLines = activeLines;
       _focus = focus;
-      _activeTransitionPosition = position;
+      // The word sweep keeps the audio position and adds the lead itself.
+      _activeTransitionPosition = position - _lead;
       _updateRowVisibility(sameFocus: focus >= 0 && focus == previousFocus);
     });
     if (focus == previousFocus) return;
@@ -548,7 +706,9 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
     }
     if (nextBoundary == null) return;
     final boundary = nextBoundary;
-    final remaining = boundary - position;
+    // A held position is ahead of the audio, which has that much further
+    // to go to the boundary.
+    final remaining = boundary - position + _heldAhead;
     final speed = ref.read(playbackStateProvider).value?.speed ?? 1.0;
     final delay = speed.isFinite && speed > 0
         ? Duration(microseconds: (remaining.inMicroseconds / speed).ceil())
@@ -557,7 +717,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
       if (!mounted || !_visible || !_playing || _loading) return;
       // A delayed callback must catch up to the audio clock, rather than
       // treating its scheduled boundary as the current playback position.
-      _scheduleNextLine(_displayPosition);
+      _scheduleNextLine(_steady(_displayPosition));
     });
   }
 
@@ -620,6 +780,8 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
         _measurementRevision++;
         return;
       }
+      final lineDirection = _lineDirections[index] ?? direction;
+      painter.textDirection = lineDirection;
       painter.text = TextSpan(
         text: line.text,
         style: _primaryLyricStyle(context, background: line.isBackground),
@@ -634,6 +796,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
         context,
         line,
       )) {
+        painter.textDirection = strongTextDirection(text) ?? lineDirection;
         painter.text = TextSpan(text: text, style: style);
         painter.layout(maxWidth: width);
         if (translation) {
@@ -649,7 +812,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
             pronunciationStyle: style,
             maxWidth: width,
             textScaler: scaler,
-            textDirection: direction,
+            textDirection: lineDirection,
             locale: locale,
           );
           if (aligned != null) {
@@ -881,21 +1044,29 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
   }
 
   @override
-  Widget build(BuildContext context) => LyricsTextScale(
-    child: TweenAnimationBuilder<Offset>(
-      tween: Tween(
-        end: Offset(
-          widget.showPronunciation ? 1 : 0,
-          widget.showTranslation ? 1 : 0,
+  Widget build(BuildContext context) {
+    // Turning pronunciation or translation on resizes every line, so the
+    // lines below move: Material's slow spatial spring stops at the new
+    // size, and Toadplayer moves them as content, on its standard spring.
+    final supplements = AppMotion.spatialSlow(
+      context,
+      const AppMotionSpec(Duration.zero, Curves.linear),
+      toadplayer: ToadplayerMotion.standard,
+    );
+    return LyricsTextScale(
+      child: TweenAnimationBuilder<Offset>(
+        tween: Tween(
+          end: Offset(
+            widget.showPronunciation ? 1 : 0,
+            widget.showTranslation ? 1 : 0,
+          ),
         ),
+        duration: supplements.duration,
+        curve: supplements.curve,
+        builder: (context, visibility, _) => _buildLyrics(context, visibility),
       ),
-      duration: MediaQuery.disableAnimationsOf(context)
-          ? Duration.zero
-          : const Duration(milliseconds: 420),
-      curve: Curves.easeInOutCubic,
-      builder: (context, visibility, _) => _buildLyrics(context, visibility),
-    ),
-  );
+    );
+  }
 
   Widget _buildLyrics(BuildContext context, Offset visibility) {
     final lines = _lines;
@@ -1060,7 +1231,29 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
                   double.infinity,
                 )
               : topPadding;
-          final list = ListView.builder(
+          final ambientDirection = Directionality.of(context);
+          final rowInputs = (
+            visibility,
+            loading,
+            toadplayer,
+            highContrast,
+            blurStrength,
+            blurLyrics,
+            motion,
+            constraints.maxWidth,
+            _measurementRevision,
+            widget.seekPreview.value != null,
+            _visible,
+            _rowReveal.isAnimating,
+            ambientDirection,
+          );
+          if (_rowsDirty || rowInputs != _rowInputs) {
+            _rowsDirty = false;
+            _rowInputs = rowInputs;
+            _rowsRevision++;
+          }
+          final list = _lyricList(
+            revision: _rowsRevision,
             controller: _scroll,
             itemExtentBuilder: toadplayer
                 ? (index, _) => index < lines.length
@@ -1080,8 +1273,15 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
               final line = lines[index];
               final leadIndex = _displayLayout.leadForLine[index];
               final textAlign = _lyricTextAlign(context, lines[leadIndex]);
-              final reveal = rowVisibility[index];
-              if (reveal == 0) return SizedBox.shrink(key: _lineKeys[index]);
+              // Each line reads in its own direction: a Latin line in an
+              // Arabic song stays left to right, and the reverse.
+              final lineDirection = _lineDirections[index] ?? ambientDirection;
+              // A row about to open is built now: no later frame of its
+              // reveal rebuilds it.
+              if (rowVisibility[index] == 0 &&
+                  !(_rowReveal.isAnimating && _revealTo[index] != 0)) {
+                return SizedBox.shrink(key: _lineKeys[index]);
+              }
               final isActive = _activeLines.contains(index);
               final isPast = index < active;
 
@@ -1096,8 +1296,8 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
               if (line.text.isEmpty) {
                 return _revealRow(
                   index,
-                  reveal,
                   textAlign,
+                  lineDirection,
                   Padding(
                     padding: EdgeInsets.symmetric(
                       vertical: context.tokens.lyricsLinePaddingV,
@@ -1159,6 +1359,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
                   line,
                   content,
                   color,
+                  direction: lineDirection,
                   visibility: visibility,
                   pronunciationLayout: toadplayer
                       ? _pronunciationLayouts[index]
@@ -1167,7 +1368,9 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
                 );
               }
               content = AnimatedSwitcher(
-                duration: const Duration(milliseconds: 320),
+                // The first word of a timed line is already being sung:
+                // its sweep must not arrive under a slow fade.
+                duration: Duration(milliseconds: timed ? 160 : 320),
                 reverseDuration: const Duration(milliseconds: 260),
                 switchInCurve: Curves.easeOutCubic,
                 switchOutCurve: Curves.easeInCubic,
@@ -1226,8 +1429,8 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
               );
               return _revealRow(
                 index,
-                reveal,
                 textAlign,
+                lineDirection,
                 Padding(
                   padding: _linePadding(index),
                   child: TvTapTarget(
@@ -1253,7 +1456,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
                           (textAlign == TextAlign.end
                                   ? AlignmentDirectional.centerEnd
                                   : AlignmentDirectional.centerStart)
-                              .resolve(Directionality.of(context)),
+                              .resolve(lineDirection),
                       duration: motion,
                       curve: Curves.easeOutCubic,
                       child: AnimatedOpacity(
@@ -1261,7 +1464,11 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
                             ? (isActive || highContrast ? 1 : 0.48)
                             : (isActive ? 1.0 : (isPast ? 0.55 : 0.85)),
                         duration: motion,
-                        curve: Curves.easeInOutCubic,
+                        // A word-timed line brightens at once for the same
+                        // reason; other lines brighten as they arrive.
+                        curve: timed
+                            ? Curves.easeOutCubic
+                            : Curves.easeInOutCubic,
                         child: content,
                       ),
                     ),
@@ -1271,91 +1478,17 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
             },
           );
           // Laid out but not painted while it finds the playing line.
-          return Opacity(
-            opacity: _awaitingFirstScroll ? 0 : 1,
-            child: _pinchToZoom(list),
-          );
+          return Opacity(opacity: _awaitingFirstScroll ? 0 : 1, child: list);
         },
       ),
     );
   }
 
-  /// Feature 6: pinching with two fingers zooms the lyrics in and out. The
-  /// scale lands on the same 80–140% range the Settings slider offers and is
-  /// remembered; single-finger scrolling is untouched. The pointers are read
-  /// through a Listener because the arena hands vertical pinches to the
-  /// scroll view's drag recognizer — a GestureDetector's onScale loses that
-  /// race and the zoom would often never fire.
-  Widget _pinchToZoom(Widget child) => Listener(
-    behavior: HitTestBehavior.translucent,
-    onPointerDown: (event) {
-      _pinchPointers[event.pointer] = event.position;
-      if (_pinchPointers.length == 2) _beginLyricsPinch();
-    },
-    onPointerMove: (event) {
-      if (_pinchPointers[event.pointer] == null) return;
-      _pinchPointers[event.pointer] = event.position;
-      _updateLyricsPinch();
-    },
-    onPointerUp: (event) => _endLyricsPinch(event.pointer),
-    onPointerCancel: (event) => _endLyricsPinch(event.pointer),
-    child: child,
-  );
-
-  void _beginLyricsPinch() {
-    final ids = _pinchPointers.keys.toList()..sort();
-    _pinchPrimaryPointer = ids[0];
-    _pinchSecondaryPointer = ids[1];
-    final a = _pinchPointers[_pinchPrimaryPointer!]!;
-    final b = _pinchPointers[_pinchSecondaryPointer!]!;
-    _pinchBaseSpan = (a - b).distance.clamp(1.0, double.infinity);
-    _pinchBaseScale = ref.read(themeProvider).lyricsTextScale;
-    _pinching = true;
-  }
-
-  void _updateLyricsPinch() {
-    if (!_pinching) return;
-    final base = _pinchBaseScale;
-    final baseSpan = _pinchBaseSpan;
-    final a = _pinchPointers[_pinchPrimaryPointer];
-    final b = _pinchPointers[_pinchSecondaryPointer];
-    if (base == null || baseSpan == null || a == null || b == null) return;
-    final span = (a - b).distance.clamp(1.0, double.infinity);
-    final next = normalizeLyricsTextScale(base * span / baseSpan);
-    if ((next - ref.read(themeProvider).lyricsTextScale).abs() < 0.005) {
-      return;
-    }
-    ref
-        .read(themeProvider.notifier)
-        .setLyricsTextScale(next, persist: false);
-  }
-
-  void _endLyricsPinch(int pointer) {
-    if (_pinchPointers.remove(pointer) == null) return;
-    if (_pinchPointers.length >= 2) {
-      // The pinching pair changed (a finger lifted, another was down):
-      // rebase so the remaining pair keeps zooming smoothly.
-      if (pointer == _pinchPrimaryPointer ||
-          pointer == _pinchSecondaryPointer) {
-        _beginLyricsPinch();
-      }
-      return;
-    }
-    if (!_pinching) return;
-    _pinching = false;
-    _pinchPrimaryPointer = null;
-    _pinchSecondaryPointer = null;
-    _pinchBaseSpan = null;
-    _pinchBaseScale = null;
-    ref
-        .read(themeProvider.notifier)
-        .setLyricsTextScale(ref.read(themeProvider).lyricsTextScale);
-  }
-
+  /// [child] and its reveal, laid out in [direction], the line's own.
   Widget _revealRow(
     int index,
-    double visibility,
     TextAlign align,
+    TextDirection direction,
     Widget child,
   ) {
     final AlignmentGeometry alignment = align == TextAlign.end
@@ -1374,22 +1507,34 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
     );
     return KeyedSubtree(
       key: _lineKeys[index],
-      child: !_lines[index].isBackground && _lines[index].text.isNotEmpty
-          ? child
-          : IgnorePointer(
-              ignoring: visibility < 1,
-              child: _lines[index].isBackground
-                  ? LyricBackingTransition(
-                      visibility: visibility,
-                      alignment: alignment,
-                      child: fullHeight,
-                    )
-                  : LyricSupplementTransition(
-                      visibility: visibility,
-                      alignment: alignment,
-                      child: fullHeight,
-                    ),
-            ),
+      child: Directionality(
+        textDirection: direction,
+        child: !_lines[index].isBackground && _lines[index].text.isNotEmpty
+            ? child
+            // Only these rows open and close. They follow the reveal clock
+            // themselves, so the other rows are not rebuilt on its frames.
+            : ListenableBuilder(
+                listenable: _rowReveal,
+                child: fullHeight,
+                builder: (context, fullHeight) {
+                  final visibility = _rowVisibility[index];
+                  return IgnorePointer(
+                    ignoring: visibility < 1,
+                    child: _lines[index].isBackground
+                        ? LyricBackingTransition(
+                            visibility: visibility,
+                            alignment: alignment,
+                            child: fullHeight!,
+                          )
+                        : LyricSupplementTransition(
+                            visibility: visibility,
+                            alignment: alignment,
+                            child: fullHeight!,
+                          ),
+                  );
+                },
+              ),
+      ),
     );
   }
 
@@ -1406,6 +1551,40 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
       bottom: hasBackingBelow ? 0 : context.tokens.lyricsLinePaddingV,
     );
   }
+}
+
+/// A [ListView.builder] whose built rows stay as they are until [revision]
+/// changes. Rows that scroll into view are still built on demand.
+ListView _lyricList({
+  required int revision,
+  required ScrollController controller,
+  required ItemExtentBuilder? itemExtentBuilder,
+  required EdgeInsets padding,
+  required int itemCount,
+  required NullableIndexedWidgetBuilder itemBuilder,
+}) => ListView.custom(
+  controller: controller,
+  itemExtentBuilder: itemExtentBuilder,
+  padding: padding,
+  childrenDelegate: _LyricRowsDelegate(
+    itemBuilder,
+    childCount: itemCount,
+    revision: revision,
+  ),
+);
+
+class _LyricRowsDelegate extends SliverChildBuilderDelegate {
+  _LyricRowsDelegate(
+    super.builder, {
+    required super.childCount,
+    required this.revision,
+  });
+
+  final int revision;
+
+  @override
+  bool shouldRebuild(covariant _LyricRowsDelegate oldDelegate) =>
+      oldDelegate.revision != revision;
 }
 
 class _LyricRowVisibility extends ListBase<double> {

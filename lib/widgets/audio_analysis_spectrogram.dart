@@ -13,6 +13,9 @@ class _SpectrogramView extends StatelessWidget {
   /// Saves the plot as an image; null while a save or channel load runs.
   final VoidCallback? onSave;
 
+  /// False hides the save action; the compare spectrogram is a live view.
+  final bool canSave;
+
   const _SpectrogramView({
     required this.image,
     required this.sampleRate,
@@ -23,6 +26,7 @@ class _SpectrogramView extends StatelessWidget {
     required this.channelLoading,
     required this.onChannelChanged,
     required this.onSave,
+    this.canSave = true,
   });
 
   @override
@@ -83,7 +87,7 @@ class _SpectrogramView extends StatelessWidget {
                   ),
                   tooltip: context.l10n.audioAnalysisSaveSpectrogram,
                   color: labelColor,
-                  onPressed: onSave,
+                  onPressed: canSave ? onSave : null,
                 ),
               ],
             ),

@@ -36,6 +36,7 @@ import 'package:toadplayer/services/network_storage_service.dart'
 import 'package:toadplayer/services/playback_deck.dart';
 import 'package:toadplayer/services/automix_analysis.dart';
 import 'package:toadplayer/services/automix_phase_lock.dart';
+import 'package:toadplayer/services/autoplay_history.dart';
 import 'package:toadplayer/services/autoplay_personalization.dart';
 import 'package:toadplayer/services/autoplay_signal.dart';
 import 'package:toadplayer/services/automix_analyzer.dart';

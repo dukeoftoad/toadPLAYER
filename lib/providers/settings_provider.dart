@@ -688,6 +688,38 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void setAutoMixLowPass(bool enabled) =>
       _commit(state.copyWith(autoMixLowPass: enabled));
 
+  /// The whole-song pitch shift, in semitones from -12 to 12.
+  void setPlaybackPitch(double semitones) =>
+      _commit(state.copyWith(playbackPitch: playbackPitchFromJson(semitones)));
+
+  /// True keeps the pitch while the speed changes; false plays it like a
+  /// record, faster or slower.
+  void setPlaybackKeepPitch(bool enabled) =>
+      _commit(state.copyWith(playbackKeepPitch: enabled));
+
+  void setSkipSilence(bool enabled) =>
+      _commit(state.copyWith(skipSilence: enabled));
+
+  void setSpatialAudio(bool enabled) =>
+      _commit(state.copyWith(spatialAudio: enabled));
+
+  void setMedia3Engine(bool enabled) =>
+      _commit(state.copyWith(media3Engine: enabled));
+
+  /// Autoplay variety, from 0 (off) to 1.
+  void setAutoplayRandomness(double value) => _commit(
+    state.copyWith(autoplayRandomness: autoplayRandomnessFromJson(value)),
+  );
+
+  /// Where a shown translation is saved: tags or a `.mlrc` sidecar.
+  void setLyricsTranslationSaveTo(String value) => _commit(
+    state.copyWith(
+      lyricsTranslationSaveTo: value == lyricsTranslationSaveToMlrc
+          ? lyricsTranslationSaveToMlrc
+          : lyricsTranslationSaveToEmbedded,
+    ),
+  );
+
   void setDiscordRichPresenceEnabled(bool enabled) =>
       _commit(state.copyWith(discordRichPresenceEnabled: enabled));
 
@@ -851,6 +883,21 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   void setLyricsAiRomanize(bool enabled) =>
       _commit(state.copyWith(lyricsAiRomanize: enabled));
+
+  void setLyricsRomanize(bool enabled) =>
+      _commit(state.copyWith(lyricsRomanize: enabled));
+
+  void setLyricsRomanizedMainLine(bool enabled) =>
+      _commit(state.copyWith(lyricsRomanizedMainLine: enabled));
+
+  void setLyricsTranslationSecondLanguage(String code) =>
+      _commit(state.copyWith(lyricsTranslationSecondLanguage: code.trim()));
+
+  void setLyricsTranslationAutoSave(bool enabled) =>
+      _commit(state.copyWith(lyricsTranslationAutoSave: enabled));
+
+  void setAutoHideLyricsControlsWithAccessibility(bool enabled) =>
+      _commit(state.copyWith(autoHideLyricsControlsWithAccessibility: enabled));
 
   void setLyricsAiWordSync(bool enabled) =>
       _commit(state.copyWith(lyricsAiWordSync: enabled));
