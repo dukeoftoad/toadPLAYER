@@ -188,15 +188,27 @@ jobs:
 
             - `toadplayer-*-arm64-v8a.apk` — one build for modern 64-bit devices
 
-            **What's new in v1.2.1**
+            **What's new in v1.3.0 — the mornye port**
 
-            - Maintenance release: a full comment audit of the Flutter UI
-              and service layer — the codebase documents its protocols,
-              format contracts and platform workarounds in place, so no
-              license headers or functional documentation were stripped;
-              only stale release notes were refreshed.
-            - Version bumped to 1.2.1+3; no behavior changes and no new
-              permissions.
+            - Android media3 engine (beta): ordinary sources can play through
+              the platform media3 player while USB/AAudio outputs stay on the
+              native bit-perfect path; skip silence rides on it.
+            - Whole-song pitch shift (-12..12 semitones) with keep-pitch
+              speed control, plus spatial audio switches for stereo and
+              multichannel outputs.
+            - Audio null-test compare: pick a second version of a song from
+              Audio info and the app decodes both, aligns them and reports
+              residuals, with a residual spectrogram.
+            - Offline lyrics romanization (pinyin, kana, hangul, Cyrillic,
+              Indic scripts) without AI, a second translation target
+              language, and translation auto-save into the song or a .mlrc
+              sidecar.
+            - Autoplay variety: a 0..1 setting drives the ranker's
+              exploration bonus from a persisted rotation history
+              (fingerprints only, never identities).
+            - Toadmark lands as its own selectable theme style.
+
+            Version bumped to 1.3.0+5.
 
             **v1.2.0 highlights**
 
