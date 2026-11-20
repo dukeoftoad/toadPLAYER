@@ -49,10 +49,18 @@ Future<void> openLyricsEditor(
 ) async {
   final item = metadata.item;
   final source = metadata.source;
-  if (item == null || source == null || !canEditPlayerLyrics(metadata)) {
+  final l10n = context.l10n;
+  if (item == null ||
+      source == null ||
+      source.isEmpty ||
+      !canEditPlayerLyrics(metadata)) {
+    // The pencil is only shown for editable tracks, but the active track can
+    // change between building the button and tapping it. Do not fail silently.
+    if (context.mounted) {
+      showAppSnackBar(context, content: Text(l10n.lyricsEditReadOnly));
+    }
     return;
   }
-  final l10n = context.l10n;
   // Only SMB and WebDAV network songs can be rewritten in place.
   if (source.startsWith('network://') &&
       !await NetworkStorageService.instance.canEditFile(source)) {
