@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:toadplayer/controllers/clickable_metadata.dart';
 import 'package:toadplayer/l10n/l10n.dart';
+import 'package:toadplayer/models/settings.dart' show lyricsTranslationSaveToEmbedded, lyricsTranslationSaveToMlrc;
 import 'package:toadplayer/providers/extension_provider.dart';
 import 'package:toadplayer/providers/lyrics_translation_provider.dart';
 import 'package:toadplayer/providers/runtime_profile_provider.dart';
@@ -71,6 +72,19 @@ class LyricsSettingsPage extends ConsumerWidget {
                   onTap: () => pushPage<void>(
                     context,
                     (_) => const LyricsAiTranslationPage(),
+                  ),
+                ),
+                SettingsItem(
+                  icon: Icons.save_outlined,
+                  title: context.l10n.lyricsTranslationSaveToTitle,
+                  subtitle: settings.lyricsTranslationSaveTo ==
+                        lyricsTranslationSaveToMlrc
+                      ? context.l10n.lyricsTranslationSaveNextToSong
+                      : context.l10n.lyricsTranslationSaveIntoSong,
+                  onTap: () => _showTranslationSaveToPicker(
+                    context,
+                    ref,
+                    settings.lyricsTranslationSaveTo,
                   ),
                 ),
                 SettingsSwitchItem(
@@ -214,6 +228,33 @@ class LyricsSettingsPage extends ConsumerWidget {
         )
         .join(' > ');
   }
+
+  void _showTranslationSaveToPicker(
+    BuildContext context,
+    WidgetRef ref,
+    String current,
+  ) => showAppChoiceSheet<String>(
+    context: context,
+    title: context.l10n.lyricsTranslationSaveToTitle,
+    selected: current,
+    choices: [
+      AppChoice(
+        lyricsTranslationSaveToEmbedded,
+        Icons.audiotrack,
+        context.l10n.lyricsTranslationSaveIntoSong,
+        subtitle: context.l10n.lyricsTranslationSaveIntoSongSubtitle,
+      ),
+      AppChoice(
+        lyricsTranslationSaveToMlrc,
+        Icons.insert_drive_file_outlined,
+        context.l10n.lyricsTranslationSaveNextToSong,
+        subtitle: context.l10n.lyricsTranslationSaveNextToSongSubtitle,
+      ),
+    ],
+    onSelected: (choice) => ref
+        .read(settingsProvider.notifier)
+        .setLyricsTranslationSaveTo(choice),
+  );
 
   void _showLyricsModePicker(
     BuildContext context,

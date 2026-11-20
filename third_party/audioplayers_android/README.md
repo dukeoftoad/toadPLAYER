@@ -16,7 +16,7 @@
 
 The Android implementation of [`audioplayers`](https://pub.dev/packages/audioplayers).
 
-## Toadplayer local changes
+## Mornye local changes
 
 Player commands and native callbacks run on one owned playback Looper, so a slow
 MediaPlayer reset/release cannot hold Android's input thread. Flutter channel
@@ -35,6 +35,14 @@ API reference: https://developer.android.com/reference/android/media/audiofx/Dyn
 
 A `setNextPlayer` method links a prepared player to start the moment another
 completes, through `MediaPlayer.setNextMediaPlayer`, for gapless playback.
+
+A `setSpatialAudio` method chooses the spatialization behavior of a player's
+audio attributes on Android 12L+: auto (the default) or never. It applies from
+the player's next source.
+
+A `setPitch` method shifts a player's pitch by semitones and lets it follow
+the playback rate or stay put, on Android 6+. It applies to the current and
+every later source.
 
 While a player plays on Android 9+, an effect with no processing in use stays
 enabled on its session, so the platform mixes its audio instead of sending it

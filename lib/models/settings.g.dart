@@ -60,7 +60,14 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   autoMixPitch: json['autoMixPitch'] == null
       ? 0
       : autoMixPitchFromJson(json['autoMixPitch']),
-  autoMixEcho: json['autoMixEcho'] as bool? ?? false,
+  playbackKeepPitch: json['playbackKeepPitch'] as bool? ?? true,
+      playbackPitch: json['playbackPitch'] == null
+          ? 0
+          : playbackPitchFromJson(json['playbackPitch']),
+      skipSilence: json['skipSilence'] as bool? ?? false,
+      spatialAudio: json['spatialAudio'] as bool? ?? true,
+      media3Engine: json['media3Engine'] as bool? ?? false,
+      autoMixEcho: json['autoMixEcho'] as bool? ?? false,
   autoMixLowPass: json['autoMixLowPass'] as bool? ?? false,
   discordRichPresenceEnabled:
       json['discordRichPresenceEnabled'] as bool? ?? false,
@@ -73,6 +80,9 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   exclusiveOutputDevice: json['exclusiveOutputDevice'] as String? ?? '',
   autoplay: json['autoplay'] as bool? ?? false,
   autoplayPersonalization: json['autoplayPersonalization'] as bool? ?? true,
+  autoplayRandomness: json['autoplayRandomness'] == null
+      ? 0
+      : autoplayRandomnessFromJson(json['autoplayRandomness']),
   songAnalysis: json['songAnalysis'] as bool? ?? false,
   songAnalysisOnlyWhileCharging:
       json['songAnalysisOnlyWhileCharging'] as bool? ?? true,
@@ -180,6 +190,8 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   lyricsAiBaseUrl: json['lyricsAiBaseUrl'] as String? ?? '',
   lyricsAiModel: json['lyricsAiModel'] as String? ?? '',
   lyricsTranslationLanguage: json['lyricsTranslationLanguage'] as String? ?? '',
+  lyricsTranslationSaveTo: json['lyricsTranslationSaveTo'] as String? ??
+      lyricsTranslationSaveToEmbedded,
   lyricsAiInstruction: json['lyricsAiInstruction'] as String? ?? '',
   lyricsAutoTranslate: json['lyricsAutoTranslate'] as bool? ?? false,
   lyricsAiRomanize: json['lyricsAiRomanize'] as bool? ?? true,
@@ -237,7 +249,12 @@ Map<String, dynamic> _$AppSettingsToJson(
   'autoMixEffect': _$AutoMixEffectEnumMap[instance.autoMixEffect]!,
   'autoMixSpeed': instance.autoMixSpeed,
   'autoMixPitch': instance.autoMixPitch,
-  'autoMixEcho': instance.autoMixEcho,
+  'playbackKeepPitch': instance.playbackKeepPitch,
+      'playbackPitch': instance.playbackPitch,
+      'skipSilence': instance.skipSilence,
+      'spatialAudio': instance.spatialAudio,
+      'media3Engine': instance.media3Engine,
+      'autoMixEcho': instance.autoMixEcho,
   'autoMixLowPass': instance.autoMixLowPass,
   'discordRichPresenceEnabled': instance.discordRichPresenceEnabled,
   'usbBitPerfect': instance.usbBitPerfect,
@@ -249,6 +266,7 @@ Map<String, dynamic> _$AppSettingsToJson(
   'exclusiveOutputDevice': instance.exclusiveOutputDevice,
   'autoplay': instance.autoplay,
   'autoplayPersonalization': instance.autoplayPersonalization,
+  'autoplayRandomness': instance.autoplayRandomness,
   'songAnalysis': instance.songAnalysis,
   'songAnalysisOnlyWhileCharging': instance.songAnalysisOnlyWhileCharging,
   'musicHaptics': instance.musicHaptics,
@@ -325,6 +343,7 @@ Map<String, dynamic> _$AppSettingsToJson(
   'lyricsAiBaseUrl': instance.lyricsAiBaseUrl,
   'lyricsAiModel': instance.lyricsAiModel,
   'lyricsTranslationLanguage': instance.lyricsTranslationLanguage,
+  'lyricsTranslationSaveTo': instance.lyricsTranslationSaveTo,
   'lyricsAiInstruction': instance.lyricsAiInstruction,
   'lyricsAutoTranslate': instance.lyricsAutoTranslate,
   'lyricsAiRomanize': instance.lyricsAiRomanize,

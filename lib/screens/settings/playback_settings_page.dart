@@ -29,6 +29,7 @@ import 'package:toadplayer/widgets/app_bottom_sheet.dart';
 import 'package:toadplayer/widgets/app_icon.dart';
 import 'package:toadplayer/widgets/app_slider.dart';
 import 'package:toadplayer/widgets/app_sliver_header.dart';
+import 'package:toadplayer/widgets/autoplay_randomness_slider.dart';
 import 'package:toadplayer/widgets/beta_badge.dart';
 import 'package:toadplayer/widgets/player_volume_control.dart';
 import 'package:toadplayer/widgets/settings_group.dart';
@@ -359,6 +360,73 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
                       .read(settingsProvider.notifier)
                       .setFadeDuration(seconds),
                 ),
+              SettingsSwitchItem(
+                icon: Icons.record_voice_over,
+                title: 'Keep pitch when the speed changes',
+                subtitle:
+                    'On keeps every note where it is while the rate changes. '
+                    'Off plays songs like a record: faster sounds higher, '
+                    'slower sounds lower.',
+                value: settings.playbackKeepPitch,
+                enabled: settings.playerMode == 'internal',
+                onChanged: (value) => ref
+                    .read(settingsProvider.notifier)
+                    .setPlaybackKeepPitch(value),
+                showDivider: true,
+              ),
+              _PitchShiftSetting(
+                enabled: settings.playerMode == 'internal',
+                value: settings.playbackPitch,
+                onChanged: (semitones) => ref
+                    .read(settingsProvider.notifier)
+                    .setPlaybackPitch(semitones),
+              ),
+              if (!isDesktopPlatform) ...[
+                SettingsSwitchItem(
+                  icon: Icons.surround_sound,
+                  title: 'Spatial audio',
+                  subtitle:
+                      'Let Android\'s spatializer render the music while it '
+                      'is on in the system sound settings. Applies to the '
+                      'next song.',
+                  value: settings.spatialAudio,
+                  enabled: settings.playerMode == 'internal',
+                  onChanged: (value) => ref
+                      .read(settingsProvider.notifier)
+                      .setSpatialAudio(value),
+                  showDivider: settings.media3Engine && !autoMixActive,
+                ),
+                SettingsSwitchItem(
+                  icon: Icons.bolt,
+                  title: 'media3 engine',
+                  titleTrailing: const BetaBadge(),
+                  subtitle:
+                      'Play through Android\'s media3 engine instead of '
+                      'audioplayers. Applies from the next song; USB and '
+                      'other native outputs stay put.',
+                  value: settings.media3Engine,
+                  enabled: settings.playerMode == 'internal',
+                  onChanged: (value) => ref
+                      .read(settingsProvider.notifier)
+                      .setMedia3Engine(value),
+                  showDivider: settings.media3Engine && !autoMixActive,
+                ),
+                SettingsSwitchItem(
+                  icon: Icons.skip_next,
+                  title: 'Skip silence',
+                  subtitle:
+                      'Jump over silent passages at the start, the middle '
+                      'and the end of songs. Needs the beta media3 engine.',
+                  value: settings.skipSilence,
+                  enabled:
+                      settings.playerMode == 'internal' &&
+                      settings.media3Engine &&
+                      !autoMixActive,
+                  onChanged: (value) => ref
+                      .read(settingsProvider.notifier)
+                      .setSkipSilence(value),
+                ),
+              ],
             ],
           ),
           if (autoMixActive) ...[
@@ -391,6 +459,9 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
                     .read(settingsProvider.notifier)
                     .setAutoplayPersonalization(value),
               ),
+              if (settings.autoplay &&
+                  settings.playerMode == 'internal')
+                const AutoplayRandomnessSlider(),
               if (settings.autoplayPersonalization)
                 SettingsItem(
                   icon: Icons.restart_alt,
@@ -811,6 +882,69 @@ class _AlsaDeviceItemState extends ConsumerState<_AlsaDeviceItem> {
           showDivider: false,
         );
       },
+    );
+  }
+}
+
+/// The whole-song pitch shift, in whole semitones from -12 to 12. The decks
+/// apply a change at once, also mid-song (see [playbackPitch]).
+class _PitchShiftSetting extends ConsumerStatefulWidget {
+  const _PitchShiftSetting({
+    required this.enabled,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final bool enabled;
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  @override
+  ConsumerState<_PitchShiftSetting> createState() =>
+      _PitchShiftSettingState();
+}
+
+class _PitchShiftSettingState extends ConsumerState<_PitchShiftSetting> {
+  double? _draft;
+
+  @override
+  Widget build(BuildContext context) {
+    final semitones = (_draft ?? widget.value).clamp(-12, 12);
+    final text = '${semitones.round()} st';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (context.isToadplayer)
+            Text('Pitch shift: $text')
+          else
+            SliderValueHeader(
+              title: 'Pitch shift',
+              value: text,
+              enabled: widget.enabled,
+            ),
+          AppSlider(
+            value: semitones.toDouble(),
+            min: -12,
+            max: 12,
+            divisions: 24,
+            label: text,
+            semanticLabel: 'Pitch shift: $text',
+            onChanged: widget.enabled
+                ? (slider) => setState(() => _draft = slider)
+                : null,
+            onChangeEnd: widget.enabled
+                ? (slider) {
+                    widget.onChanged(
+                      slider.roundToDouble().clamp(-12, 12).toDouble(),
+                    );
+                    _draft = null;
+                  }
+                : null,
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,5 +1,5 @@
-// STUB (Isolated Music Player): Standalone in-memory log buffer without extension crates.
-use std::sync::{Arc, Mutex};
+use toadplayer_extensions::logging::{LogBuffer as CoreLogBuffer, LogClosed};
+use std::sync::Arc;
 
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 #[uniffi(flat_error)]
@@ -8,47 +8,57 @@ pub enum LogError {
     Closed,
 }
 
-#[derive(Default)]
-struct InnerLog {
-    enabled: bool,
+impl From<LogClosed> for LogError {
+    fn from(_: LogClosed) -> Self {
+        Self::Closed
+    }
 }
 
-#[derive(uniffi::Object, Default)]
+#[derive(uniffi::Object)]
 pub struct LogBuffer {
-    inner: Arc<Mutex<InnerLog>>,
+    pub(crate) inner: Arc<CoreLogBuffer>,
 }
 
 #[uniffi::export]
 impl LogBuffer {
     #[uniffi::constructor]
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            inner: Arc::new(CoreLogBuffer::default()),
+        }
     }
 
     pub fn set_enabled(&self, enabled: bool) -> Result<(), LogError> {
-        self.inner.lock().expect("log lock").enabled = enabled;
-        Ok(())
+        self.inner.set_enabled(enabled).map_err(Into::into)
     }
     pub fn is_enabled(&self) -> Result<bool, LogError> {
-        Ok(self.inner.lock().expect("log lock").enabled)
+        self.inner.is_enabled().map_err(Into::into)
     }
-    pub fn add(&self, _level: String, _tag: String, _message: String) -> Result<(), LogError> {
-        Ok(())
+    pub fn add(&self, level: String, tag: String, message: String) -> Result<(), LogError> {
+        self.inner.add(&level, &tag, &message).map_err(Into::into)
     }
-    pub fn backend(&self, _message: String) -> Result<(), LogError> {
-        Ok(())
+    pub fn backend(&self, message: String) -> Result<(), LogError> {
+        self.inner.backend(&message).map_err(Into::into)
     }
     pub fn all(&self) -> Result<String, LogError> {
-        Ok("[]".into())
+        self.inner.all().map_err(Into::into)
     }
-    pub fn since(&self, _index: i64) -> Result<String, LogError> {
-        Ok(r#"{"logs":[],"next_index":0}"#.into())
+    pub fn since(&self, index: i64) -> Result<String, LogError> {
+        self.inner.since(index).map_err(Into::into)
     }
     pub fn clear(&self) -> Result<(), LogError> {
-        Ok(())
+        self.inner.clear().map_err(Into::into)
     }
     pub fn count(&self) -> Result<u64, LogError> {
-        Ok(0)
+        self.inner.count().map_err(Into::into)
     }
-    pub fn shutdown(&self) {}
+    pub fn shutdown(&self) {
+        self.inner.shutdown();
+    }
+}
+
+impl Default for LogBuffer {
+    fn default() -> Self {
+        Self::new()
+    }
 }

@@ -31,6 +31,10 @@ String playbackNormalizationModeFromJson(Object? value) =>
 double musicHapticsLevelFromJson(Object? value) =>
     value is num && value.isFinite ? value.toDouble().clamp(0, 1) : 0.5;
 
+/// Where a shown lyrics translation is saved.
+const lyricsTranslationSaveToEmbedded = 'embedded';
+const lyricsTranslationSaveToMlrc = 'mlrc';
+
 /// Sort choices offered by the Library, in display order.
 const librarySortModes = [
   'latest',
@@ -105,6 +109,14 @@ class AppSettings {
   final double autoMixSpeed;
   @JsonKey(fromJson: autoMixPitchFromJson)
   final double autoMixPitch;
+  final bool playbackKeepPitch;
+  @JsonKey(fromJson: playbackPitchFromJson)
+  final double playbackPitch;
+  final bool skipSilence;
+  final bool spatialAudio;
+  /// Android beta: play through the platform media3 engine (see
+  /// [playbackMedia3Engine]). Off keeps every song on audioplayers.
+  final bool media3Engine;
   final bool autoMixEcho;
   final bool autoMixLowPass;
   AutoMixOptions get autoMixOptions => AutoMixOptions(
@@ -133,6 +145,9 @@ class AppSettings {
   final String exclusiveOutputDevice;
   final bool autoplay;
   final bool autoplayPersonalization;
+  /// How far Autoplay reaches past the songs it played lately, from 0 (off)
+  /// to 1. The ranker's exploration bonus reads it.
+  final double autoplayRandomness;
 
   /// Analyze how each Library song sounds, on this device, so Autoplay picks
   /// songs that sound like the session. Off until turned on: decoding songs
@@ -266,6 +281,11 @@ class AppSettings {
   /// BCP-47 target language; empty follows the app language.
   final String lyricsTranslationLanguage;
 
+  /// Where a shown translation is saved: the song's own tags
+  /// ([lyricsTranslationSaveToEmbedded]) or a `.mlrc` file next to it
+  /// ([lyricsTranslationSaveToMlrc]).
+  final String lyricsTranslationSaveTo;
+
   /// Optional guidance added to the translation prompt.
   final String lyricsAiInstruction;
 
@@ -355,6 +375,11 @@ class AppSettings {
     this.autoMixEffect = AutoMixEffect.auto,
     this.autoMixSpeed = 1,
     this.autoMixPitch = 0,
+    this.playbackKeepPitch = true,
+    this.playbackPitch = 0,
+    this.skipSilence = false,
+    this.spatialAudio = true,
+    this.media3Engine = false,
     this.autoMixEcho = false,
     this.autoMixLowPass = false,
     this.discordRichPresenceEnabled = false,
@@ -367,6 +392,7 @@ class AppSettings {
     this.exclusiveOutputDevice = '',
     this.autoplay = false,
     this.autoplayPersonalization = true,
+    this.autoplayRandomness = 0,
     this.songAnalysis = false,
     this.songAnalysisOnlyWhileCharging = true,
     this.musicHaptics = false,
@@ -448,6 +474,7 @@ class AppSettings {
     this.lyricsAiBaseUrl = '',
     this.lyricsAiModel = '',
     this.lyricsTranslationLanguage = '',
+    this.lyricsTranslationSaveTo = lyricsTranslationSaveToEmbedded,
     this.lyricsAiInstruction = '',
     this.lyricsAutoTranslate = false,
     this.lyricsAiRomanize = true,
@@ -517,6 +544,11 @@ class AppSettings {
     AutoMixEffect? autoMixEffect,
     double? autoMixSpeed,
     double? autoMixPitch,
+    bool? playbackKeepPitch,
+    double? playbackPitch,
+    bool? skipSilence,
+    bool? spatialAudio,
+    bool? media3Engine,
     bool? autoMixEcho,
     bool? autoMixLowPass,
     bool? discordRichPresenceEnabled,
@@ -529,6 +561,7 @@ class AppSettings {
     String? exclusiveOutputDevice,
     bool? autoplay,
     bool? autoplayPersonalization,
+    double? autoplayRandomness,
     bool? songAnalysis,
     bool? songAnalysisOnlyWhileCharging,
     bool? musicHaptics,
@@ -607,6 +640,7 @@ class AppSettings {
     String? lyricsAiBaseUrl,
     String? lyricsAiModel,
     String? lyricsTranslationLanguage,
+    String? lyricsTranslationSaveTo,
     String? lyricsAiInstruction,
     bool? lyricsAutoTranslate,
     bool? lyricsAiRomanize,
@@ -665,6 +699,11 @@ class AppSettings {
       autoMixEffect: autoMixEffect ?? this.autoMixEffect,
       autoMixSpeed: autoMixSpeed ?? this.autoMixSpeed,
       autoMixPitch: autoMixPitch ?? this.autoMixPitch,
+      playbackKeepPitch: playbackKeepPitch ?? this.playbackKeepPitch,
+      playbackPitch: playbackPitch ?? this.playbackPitch,
+      skipSilence: skipSilence ?? this.skipSilence,
+      spatialAudio: spatialAudio ?? this.spatialAudio,
+      media3Engine: media3Engine ?? this.media3Engine,
       autoMixEcho: autoMixEcho ?? this.autoMixEcho,
       autoMixLowPass: autoMixLowPass ?? this.autoMixLowPass,
       discordRichPresenceEnabled:
@@ -680,6 +719,7 @@ class AppSettings {
       autoplay: autoplay ?? this.autoplay,
       autoplayPersonalization:
           autoplayPersonalization ?? this.autoplayPersonalization,
+      autoplayRandomness: autoplayRandomness ?? this.autoplayRandomness,
       songAnalysis: songAnalysis ?? this.songAnalysis,
       songAnalysisOnlyWhileCharging:
           songAnalysisOnlyWhileCharging ?? this.songAnalysisOnlyWhileCharging,
@@ -788,6 +828,8 @@ class AppSettings {
       lyricsAiModel: lyricsAiModel ?? this.lyricsAiModel,
       lyricsTranslationLanguage:
           lyricsTranslationLanguage ?? this.lyricsTranslationLanguage,
+      lyricsTranslationSaveTo:
+          lyricsTranslationSaveTo ?? this.lyricsTranslationSaveTo,
       lyricsAiInstruction: lyricsAiInstruction ?? this.lyricsAiInstruction,
       lyricsAutoTranslate: lyricsAutoTranslate ?? this.lyricsAutoTranslate,
       lyricsAiRomanize: lyricsAiRomanize ?? this.lyricsAiRomanize,

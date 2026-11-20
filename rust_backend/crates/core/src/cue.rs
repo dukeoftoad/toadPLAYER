@@ -1,9 +1,7 @@
 //! CUE sheet parsing into sheets and tracks.
 
 use serde::Serialize;
-use std::fs::File;
-use std::io::{BufReader, Read};
-use std::path::Path;
+use std::io::Read;
 
 const MAX_SCANNER_BUFFER: usize = 64 * 1024;
 const READ_BUFFER_SIZE: usize = 8 * 1024;
@@ -381,26 +379,4 @@ mod tests {
         .unwrap_err();
         assert_eq!(error, "cancelled");
     }
-}
-
-/// Parse a CUE sheet from a file on disk. The audio directory is kept for API
-/// compatibility with the full product; the resulting track timings are
-/// absolute offsets inside the referenced audio file, which is what the
-/// player consumes.
-pub fn parse_cue_file(
-    path: &Path,
-    _audio_directory: &Path,
-    check: &dyn Fn() -> Result<(), String>,
-) -> Result<CueSheet, String> {
-    let file = File::open(path).map_err(|e| format!("open CUE sheet: {e}"))?;
-    parse(&mut BufReader::new(file), check)
-}
-
-/// Parse a CUE sheet whose referenced audio file is already known.
-pub fn parse_cue_file_with_resolved_audio(
-    path: &Path,
-    _audio_path: &str,
-    check: &dyn Fn() -> Result<(), String>,
-) -> Result<CueSheet, String> {
-    parse_cue_file(path, Path::new(""), check)
 }

@@ -15,6 +15,7 @@ mod lyrics;
 mod manager;
 mod metadata;
 mod native_autoplay_taste;
+mod native_backup;
 mod native_cache;
 mod native_collections;
 mod native_directory_stats;

@@ -23,6 +23,7 @@ import 'package:toadplayer/utils/string_utils.dart';
 import 'package:toadplayer/utils/usb_output_status_label.dart';
 import 'package:toadplayer/widgets/app_bottom_sheet.dart';
 import 'package:toadplayer/widgets/app_icon.dart';
+import 'package:toadplayer/widgets/audio_compare_view.dart';
 import 'package:toadplayer/widgets/audio_analysis_widget.dart';
 import 'package:toadplayer/widgets/expressive_button.dart';
 import 'package:toadplayer/widgets/hires_check_card.dart';
@@ -240,6 +241,18 @@ class _AudioInfoSheetState extends State<_AudioInfoSheet>
                       SizedBox(height: context.tokens.gapLg),
                       HiResCheckCard(filePath: path, formatHint: format),
                     ],
+                    SizedBox(height: context.tokens.gapLg),
+                    ExpressiveButton(
+                      onPressed: _fileSize == null
+                          ? null
+                          : () => pickAndShowAudioCompare(
+                            context,
+                            referencePath: path!,
+                            referenceSize: _fileSize ?? 0,
+                          ),
+                      icon: const Icon(Icons.compare, size: 18),
+                      child: Text(context.l10n.audioInfoCompare),
+                    ),
                   ],
                 ),
               ),

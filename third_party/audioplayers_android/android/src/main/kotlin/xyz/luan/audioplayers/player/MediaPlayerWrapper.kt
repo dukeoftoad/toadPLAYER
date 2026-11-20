@@ -14,10 +14,6 @@ class MediaPlayerWrapper(
     private var equalizer: PlaybackEqualizer? = null
     private val mixedOutput = MixedOutput(wrappedPlayer, mediaPlayer.audioSessionId)
     private var playbackParamsApplied = false
-    // The currently active Source, tracked so its native resources (e.g. a
-    // dup'd playback descriptor) are released when replaced or when this
-    // wrapper is released.
-    private var currentSource: Source? = null
 
     init {
         configureMediaPlayer()
@@ -57,7 +53,7 @@ class MediaPlayerWrapper(
                 if (!released) wrappedPlayer.onBuffering(percent)
             }
         }
-        wrappedPlayer.context.setAttributesOnPlayer(mediaPlayer)
+        wrappedPlayer.context.setAttributesOnPlayer(mediaPlayer, wrappedPlayer.spatialAudio)
         if (wrappedPlayer.context.stayAwake) {
             mediaPlayer.setWakeMode(wrappedPlayer.applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
         }
@@ -76,12 +72,14 @@ class MediaPlayerWrapper(
         mediaPlayer.setVolume(leftVolume, rightVolume)
     }
 
+    /** Applies [rate] with the player's pitch (see [WrappedPlayer.pitchAt]). */
     override fun setRate(rate: Float) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pitch = wrappedPlayer.pitchAt(rate)
             // Normal playback does not need the platform's time-stretch path.
             // Once changed, still apply 1.0 to restore the original speed.
-            if (rate == 1.0f && !playbackParamsApplied) return
-            mediaPlayer.playbackParams = mediaPlayer.playbackParams.setSpeed(rate)
+            if (rate == 1.0f && pitch == 1.0f && !playbackParamsApplied) return
+            mediaPlayer.playbackParams = mediaPlayer.playbackParams.setSpeed(rate).setPitch(pitch)
             playbackParamsApplied = true
         } else if (rate != 1.0f) {
             error("Changing the playback rate is only available for Android M/23+ or using LOW_LATENCY mode.")
@@ -89,11 +87,9 @@ class MediaPlayerWrapper(
     }
 
     override fun setSource(source: Source) {
-        // Release the previous source's native resources (e.g. a dup'd
-        // playback descriptor) before resetting and binding the new one.
-        currentSource?.release()
-        currentSource = source
         reset()
+        // Idle again, so the current spatialization choice applies to this source.
+        wrappedPlayer.context.setAttributesOnPlayer(mediaPlayer, wrappedPlayer.spatialAudio)
         source.setForMediaPlayer(mediaPlayer)
     }
 
@@ -122,8 +118,6 @@ class MediaPlayerWrapper(
         // Retiring a preparing network source may still deliver queued callbacks.
         // They belong to this output, not the next one on the WrappedPlayer.
         released = true
-        currentSource?.release()
-        currentSource = null
         if (Build.VERSION.SDK_INT >= 28) equalizer?.close()
         equalizer = null
         mixedOutput.close()
@@ -136,7 +130,7 @@ class MediaPlayerWrapper(
     }
 
     override fun updateContext(context: AudioContextAndroid) {
-        context.setAttributesOnPlayer(mediaPlayer)
+        context.setAttributesOnPlayer(mediaPlayer, wrappedPlayer.spatialAudio)
         if (context.stayAwake) {
             mediaPlayer.setWakeMode(wrappedPlayer.applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
         }

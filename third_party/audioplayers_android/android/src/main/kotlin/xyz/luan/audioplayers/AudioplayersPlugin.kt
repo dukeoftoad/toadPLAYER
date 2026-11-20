@@ -41,7 +41,7 @@ class AudioplayersPlugin : FlutterPlugin {
         binaryMessenger = binding.binaryMessenger
         generation++
         players = ConcurrentHashMap()
-        playbackThread = HandlerThread("toadplayer-audioplayers").apply { start() }
+        playbackThread = HandlerThread("mornye-audioplayers").apply { start() }
         playbackHandler = Handler(requireNotNull(playbackThread).looper)
         soundPoolManager = SoundPoolManager(this)
         methods = MethodChannel(binding.binaryMessenger, "xyz.luan/audioplayers")
@@ -170,6 +170,15 @@ class AudioplayersPlugin : FlutterPlugin {
                     val configuration = call.argument<Map<String, Any?>>("configuration")
                         ?: error("Equalizer configuration is required")
                     player.setEqualizer(configuration)
+                }
+                "setSpatialAudio" -> {
+                    player.spatialAudio = call.argument<Boolean>("enabled") ?: error("enabled is required")
+                }
+                "setPitch" -> {
+                    val semitones = call.argument<Number>("semitones")?.toDouble()
+                        ?: error("semitones is required")
+                    val followsRate = call.argument<Boolean>("followsRate") ?: error("followsRate is required")
+                    player.setPitch(semitones, followsRate)
                 }
                 "setSourceUrl" -> {
                     val url = call.argument<String>("url") ?: error("url is required")

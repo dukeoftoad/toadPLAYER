@@ -1,5 +1,6 @@
 //! Pure directory-listing parser. Transport and credentials remain owned by
 //! the platform; only a bounded response body enters this worker operation.
+use scraper::{Html, Selector};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use url::Url;
@@ -125,9 +126,14 @@ pub(crate) fn execute(request: &Value, bytes: Option<&[u8]>) -> Result<Value, St
             }
         }
     } else {
-        // HTML directory listings belonged to the removed network-storage
-        // feature; only WebDAV (XML) listings are supported in this build.
-        return Err("HTML directory listing parsing is unavailable in this build".into());
+        let document = Html::parse_document(&body);
+        let selector = Selector::parse("a[href]").map_err(|e| e.to_string())?;
+        for anchor in document.select(&selector) {
+            let href = anchor.value().attr("href").unwrap_or_default();
+            let path = href.split(['?', '#']).next().unwrap_or_default();
+            let directory = path.ends_with('/') || path.ends_with('\\');
+            add(href, directory, None, None, None)?;
+        }
     }
     entries.sort_by(|a, b| {
         b["directory"]

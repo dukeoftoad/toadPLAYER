@@ -125,6 +125,7 @@ fn execute(
         operation if operation.starts_with("cache_") => {
             crate::native_cache::execute(request, check)
         }
+        operation if operation.starts_with("backup_") => crate::native_backup::execute(request, check),
         _ => Err(format!("Unsupported operation in isolated player: {operation}")),
     }
 }
