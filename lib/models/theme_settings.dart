@@ -50,18 +50,18 @@ ToadplayerAccent toadplayerAccentFromString(String? value) =>
       orElse: () => ToadplayerAccent.blue,
     );
 
-/// Style used until the person picks one: Toadplayer on macOS, Material on
-/// Windows, Linux and mobile.
+/// Style used until the person picks one: retain the native Toadplayer look on
+/// macOS, and use the shared Toadmark family theme on other platforms.
 AppThemeStyle defaultAppThemeStyle() =>
     isDesktopPlatform && defaultTargetPlatform == TargetPlatform.macOS
     ? AppThemeStyle.toadplayer
-    : AppThemeStyle.material;
+    : AppThemeStyle.toad;
 
 AppThemeStyle themeStyleFromString(String? value) => AppThemeStyle.values
     .firstWhere((style) => style.name == value, orElse: defaultAppThemeStyle);
 
 /// Fallback seed when dynamic color and a custom seed are unavailable.
-const int kDefaultSeedColor = 0xFF1DB954;
+const int kDefaultSeedColor = 0xFF84CC16;
 
 class ThemeSettings {
   final ThemeMode themeMode;
@@ -84,7 +84,7 @@ class ThemeSettings {
     this.useDynamicColor = true,
     this.seedColorValue = kDefaultSeedColor,
     this.useAmoled = false,
-    this.style = AppThemeStyle.material,
+    this.style = AppThemeStyle.toad,
     this.toadplayerAccent = ToadplayerAccent.blue,
     this.useSystemFont = false,
     this.customFontId = '',
