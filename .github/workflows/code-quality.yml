@@ -49,4 +49,8 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
-        run: flutter analyze
+        # Infos stay visible in the log but stop failing the run: the Flutter
+        # SDK's material.dart -> material_ui deprecation wave (deprecated after
+        # v3.47.0-0.0.pre) floods the report with ~180 mechanical import infos
+        # on main. Errors and warnings still fail the build.
+        run: flutter analyze --no-fatal-infos
