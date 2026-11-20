@@ -1,6 +1,5 @@
 //! Pure directory-listing parser. Transport and credentials remain owned by
 //! the platform; only a bounded response body enters this worker operation.
-use scraper::{Html, Selector};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use url::Url;
@@ -126,13 +125,10 @@ pub(crate) fn execute(request: &Value, bytes: Option<&[u8]>) -> Result<Value, St
             }
         }
     } else {
-        let document = Html::parse_document(&body);
-        let selector = Selector::parse("a[href]").map_err(|e| e.to_string())?;
-        for anchor in document.select(&selector) {
-            let href = anchor.value().attr("href").unwrap_or_default();
+        for href in html_anchors(&body) {
             let path = href.split(['?', '#']).next().unwrap_or_default();
             let directory = path.ends_with('/') || path.ends_with('\\');
-            add(href, directory, None, None, None)?;
+            add(&href, directory, None, None, None)?;
         }
     }
     entries.sort_by(|a, b| {
@@ -156,6 +152,79 @@ fn dart_lower(value: &str) -> String {
         .chars()
         .map(|ch| ch.to_lowercase().next().unwrap_or(ch))
         .collect()
+}
+
+/// Extract anchor targets from a server directory index. The platform owns
+/// full HTML parsing; listings only need quoted or bare href values, decoded
+/// from character entities the way a browser would present them.
+fn html_anchors(body: &str) -> Vec<String> {
+    let tags = regex::Regex::new(r"(?is)<a\b[^>]*>").expect("anchor tag pattern");
+    let attributes =
+        regex::Regex::new(r#"(?is)\bhref\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))"#)
+            .expect("href attribute pattern");
+    let mut hrefs = Vec::new();
+    for captures in tags.captures_iter(body) {
+        let tag = captures
+            .get(0)
+            .map(|match_| match_.as_str())
+            .unwrap_or_default();
+        let Some(found) = attributes.captures(tag) else {
+            continue;
+        };
+        let value = found
+            .get(2)
+            .or_else(|| found.get(3))
+            .or_else(|| found.get(4))
+            .map_or_else(String::new, |match_| decode_html_entities(match_.as_str()));
+        if !value.is_empty() {
+            hrefs.push(value);
+        }
+    }
+    hrefs
+}
+
+/// Decode the character entities a directory index may legally place in an
+/// href value. Unknown or malformed entities are preserved verbatim.
+fn decode_html_entities(value: &str) -> String {
+    if !value.contains('&') {
+        return value.to_owned();
+    }
+    let mut decoded = String::with_capacity(value.len());
+    let mut rest = value;
+    while let Some(start) = rest.find('&') {
+        decoded.push_str(&rest[..start]);
+        rest = &rest[start..];
+        let (entity, remainder) = match rest.find(';') {
+            Some(end) => (&rest[..=end], &rest[end + 1..]),
+            None => break,
+        };
+        let replacement = match entity {
+            "&amp;" => Some('&'),
+            "&lt;" => Some('<'),
+            "&gt;" => Some('>'),
+            "&quot;" => Some('"'),
+            "&apos;" | "&#39;" => Some('\''),
+            _ => numeric_entity(entity),
+        };
+        match replacement {
+            Some(character) => decoded.push(character),
+            None => decoded.push_str(entity),
+        }
+        rest = remainder;
+    }
+    decoded.push_str(rest);
+    decoded
+}
+
+fn numeric_entity(entity: &str) -> Option<char> {
+    let body = entity.strip_prefix("&#")?;
+    let body = body.strip_suffix(';')?;
+    let code = if let Some(hex) = body.strip_prefix('x').or_else(|| body.strip_prefix('X')) {
+        u32::from_str_radix(hex, 16).ok()?
+    } else {
+        body.parse::<u32>().ok()?
+    };
+    char::from_u32(code)
 }
 
 fn required<'a>(request: &'a Value, key: &str) -> Result<&'a str, String> {

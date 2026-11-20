@@ -26,6 +26,7 @@ mod native_lyrics;
 mod native_lyrics_translation;
 mod native_playlist_write;
 mod native_playlists;
+mod network_tags;
 mod progress;
 mod repository;
 mod tags;
