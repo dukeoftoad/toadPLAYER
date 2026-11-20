@@ -7083,321 +7083,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get autoplayMoreRandom => 'More variety';
 
   @override
-  String get showMenuTooltip => 'Show menu';
-
-  @override
-  String get lyricsTranslationSaveToTitle =>
-      'Save translations into';
-
-  @override
-  String get lyricsTranslationSaveIntoSong =>
-      'The song';
-
-  @override
-  String get lyricsTranslationSaveIntoSongSubtitle =>
-      'Write the translation into the song\'s own tags.';
-
-  @override
-  String get lyricsTranslationSaveNextToSong =>
-      'A lyrics file next to it';
-
-  @override
-  String get lyricsTranslationSaveNextToSongSubtitle =>
-      'Write a `.mlrc` file next to the song, read back like a `.lrc`.';
-
-
-
-  @override
-  String get spatialAudioDirectUsb =>
-      'Playing through the USB DAC directly; the system spatializer is bypassed.';
-
-  @override
-  String get spatialAudioDirectAAudio =>
-      'Playing through AAudio exclusively; the system spatializer is bypassed.';
-
-  @override
-  String get spatialAudioExclusive =>
-      'Playing through the exclusive output; the system spatializer is bypassed.';
-
-  @override
-  String get spatialAudioSystemOff =>
-      'Spatial audio is off in the system sound settings.';
-
-  @override
-  String get spatialAudioUnavailable =>
-      'Spatial audio is not available on this device or output.';
-
-  @override
-  String get spatialAudioStereo =>
-      'The system spatializes this stereo output.';
-
-  @override
-  String get spatialAudioStereoHeadTracking =>
-      'The system spatializes this stereo output with head tracking.';
-
-  @override
-  String get spatialAudioMultichannelOnly =>
-      'The system spatializes multichannel content only.';
-
-  @override
-  String get spatialAudioOutputOn =>
-      'Spatial audio is on for this output.';
-
-  @override
-  String get spatialAudioOutputOff =>
-      'Spatial audio is off for this output.';
-
-  @override
-  String get lyricsOffsetAllSongs =>
-      'All songs';
-
-  @override
-  String get lyricsOffsetThisSong =>
-      'This song';
-
-  @override
-  String get lyricsOffsetOptions =>
-      'Lyrics timing';
-
-  @override
-  String lyricsTranslateSongDefault(String language) =>
-      'Translate into ${language}';
-
-  @override
-  String get nowPlayingTranslateInto =>
-      'Translate into the song\'s language';
-
-  @override
-  String get nowPlayingSaveTranslation =>
-      'Save translated lyrics';
-
-  @override
-  String get nowPlayingTranslationSaved =>
-      'Translation saved into the song';
-
-  @override
-  String get nowPlayingTranslationSavedMlrc =>
-      'Translation saved next to the song';
-
-
-  @override
-  String get audioCompareTitle =>
-      'Audio compare';
-
-  @override
-  String get audioComparePickTitle =>
-      'Pick the other version of the song';
-
-  @override
-  String get audioCompareSameFile =>
-      'That is the same file the player is using. Pick a different version to compare.';
-
-  @override
-  String get audioCompareReference =>
-      'Reference';
-
-  @override
-  String get audioCompareOther =>
-      'Other file';
-
-  @override
-  String get audioCompareOverall =>
-      'Overall difference';
-
-  @override
-  String get audioCompareOverallDetail =>
-      'Residual level after the files are lined up and level-matched, in dB. Lower is closer.';
-
-  @override
-  String get audioCompareMatch =>
-      'Correlation';
-
-  @override
-  String get audioCompareGain =>
-      'Gain difference';
-
-  @override
-  String get audioCompareGainDetail =>
-      'How much louder the other file plays than the reference.';
-
-  @override
-  String get audioCompareGainInverted =>
-      'Polarity is inverted: the files cancel each other out when summed.';
-
-  @override
-  String get audioCompareOffset =>
-      'Offset';
-
-  @override
-  String audioCompareOffsetValue(String frames, String ms) =>
-      '$frames frames ($ms ms)';
-
-  @override
-  String get audioCompareOffsetLater =>
-      'The other file starts later; the player lines it up.';
-
-  @override
-  String get audioCompareOffsetEarlier =>
-      'The other file starts earlier; the player lines it up.';
-
-  @override
-  String audioComparePeak(String clock, String db) =>
-      'Largest residual at $clock: $db';
-
-  @override
-  String get audioCompareSummaryTitle =>
-      'Summary';
-
-  @override
-  String get audioCompareStagePreparing =>
-      'Preparing';
-
-  @override
-  String get audioCompareStageAligning =>
-      'Aligning';
-
-  @override
-  String get audioCompareStageMeasuring =>
-      'Measuring';
-
-  @override
-  String get audioCompareStageSpectrogram =>
-      'Spectrogram';
-
-  @override
-  String audioCompareStepLabel(String step, String total) =>
-      'Step $step of $total';
-
-  @override
-  String get audioCompareExplainTitle =>
-      'What is a null test?';
-
-  @override
-  String get audioCompareExplainBody =>
-      'The player lines the two files up, flips one\'s phase and plays the sum. What is left over is exactly what differs: silence means the files carry the same sound.';
-
-  @override
-  String get audioCompareNoticeTitle =>
-      'Notes';
-
-  @override
-  String get audioCompareNoticeWeakAlignment =>
-      'The files did not line up cleanly, so the numbers are rough.';
-
-  @override
-  String get audioCompareNoticeResidualHigh =>
-      'A large difference remains even after alignment: the files may be different mixes or masters.';
-
-  @override
-  String audioCompareNoticeDrift(String ms) =>
-      'The files drift apart by $ms ms over their length.';
-
-  @override
-  String audioCompareNoticeDuration(String seconds) =>
-      'The files differ in length by $seconds s after alignment.';
-
-  @override
-  String get audioCompareNoticeFooter =>
-      'Compare similar files: two copies of the same master give the clearest read.';
-
-  @override
-  String audioCompareNoteResampled(String rate) =>
-      'Resampled to $rate to compare.';
-
-  @override
-  String get audioCompareNoteChannels =>
-      'Downmixed to one channel to compare.';
-
-  @override
-  String get audioCompareTimelineTitle =>
-      'Residual over time';
-
-  @override
-  String get audioCompareTimelineCaption =>
-      'Where the files differ the most. Tap a point to inspect it.';
-
-  @override
-  String get audioCompareTimelineHint =>
-      'Tap the timeline to inspect a moment';
-
-  @override
-  String get audioComparePlayFromHere =>
-      'Play from here';
-
-  @override
-  String get audioCompareSpectrogramTitle =>
-      'Spectrogram';
-
-  @override
-  String get audioCompareSpectrogramCaption =>
-      'The difference signal: darker means the files agree.';
-
-  @override
-  String get audioCompareBandHigh =>
-      'Mainly high frequencies';
-
-  @override
-  String get audioCompareBandLow =>
-      'Mainly low frequencies';
-
-  @override
-  String get audioCompareBandBroadband =>
-      'Across all frequencies';
-
-  @override
-  String get audioCompareChannelLeft =>
-      'Mainly left channel';
-
-  @override
-  String get audioCompareChannelRight =>
-      'Mainly right channel';
-
-  @override
-  String get audioCompareChannelBoth =>
-      'Both channels';
-
-  @override
-  String get audioCompareLevelIdentical =>
-      'Identical';
-
-  @override
-  String get audioCompareLevelNearlyIdentical =>
-      'Nearly identical';
-
-  @override
-  String get audioCompareLevelMostlyIdentical =>
-      'Mostly identical';
-
-  @override
-  String get audioCompareLevelModerate =>
-      'Audibly different';
-
-  @override
-  String get audioCompareLevelLarge =>
-      'Very different';
-
-  @override
-  String audioCompareErrorUnreadable(String fileName) =>
-      'Could not read $fileName.';
-
-  @override
-  String get audioCompareErrorTooShort =>
-      'Files shorter than two seconds cannot be lined up.';
-
-  @override
-  String get audioCompareErrorDecode =>
-      'A file would not decode, so the comparison stopped.';
-
-  @override
-  String audioCompareErrorGeneric(String error) =>
-      'Comparison failed: $error';
-
-  @override
-  String get audioInfoCompare =>
-      'Compare with another file';
-
-
-  @override
   String get autoplayResetLearning => 'Reset recommendation learning';
 
   @override
@@ -10195,4 +9880,320 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lyricsVerifyNoResults => 'No lyrics found for these details';
+
+  @override
+  String get audioCompareTitle => 'Audio compare';
+
+  @override
+  String get audioComparePickTitle => 'Pick the other version of the song';
+
+  @override
+  String get audioCompareSameFile =>
+      'That is the same file the player is using. Pick a different version to compare.';
+
+  @override
+  String get audioCompareReference => 'Reference';
+
+  @override
+  String get audioCompareOther => 'Other file';
+
+  @override
+  String get audioCompareOverall => 'Overall difference';
+
+  @override
+  String get audioCompareOverallDetail =>
+      'Residual level after the files are lined up and level-matched, in dB. Lower is closer.';
+
+  @override
+  String get audioCompareMatch => 'Correlation';
+
+  @override
+  String get audioCompareGain => 'Gain difference';
+
+  @override
+  String get audioCompareGainDetail =>
+      'How much louder the other file plays than the reference.';
+
+  @override
+  String get audioCompareGainInverted =>
+      'Polarity is inverted: the files cancel each other out when summed.';
+
+  @override
+  String get audioCompareOffset => 'Offset';
+
+  @override
+  String audioCompareOffsetValue(String frames, String ms) {
+    return '$frames frames ($ms ms)';
+  }
+
+  @override
+  String get audioCompareOffsetLater =>
+      'The other file starts later; the player lines it up.';
+
+  @override
+  String get audioCompareOffsetEarlier =>
+      'The other file starts earlier; the player lines it up.';
+
+  @override
+  String audioComparePeak(String clock, String db) {
+    return 'Largest residual at $clock: $db';
+  }
+
+  @override
+  String get audioCompareSummaryTitle => 'Summary';
+
+  @override
+  String get audioCompareStagePreparing => 'Preparing';
+
+  @override
+  String get audioCompareStageAligning => 'Aligning';
+
+  @override
+  String get audioCompareStageMeasuring => 'Measuring';
+
+  @override
+  String get audioCompareStageSpectrogram => 'Spectrogram';
+
+  @override
+  String audioCompareStepLabel(String step, String total) {
+    return 'Step $step of $total';
+  }
+
+  @override
+  String get audioCompareExplainTitle => 'What is a null test?';
+
+  @override
+  String get audioCompareExplainBody =>
+      'The player lines the two files up, flips one\'s phase and plays the sum. What is left over is exactly what differs: silence means the files carry the same sound.';
+
+  @override
+  String get audioCompareNoticeTitle => 'Notes';
+
+  @override
+  String get audioCompareNoticeWeakAlignment =>
+      'The files did not line up cleanly, so the numbers are rough.';
+
+  @override
+  String get audioCompareNoticeResidualHigh =>
+      'A large difference remains even after alignment: the files may be different mixes or masters.';
+
+  @override
+  String audioCompareNoticeDrift(String ms) {
+    return 'The files drift apart by $ms ms over their length.';
+  }
+
+  @override
+  String audioCompareNoticeDuration(String seconds) {
+    return 'The files differ in length by $seconds s after alignment.';
+  }
+
+  @override
+  String get audioCompareNoticeFooter =>
+      'Compare similar files: two copies of the same master give the clearest read.';
+
+  @override
+  String audioCompareNoteResampled(String rate) {
+    return 'Resampled to $rate to compare.';
+  }
+
+  @override
+  String get audioCompareNoteChannels => 'Downmixed to one channel to compare.';
+
+  @override
+  String get audioCompareTimelineTitle => 'Residual over time';
+
+  @override
+  String get audioCompareTimelineCaption =>
+      'Where the files differ the most. Tap a point to inspect it.';
+
+  @override
+  String get audioCompareTimelineHint => 'Tap the timeline to inspect a moment';
+
+  @override
+  String get audioComparePlayFromHere => 'Play from here';
+
+  @override
+  String get audioCompareSpectrogramTitle => 'Spectrogram';
+
+  @override
+  String get audioCompareSpectrogramCaption =>
+      'The difference signal: darker means the files agree.';
+
+  @override
+  String get audioCompareBandHigh => 'Mainly high frequencies';
+
+  @override
+  String get audioCompareBandLow => 'Mainly low frequencies';
+
+  @override
+  String get audioCompareBandBroadband => 'Across all frequencies';
+
+  @override
+  String get audioCompareChannelLeft => 'Mainly left channel';
+
+  @override
+  String get audioCompareChannelRight => 'Mainly right channel';
+
+  @override
+  String get audioCompareChannelBoth => 'Both channels';
+
+  @override
+  String get audioCompareLevelIdentical => 'Identical';
+
+  @override
+  String get audioCompareLevelNearlyIdentical => 'Nearly identical';
+
+  @override
+  String get audioCompareLevelMostlyIdentical => 'Mostly identical';
+
+  @override
+  String get audioCompareLevelModerate => 'Audibly different';
+
+  @override
+  String get audioCompareLevelLarge => 'Very different';
+
+  @override
+  String audioCompareErrorUnreadable(String fileName) {
+    return 'Could not read $fileName.';
+  }
+
+  @override
+  String get audioCompareErrorTooShort =>
+      'Files shorter than two seconds cannot be lined up.';
+
+  @override
+  String get audioCompareErrorDecode =>
+      'A file would not decode, so the comparison stopped.';
+
+  @override
+  String audioCompareErrorGeneric(String error) {
+    return 'Comparison failed: $error';
+  }
+
+  @override
+  String get audioInfoCompare => 'Compare with another file';
+
+  @override
+  String get spatialAudioDirectUsb =>
+      'Playing through the USB DAC directly; the system spatializer is bypassed.';
+
+  @override
+  String get spatialAudioDirectAAudio =>
+      'Playing through AAudio exclusively; the system spatializer is bypassed.';
+
+  @override
+  String get spatialAudioExclusive =>
+      'Playing through the exclusive output; the system spatializer is bypassed.';
+
+  @override
+  String get spatialAudioSystemOff =>
+      'Spatial audio is off in the system sound settings.';
+
+  @override
+  String get spatialAudioUnavailable =>
+      'Spatial audio is not available on this device or output.';
+
+  @override
+  String get spatialAudioStereo => 'The system spatializes this stereo output.';
+
+  @override
+  String get spatialAudioStereoHeadTracking =>
+      'The system spatializes this stereo output with head tracking.';
+
+  @override
+  String get spatialAudioMultichannelOnly =>
+      'The system spatializes multichannel content only.';
+
+  @override
+  String get spatialAudioOutputOn => 'Spatial audio is on for this output.';
+
+  @override
+  String get spatialAudioOutputOff => 'Spatial audio is off for this output.';
+
+  @override
+  String get lyricsOffsetAllSongs => 'All songs';
+
+  @override
+  String get lyricsOffsetThisSong => 'This song';
+
+  @override
+  String get lyricsOffsetOptions => 'Lyrics timing';
+
+  @override
+  String lyricsTranslateSongDefault(String language) {
+    return 'Translate into $language';
+  }
+
+  @override
+  String get nowPlayingTranslateInto => 'Translate into the song\'s language';
+
+  @override
+  String get nowPlayingSaveTranslation => 'Save translated lyrics';
+
+  @override
+  String get nowPlayingTranslationSaved => 'Translation saved into the song';
+
+  @override
+  String get nowPlayingTranslationSavedMlrc =>
+      'Translation saved next to the song';
+
+  @override
+  String get showMenuTooltip => 'Show menu';
+
+  @override
+  String get lyricsTranslationSaveToTitle => 'Save translations into';
+
+  @override
+  String get lyricsTranslationSaveIntoSong => 'The song';
+
+  @override
+  String get lyricsTranslationSaveIntoSongSubtitle =>
+      'Write the translation into the song\'s own tags.';
+
+  @override
+  String get lyricsTranslationSaveNextToSong => 'A lyrics file next to it';
+
+  @override
+  String get lyricsTranslationSaveNextToSongSubtitle =>
+      'Write a `.mlrc` file next to the song, read back like a `.lrc`.';
+
+  @override
+  String get lyricsRomanize => 'Romanize Lyrics Offline';
+
+  @override
+  String get lyricsRomanizeSubtitle =>
+      'Shows how lyrics in other alphabets are sung, worked out on this device without AI';
+
+  @override
+  String get lyricsRomanizedMainLine => 'Romanize Main Lines';
+
+  @override
+  String get lyricsRomanizedMainLineSubtitle =>
+      'Also show the romanization under each main line, not only the reading line';
+
+  @override
+  String get lyricsAiSecondLanguage => 'Second Target Language';
+
+  @override
+  String lyricsAiSecondLanguageApp(String language) {
+    return 'Falls back to $language when the song is already in the first target';
+  }
+
+  @override
+  String trackConvertResamplerSwrDetail(int taps) {
+    return '$taps-tap filter';
+  }
+
+  @override
+  String trackConvertResamplerSoxrDetail(int bits) {
+    return '$bits-bit precision';
+  }
+
+  @override
+  String trackConvertResamplerSoxrPresetDetail(int bits, String preset) {
+    return '$bits-bit precision, SoX $preset';
+  }
+
+  @override
+  String get trackConvertDitherSmart => 'Auto';
 }

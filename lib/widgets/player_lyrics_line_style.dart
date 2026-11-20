@@ -72,6 +72,7 @@ Widget _withLyricSupplements(
   required TextAlign textAlign,
   Widget Function(String, List<LyricWord>, TextStyle)? timedText,
   Widget Function(String, List<LyricWord>, TextStyle)? timedSupplementText,
+  TextDirection? direction,
 }) {
   if (line.romanization == null && line.translation == null) return primary;
   final AlignmentGeometry alignment = switch (textAlign) {
@@ -80,31 +81,35 @@ Widget _withLyricSupplements(
     _ => AlignmentDirectional.topStart,
   };
   final supplements = _lyricSupplements(context, line).toList();
-  Widget withSupplements(Widget primary, {bool aligned = false}) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      primary,
-      for (final (text, style, words, translation) in supplements)
-        if ((translation || !aligned) &&
-            (translation ? visibility.dy : visibility.dx) > 0)
-          LyricSupplementTransition(
-            alignment: alignment,
-            visibility: translation ? visibility.dy : visibility.dx,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: words.isNotEmpty && timedSupplementText != null
-                  ? timedSupplementText(text, words, style)
-                  : Text(
-                      text,
-                      textAlign: textAlign,
-                      style: style.copyWith(
-                        color: color.withValues(alpha: color.a * 0.8),
-                      ),
-                    ),
-            ),
-          ),
-    ],
-  );
+  Widget withSupplements(Widget primary, {bool aligned = false}) =>
+      Directionality(
+        textDirection: direction ?? Directionality.of(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            primary,
+            for (final (text, style, words, translation) in supplements)
+              if ((translation || !aligned) &&
+                  (translation ? visibility.dy : visibility.dx) > 0)
+                LyricSupplementTransition(
+                  alignment: alignment,
+                  visibility: translation ? visibility.dy : visibility.dx,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: words.isNotEmpty && timedSupplementText != null
+                        ? timedSupplementText(text, words, style)
+                        : Text(
+                            text,
+                            textAlign: textAlign,
+                            style: style.copyWith(
+                              color: color.withValues(alpha: color.a * 0.8),
+                            ),
+                          ),
+                  ),
+                ),
+          ],
+        ),
+      );
   if (!context.isToadplayer ||
       line.romanizationWords.isEmpty ||
       line.romanization?.trim().isNotEmpty != true) {

@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:toadplayer/l10n/l10n.dart';
+import 'package:toadplayer/models/automix_options.dart'
+    show autoplayRandomnessFromJson;
 import 'package:toadplayer/models/settings.dart';
 import 'package:toadplayer/providers/settings_provider.dart';
 import 'package:toadplayer/theme/app_tokens.dart';

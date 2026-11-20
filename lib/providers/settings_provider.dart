@@ -707,14 +707,14 @@ class SettingsNotifier extends Notifier<AppSettings> {
       _commit(state.copyWith(media3Engine: enabled));
 
   /// Autoplay variety, from 0 (off) to 1.
-  void setAutoplayRandomness(double value) =>
-      _commit(state.copyWith(autoplayRandomness: autoplayRandomnessFromJson(value)));
+  void setAutoplayRandomness(double value) => _commit(
+    state.copyWith(autoplayRandomness: autoplayRandomnessFromJson(value)),
+  );
 
   /// Where a shown translation is saved: tags or a `.mlrc` sidecar.
   void setLyricsTranslationSaveTo(String value) => _commit(
     state.copyWith(
-      lyricsTranslationSaveTo:
-          value == lyricsTranslationSaveToMlrc
+      lyricsTranslationSaveTo: value == lyricsTranslationSaveToMlrc
           ? lyricsTranslationSaveToMlrc
           : lyricsTranslationSaveToEmbedded,
     ),
@@ -883,6 +883,21 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   void setLyricsAiRomanize(bool enabled) =>
       _commit(state.copyWith(lyricsAiRomanize: enabled));
+
+  void setLyricsRomanize(bool enabled) =>
+      _commit(state.copyWith(lyricsRomanize: enabled));
+
+  void setLyricsRomanizedMainLine(bool enabled) =>
+      _commit(state.copyWith(lyricsRomanizedMainLine: enabled));
+
+  void setLyricsTranslationSecondLanguage(String code) =>
+      _commit(state.copyWith(lyricsTranslationSecondLanguage: code.trim()));
+
+  void setLyricsTranslationAutoSave(bool enabled) =>
+      _commit(state.copyWith(lyricsTranslationAutoSave: enabled));
+
+  void setAutoHideLyricsControlsWithAccessibility(bool enabled) =>
+      _commit(state.copyWith(autoHideLyricsControlsWithAccessibility: enabled));
 
   void setLyricsAiWordSync(bool enabled) =>
       _commit(state.copyWith(lyricsAiWordSync: enabled));

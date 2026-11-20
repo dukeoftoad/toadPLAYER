@@ -61,13 +61,13 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
       ? 0
       : autoMixPitchFromJson(json['autoMixPitch']),
   playbackKeepPitch: json['playbackKeepPitch'] as bool? ?? true,
-      playbackPitch: json['playbackPitch'] == null
-          ? 0
-          : playbackPitchFromJson(json['playbackPitch']),
-      skipSilence: json['skipSilence'] as bool? ?? false,
-      spatialAudio: json['spatialAudio'] as bool? ?? true,
-      media3Engine: json['media3Engine'] as bool? ?? false,
-      autoMixEcho: json['autoMixEcho'] as bool? ?? false,
+  playbackPitch: json['playbackPitch'] == null
+      ? 0
+      : playbackPitchFromJson(json['playbackPitch']),
+  skipSilence: json['skipSilence'] as bool? ?? false,
+  spatialAudio: json['spatialAudio'] as bool? ?? true,
+  media3Engine: json['media3Engine'] as bool? ?? false,
+  autoMixEcho: json['autoMixEcho'] as bool? ?? false,
   autoMixLowPass: json['autoMixLowPass'] as bool? ?? false,
   discordRichPresenceEnabled:
       json['discordRichPresenceEnabled'] as bool? ?? false,
@@ -177,7 +177,13 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
       (json['lyricsProviders'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ??
-      const ['apple_music', 'lrcred', 'toadplayer_lyrics', 'lyricsplus', 'lrclib'],
+      const [
+        'apple_music',
+        'lrcred',
+        'toadplayer_lyrics',
+        'lyricsplus',
+        'lrclib',
+      ],
   lyricsIncludeTranslationNetease:
       json['lyricsIncludeTranslationNetease'] as bool? ?? false,
   lyricsIncludeRomanizationNetease:
@@ -190,12 +196,19 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   lyricsAiBaseUrl: json['lyricsAiBaseUrl'] as String? ?? '',
   lyricsAiModel: json['lyricsAiModel'] as String? ?? '',
   lyricsTranslationLanguage: json['lyricsTranslationLanguage'] as String? ?? '',
-  lyricsTranslationSaveTo: json['lyricsTranslationSaveTo'] as String? ??
+  lyricsTranslationSaveTo:
+      json['lyricsTranslationSaveTo'] as String? ??
       lyricsTranslationSaveToEmbedded,
   lyricsAiInstruction: json['lyricsAiInstruction'] as String? ?? '',
   lyricsAutoTranslate: json['lyricsAutoTranslate'] as bool? ?? false,
   lyricsAiRomanize: json['lyricsAiRomanize'] as bool? ?? true,
   lyricsAiWordSync: json['lyricsAiWordSync'] as bool? ?? false,
+  lyricsRomanize: json['lyricsRomanize'] as bool? ?? true,
+  lyricsRomanizedMainLine: json['lyricsRomanizedMainLine'] as bool? ?? true,
+  lyricsTranslationSecondLanguage:
+      json['lyricsTranslationSecondLanguage'] as String? ?? '',
+  lyricsTranslationAutoSave:
+      json['lyricsTranslationAutoSave'] as bool? ?? false,
   lastSeenVersion: json['lastSeenVersion'] as String? ?? '',
   deduplicateDownloads: json['deduplicateDownloads'] as bool? ?? true,
   allowQualityVariants: json['allowQualityVariants'] as bool? ?? false,
@@ -213,6 +226,8 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
       ? 2
       : fadeDurationFromJson(json['fadeDuration']),
   playerAutoHideUi: json['playerAutoHideUi'] as bool? ?? false,
+  autoHideLyricsControlsWithAccessibility:
+      json['autoHideLyricsControlsWithAccessibility'] as bool? ?? false,
   playerZenBlackout: json['playerZenBlackout'] as bool? ?? false,
   sleepModeEnabled: json['sleepModeEnabled'] as bool? ?? false,
 );
@@ -250,11 +265,11 @@ Map<String, dynamic> _$AppSettingsToJson(
   'autoMixSpeed': instance.autoMixSpeed,
   'autoMixPitch': instance.autoMixPitch,
   'playbackKeepPitch': instance.playbackKeepPitch,
-      'playbackPitch': instance.playbackPitch,
-      'skipSilence': instance.skipSilence,
-      'spatialAudio': instance.spatialAudio,
-      'media3Engine': instance.media3Engine,
-      'autoMixEcho': instance.autoMixEcho,
+  'playbackPitch': instance.playbackPitch,
+  'skipSilence': instance.skipSilence,
+  'spatialAudio': instance.spatialAudio,
+  'media3Engine': instance.media3Engine,
+  'autoMixEcho': instance.autoMixEcho,
   'autoMixLowPass': instance.autoMixLowPass,
   'discordRichPresenceEnabled': instance.discordRichPresenceEnabled,
   'usbBitPerfect': instance.usbBitPerfect,
@@ -348,6 +363,10 @@ Map<String, dynamic> _$AppSettingsToJson(
   'lyricsAutoTranslate': instance.lyricsAutoTranslate,
   'lyricsAiRomanize': instance.lyricsAiRomanize,
   'lyricsAiWordSync': instance.lyricsAiWordSync,
+  'lyricsRomanize': instance.lyricsRomanize,
+  'lyricsRomanizedMainLine': instance.lyricsRomanizedMainLine,
+  'lyricsTranslationSecondLanguage': instance.lyricsTranslationSecondLanguage,
+  'lyricsTranslationAutoSave': instance.lyricsTranslationAutoSave,
   'lastSeenVersion': instance.lastSeenVersion,
   'deduplicateDownloads': instance.deduplicateDownloads,
   'allowQualityVariants': instance.allowQualityVariants,
@@ -361,6 +380,8 @@ Map<String, dynamic> _$AppSettingsToJson(
   'fadePlayback': instance.fadePlayback,
   'fadeDuration': instance.fadeDuration,
   'playerAutoHideUi': instance.playerAutoHideUi,
+  'autoHideLyricsControlsWithAccessibility':
+      instance.autoHideLyricsControlsWithAccessibility,
   'playerZenBlackout': instance.playerZenBlackout,
   'sleepModeEnabled': instance.sleepModeEnabled,
 };

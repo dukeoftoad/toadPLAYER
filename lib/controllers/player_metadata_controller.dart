@@ -129,6 +129,18 @@ class PlayerMetadataController extends ChangeNotifier {
       (_item?.title.trim().isNotEmpty ?? false) &&
       (_item?.artist?.trim().isNotEmpty ?? false);
 
+  /// Whether a shown translation can be saved into this song: only an
+  /// editable audio file takes it, never a stream or a network source.
+  bool get canSaveTranslations {
+    final source = this.source;
+    if (source == null || source.isEmpty) return false;
+    final uri = Uri.tryParse(source);
+    final localPath = uri?.scheme == 'file' ? uri!.toFilePath() : source;
+    return source.startsWith('content://') ||
+        (!source.startsWith('network://') &&
+            (p.posix.isAbsolute(localPath) || p.windows.isAbsolute(localPath)));
+  }
+
   /// Displays fetched lyrics and embeds them in the original audio file.
   Future<void> searchOnline() async {
     final item = _item;

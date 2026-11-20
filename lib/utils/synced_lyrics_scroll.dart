@@ -131,3 +131,47 @@ double syncedLyricSegmentGlow({
   final fade = ease((duration + 500 - elapsed) / 500);
   return strength * rise * fade;
 }
+
+/// How long the clock may run at a different pace to close its gap with the
+/// reported position. Reports come about every half second; within this
+/// window the sweep catches up without ever stepping back.
+const Duration syncedLyricsCatchUpWindow = Duration(milliseconds: 900);
+
+/// The pace that closes the gap between where the animation clock is and
+/// where the player says it is over [syncedLyricsCatchUpWindow]: 1 keeps the
+/// player's pace, more runs faster, less slower.
+double syncedLyricsCatchUpRate({
+  required Duration predictedPosition,
+  required Duration reportedPosition,
+}) {
+  final gap =
+      (reportedPosition - predictedPosition).inMicroseconds /
+      syncedLyricsCatchUpWindow.inMicroseconds;
+  // A pace that would run backwards is a seek; the caller anchors instead.
+  return gap <= -1 ? 1 : 1 + gap;
+}
+
+/// How far ahead of the audio lines change while lyrics advance, so the
+/// scroll and highlight land on a line as its first word is sung. A coarse
+/// display (a TV) has to start earlier than a smooth high-refresh one.
+Duration lyricsDisplayLead(double? refreshRate) {
+  final rate = refreshRate ?? 60;
+  if (!rate.isFinite || rate <= 0) return const Duration(milliseconds: 67);
+  // About four display frames.
+  return Duration(microseconds: (4 * 1e6 / rate).round());
+}
+
+/// Keeps the line already shown from flickering back while playback
+/// advances: a position report that arrives late (common over Link) steps
+/// the active line back for a moment, and the shown line holds until the
+/// report catches up. A seek stands out because [position] lands before the
+/// shown line's start; that moves at once.
+int steadySyncedLyricsIndex({
+  required int index,
+  required int shown,
+  required Duration shownStart,
+  required Duration position,
+}) {
+  if (index >= shown) return index;
+  return position < shownStart ? index : shown;
+}

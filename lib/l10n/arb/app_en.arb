@@ -1,7 +1,13 @@
 {
   "libraryLyricsSearchDescription": "Search lyrics saved in your songs. The first search may take a while; you can switch filters to stop it.",
   "libraryLyricsIndexing": "Preparing lyrics search: {count} songs checked",
-  "@libraryLyricsIndexing": {"placeholders": {"count": {"type": "int"}}},
+  "@libraryLyricsIndexing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "libraryLyricsSearchIncomplete": "Some songs could not be read. Results may be incomplete.",
   "libraryLyricsRefresh": "Refresh lyrics search",
   "networkErrorListing": "The server responded, but its folder listing could not be read. For WebDAV, use the WebDAV endpoint. For HTTP, use a directory listing or direct audio URL.",
@@ -15,21 +21,31 @@
   "@linkFileActionOn": {
     "description": "File operation on a named linked computer",
     "placeholders": {
-      "action": {"type": "String"},
-      "name": {"type": "String"}
+      "action": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
     }
   },
   "linkFileActionsDescription": "Changes apply to music files on {name}. Accepted work continues if this phone disconnects.",
   "@linkFileActionsDescription": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "linkFileDeleteConfirm": "Delete {count} {count, plural, =1{music file} other{music files}} from {name}? This removes the files from that computer's storage.",
   "@linkFileDeleteConfirm": {
     "placeholders": {
-      "count": {"type": "int"},
-      "name": {"type": "String"}
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
     }
   },
   "linkFileJobs": "File changes",
@@ -39,7 +55,9 @@
   "linkFileJobsSubtitle": "Edits, conversions and deletions on {name}",
   "@linkFileJobsSubtitle": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "linkFileJobsEmpty": "No file changes yet",
@@ -49,7 +67,9 @@
   "linkFileJobRequestedBy": "From {name}",
   "@linkFileJobRequestedBy": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "linkFileJobsView": "View",
@@ -61,21 +81,31 @@
   "linkFileJobProgress": "{finished} of {total} {total, plural, =1{song} other{songs}}",
   "@linkFileJobProgress": {
     "placeholders": {
-      "finished": {"type": "int"},
-      "total": {"type": "int"}
+      "finished": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "linkFileJobFailedCount": "{count} failed",
   "@linkFileJobFailedCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "linkFileJobFinished": "{action} finished on {name}",
   "@linkFileJobFinished": {
     "placeholders": {
-      "action": {"type": "String"},
-      "name": {"type": "String"}
+      "action": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
     }
   },
   "linkFileDeleting": "Deleting...",
@@ -145,9 +175,15 @@
   "@networkUploadResult": {
     "description": "Snackbar after uploading Library songs to network storage",
     "placeholders": {
-      "saved": {"type": "int"},
-      "skipped": {"type": "int"},
-      "failed": {"type": "int"}
+      "saved": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
     }
   },
   "networkUploadCancelled": "Upload stopped",
@@ -3140,9 +3176,15 @@
   "@librarySourceScanCount": {
     "description": "Live progress for one library folder scan",
     "placeholders": {
-      "scanned": {"type": "int"},
-      "total": {"type": "int"},
-      "progress": {"type": "String"}
+      "scanned": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "progress": {
+        "type": "String"
+      }
     }
   },
   "libraryExternalStorage": "External storage",
@@ -3625,7 +3667,9 @@
   "@whatsNewIntroTitle": {
     "description": "First page of the tour shown once after updating; version is like 5.3",
     "placeholders": {
-      "version": {"type": "String"}
+      "version": {
+        "type": "String"
+      }
     }
   },
   "whatsNewIntroDesc": "Our biggest update yet. Here's a quick look at what's new.",
@@ -3685,7 +3729,9 @@
   "@whatsNewAboutTitle": {
     "description": "About page row that reopens the What's New tour; version is like 5.3",
     "placeholders": {
-      "version": {"type": "String"}
+      "version": {
+        "type": "String"
+      }
     }
   },
   "libraryForceFullScan": "Force Full Scan",
@@ -4044,8 +4090,12 @@
   "@trackReEnrichReviewSubtitle": {
     "description": "Summary shown above proposed batch metadata changes",
     "placeholders": {
-      "changeCount": {"type": "int"},
-      "trackCount": {"type": "int"}
+      "changeCount": {
+        "type": "int"
+      },
+      "trackCount": {
+        "type": "int"
+      }
     }
   },
   "trackReEnrichNoChanges": "No metadata changes were found for the selected tracks.",
@@ -7021,9 +7071,21 @@
   "nowPlayingUpNext": "Up next",
   "nowPlayingAudioOutput": "Audio Output",
   "nowPlayingWrittenBy": "Written by: {writers}",
-  "@nowPlayingWrittenBy": {"placeholders": {"writers": {"type": "String"}}},
+  "@nowPlayingWrittenBy": {
+    "placeholders": {
+      "writers": {
+        "type": "String"
+      }
+    }
+  },
   "nowPlayingLyricsProvider": "Lyrics: {provider}",
-  "@nowPlayingLyricsProvider": {"placeholders": {"provider": {"type": "String"}}},
+  "@nowPlayingLyricsProvider": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
   "concertGetTickets": "Get Tickets",
   "concertSetList": "Concert Set List",
   "concertSetListButton": "Set List",
@@ -8305,7 +8367,7 @@
   "autoplayFromLibrary": "Autoplay from your Library",
   "autoplayDescription": "Continue with related songs from your Library when the queue ends.",
   "autoplayPersonalization": "Personalized autoplay",
-    "autoplayPersonalizationDescription": "Learn from songs you listen to and skip, privately on this device. Turning this off stops learning and restores ordinary autoplay.",
+  "autoplayPersonalizationDescription": "Learn from songs you listen to and skip, privately on this device. Turning this off stops learning and restores ordinary autoplay.",
   "autoplayRandomness": "Autoplay variety",
   "autoplayRandomnessDescription": "How far Autoplay reaches past the songs it played lately: higher values lean more towards songs you have not heard in a while.",
   "autoplayLeastRecent": "Least recent",
@@ -8644,11 +8706,35 @@
   "listeningStatsDescription": "Stored only on this device, starting now. Records the built-in player only; pauses, buffering and seeking add no listening time. A play counts after 30 seconds.",
   "listeningStatsEmpty": "Play music with the built-in player to start your listening recap. Earlier listening cannot be recovered.",
   "listeningStatsDays": "{days} days",
-  "@listeningStatsDays": { "placeholders": { "days": { "type": "int" } } },
+  "@listeningStatsDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "listeningStatsMinutes": "{minutes} min",
-  "@listeningStatsMinutes": { "placeholders": { "minutes": { "type": "int" } } },
+  "@listeningStatsMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "listeningStatsTotals": "{plays, plural, =1{1 play} other{{plays} plays}} · {tracks, plural, =1{1 track} other{{tracks} tracks}} · {days, plural, =1{1 active day} other{{days} active days}}",
-  "@listeningStatsTotals": { "placeholders": { "plays": { "type": "int" }, "tracks": { "type": "int" }, "days": { "type": "int" } } },
+  "@listeningStatsTotals": {
+    "placeholders": {
+      "plays": {
+        "type": "int"
+      },
+      "tracks": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "listeningStatsPreviousYear": "Previous year",
   "listeningStatsNextYear": "Next year",
   "listeningStatsActivity": "Recent listening days · minutes",
@@ -8663,58 +8749,157 @@
   "listeningRewindDescription": "Relive the highlights of your recent weeks and months",
   "listeningRewindChoosePeriod": "Choose a period",
   "listeningRewindLastWeeks": "Last {weeks} weeks",
-  "@listeningRewindLastWeeks": { "placeholders": { "weeks": { "type": "int" } } },
+  "@listeningRewindLastWeeks": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindLastMonths": "Last {months} months",
-  "@listeningRewindLastMonths": { "placeholders": { "months": { "type": "int" } } },
+  "@listeningRewindLastMonths": {
+    "placeholders": {
+      "months": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindThisYear": "{year} so far",
-  "@listeningRewindThisYear": { "placeholders": { "year": { "type": "int" } } },
+  "@listeningRewindThisYear": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindIntroTitle": "Your Rewind",
   "listeningRewindIntroBody": "A look back at what you played from {start} to {end}.",
-  "@listeningRewindIntroBody": { "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } } },
+  "@listeningRewindIntroBody": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
   "listeningRewindMinutesTitle": "You listened for",
   "listeningRewindMinutesUnit": "{minutes, plural, =1{minute} other{minutes}}",
-  "@listeningRewindMinutesUnit": { "placeholders": { "minutes": { "type": "int" } } },
+  "@listeningRewindMinutesUnit": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindHours": "{hours, plural, =1{That's about 1 hour of music} other{That's about {hours} hours of music}}",
-  "@listeningRewindHours": { "placeholders": { "hours": { "type": "int" } } },
+  "@listeningRewindHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindMore": "{percent}% more than the period before",
-  "@listeningRewindMore": { "placeholders": { "percent": { "type": "int" } } },
+  "@listeningRewindMore": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindLess": "{percent}% less than the period before",
-  "@listeningRewindLess": { "placeholders": { "percent": { "type": "int" } } },
+  "@listeningRewindLess": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindSame": "About the same as the period before",
   "listeningRewindTopArtistTitle": "Your top artist",
   "listeningRewindArtistShare": "{percent}% of your listening time",
-  "@listeningRewindArtistShare": { "placeholders": { "percent": { "type": "int" } } },
+  "@listeningRewindArtistShare": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindArtistsTitle": "Artists on rotation",
   "listeningRewindTopTrackTitle": "Your top song",
   "listeningRewindPlays": "{plays, plural, =1{1 play} other{{plays} plays}}",
-  "@listeningRewindPlays": { "placeholders": { "plays": { "type": "int" } } },
+  "@listeningRewindPlays": {
+    "placeholders": {
+      "plays": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindTracksTitle": "Songs on repeat",
   "listeningRewindTopAlbumTitle": "The album you kept coming back to",
   "listeningRewindNewArtistsTitle": "New discoveries",
   "listeningRewindNewArtistsBody": "{count, plural, =1{You found 1 new artist} other{You found {count} new artists}}",
-  "@listeningRewindNewArtistsBody": { "placeholders": { "count": { "type": "int" } } },
+  "@listeningRewindNewArtistsBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindRhythmTitle": "Your listening rhythm",
   "listeningRewindPeakDay": "Biggest day",
   "listeningRewindFavoriteDay": "Favorite day",
   "listeningRewindStreak": "Longest streak",
   "listeningRewindStreakDays": "{days, plural, =1{1 day} other{{days} days in a row}}",
-  "@listeningRewindStreakDays": { "placeholders": { "days": { "type": "int" } } },
+  "@listeningRewindStreakDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindReplayTitle": "Couldn't stop playing",
   "listeningRewindReplayBody": "You played it {plays} times on {date}",
-  "@listeningRewindReplayBody": { "placeholders": { "plays": { "type": "int" }, "date": { "type": "String" } } },
+  "@listeningRewindReplayBody": {
+    "placeholders": {
+      "plays": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "listeningRewindOutroTitle": "That's your Rewind",
   "listeningRewindOutroBody": "Keep listening. Your next Rewind is already taking shape.",
   "listeningRewindEmpty": "Not enough listening in this period yet. Play some music with the built-in player and come back later.",
   "listeningRewindLoadError": "Could not load your Rewind",
   "listeningRewindSlide": "Slide {index} of {count}",
-  "@listeningRewindSlide": { "placeholders": { "index": { "type": "int" }, "count": { "type": "int" } } },
+  "@listeningRewindSlide": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindShare": "Share",
   "listeningRewindShareError": "Could not share your Rewind",
   "listeningRewindNext": "Next",
   "listeningRewindPrevious": "Previous",
   "listeningRewindMonthlyReady": "Your last 4 weeks are ready to replay",
   "listeningRewindYearTitle": "Your {year} in Music",
-  "@listeningRewindYearTitle": { "placeholders": { "year": { "type": "String" } } },
+  "@listeningRewindYearTitle": {
+    "placeholders": {
+      "year": {
+        "type": "String"
+      }
+    }
+  },
   "listeningRewindYearEyebrow": "Year-end Rewind",
   "listeningRewindYearBanner": "Your top artists, songs and moments of the year",
   "listeningRewindYearIntroBody": "Everything you played this year, from your first song to your biggest month.",
@@ -8724,20 +8909,50 @@
   "listeningRewindAlbumsLabel": "Albums",
   "listeningRewindDaysLabel": "Days with music",
   "listeningRewindDaysShare": "Music on {percent}% of your days",
-  "@listeningRewindDaysShare": { "placeholders": { "percent": { "type": "int" } } },
+  "@listeningRewindDaysShare": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindMonthsTitle": "Month by month",
   "listeningRewindBiggestMonthLabel": "Biggest month",
   "listeningRewindBiggestMonth": "Your biggest month was {month}",
-  "@listeningRewindBiggestMonth": { "placeholders": { "month": { "type": "String" } } },
+  "@listeningRewindBiggestMonth": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
+  },
   "listeningRewindMonthlyArtistsTitle": "Artist of the month",
   "listeningRewindLoyalTitle": "Always by your side",
   "listeningRewindLoyalBody": "{days, plural, =1{With you on 1 day} other{With you on {days} different days}}",
-  "@listeningRewindLoyalBody": { "placeholders": { "days": { "type": "int" } } },
+  "@listeningRewindLoyalBody": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "listeningRewindFirstSongTitle": "Where your year began",
   "listeningRewindFirstSongBody": "Your most-played song on your first listening day, {date}",
-  "@listeningRewindFirstSongBody": { "placeholders": { "date": { "type": "String" } } },
+  "@listeningRewindFirstSongBody": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "listeningRewindYearOutroTitle": "That was your {year}",
-  "@listeningRewindYearOutroTitle": { "placeholders": { "year": { "type": "String" } } },
+  "@listeningRewindYearOutroTitle": {
+    "placeholders": {
+      "year": {
+        "type": "String"
+      }
+    }
+  },
   "listeningRewindYearOutroBody": "Here's to another year of great music.",
   "weeklyReleases": "New releases",
   "weeklyReleasesDescription": "Recent albums and singles from your favorite artists, supplied by installed metadata extensions.",
@@ -8786,14 +9001,18 @@
   "@snackbarPlaybackFormatUnsupported": {
     "description": "Shown when the player cannot decode a song and stops on it. format is a file format name such as APE or WavPack.",
     "placeholders": {
-      "format": {"type": "String"}
+      "format": {
+        "type": "String"
+      }
     }
   },
   "snackbarPlaybackFormatUnsupportedSkipped": "This format can't be played on this device: {format}. Playing the next song.",
   "@snackbarPlaybackFormatUnsupportedSkipped": {
     "description": "Shown when the player cannot decode a song and continues with the next one in the queue. format is a file format name such as APE or WavPack.",
     "placeholders": {
-      "format": {"type": "String"}
+      "format": {
+        "type": "String"
+      }
     }
   },
   "playbackPauseOnMuteDescription": "Pause at zero media volume and resume when raised. Manual pauses stay paused. Standard audio output only.",
@@ -9071,8 +9290,12 @@
   "@desktopShortcutTooltip": {
     "description": "Desktop tooltip that names an action and its keyboard shortcut, for example 'Next track (Ctrl+Right)'",
     "placeholders": {
-      "action": {"type": "String"},
-      "shortcut": {"type": "String"}
+      "action": {
+        "type": "String"
+      },
+      "shortcut": {
+        "type": "String"
+      }
     }
   },
   "desktopPlayerIdle": "Not playing",
@@ -9085,14 +9308,18 @@
   "@desktopTableSortedAscending": {
     "description": "Screen reader label of a song table column header that sorts the table A to Z",
     "placeholders": {
-      "column": {"type": "String"}
+      "column": {
+        "type": "String"
+      }
     }
   },
   "desktopTableSortedDescending": "{column}, sorted descending",
   "@desktopTableSortedDescending": {
     "description": "Screen reader label of a song table column header that sorts the table Z to A",
     "placeholders": {
-      "column": {"type": "String"}
+      "column": {
+        "type": "String"
+      }
     }
   },
   "desktopMenuOpen": "Open",
@@ -9111,7 +9338,9 @@
   "@desktopDropImported": {
     "description": "Snackbar after dropping music onto the desktop window; the folders are scanned into the library",
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "desktopDropNothingToImport": "Drop music files or folders to add them to your library",
@@ -10312,7 +10541,9 @@
   "@lastfmPending": {
     "description": "Number of saved Last.fm scrobbles awaiting submission",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "audioOutputSystem": "This device and Bluetooth",
@@ -10503,9 +10734,15 @@
   "offlineResult": "Saved {saved}, already available {skipped}, failed {failed}",
   "@offlineResult": {
     "placeholders": {
-      "saved": {"type": "int"},
-      "skipped": {"type": "int"},
-      "failed": {"type": "int"}
+      "saved": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
     }
   },
   "offlineFailed": "Couldn't save the offline copy. Check the server connection and download folder access.",
@@ -10513,7 +10750,13 @@
   "offlineCopyUnavailable": "The offline copy is unavailable. Save it again before deleting the server copy.",
   "offlinePlayingLocal": "Playing from this device",
   "offlineStreaming": "Streaming from {server}",
-  "@offlineStreaming": {"placeholders": {"server": {"type": "String"}}},
+  "@offlineStreaming": {
+    "placeholders": {
+      "server": {
+        "type": "String"
+      }
+    }
+  },
   "openAudio": "Open audio",
   "openAudioFolder": "Play folder",
   "reorganizeLibraryFailed": "Couldn't reorganize your files: {error}",
@@ -10526,22 +10769,40 @@
     }
   },
   "lyricsEditTitle": "Edit lyrics",
-  "@lyricsEditTitle": {"description": "Lyrics menu action and title of the lyrics editor, which edits lines and their times"},
+  "@lyricsEditTitle": {
+    "description": "Lyrics menu action and title of the lyrics editor, which edits lines and their times"
+  },
   "lyricsEditWrite": "Write lyrics",
-  "@lyricsEditWrite": {"description": "Button under 'No lyrics' in the player that opens the lyrics editor with an empty line"},
+  "@lyricsEditWrite": {
+    "description": "Button under 'No lyrics' in the player that opens the lyrics editor with an empty line"
+  },
   "lyricsEditSetTime": "Set time",
-  "@lyricsEditSetTime": {"description": "Lyrics editor button that gives the selected line the current playback position, then selects the next line"},
+  "@lyricsEditSetTime": {
+    "description": "Lyrics editor button that gives the selected line the current playback position, then selects the next line"
+  },
   "lyricsEditSetTimeTooltip": "Give the selected line the current position",
   "lyricsEditEarlier": "−0.1",
-  "@lyricsEditEarlier": {"description": "Short label of the button that moves the selected line's time 0.1 seconds earlier"},
+  "@lyricsEditEarlier": {
+    "description": "Short label of the button that moves the selected line's time 0.1 seconds earlier"
+  },
   "lyricsEditLater": "+0.1",
-  "@lyricsEditLater": {"description": "Short label of the button that moves the selected line's time 0.1 seconds later"},
+  "@lyricsEditLater": {
+    "description": "Short label of the button that moves the selected line's time 0.1 seconds later"
+  },
   "lyricsEditEarlierTooltip": "Move 0.1 s earlier",
   "lyricsEditLaterTooltip": "Move 0.1 s later",
   "lyricsEditNoTime": "No time",
-  "@lyricsEditNoTime": {"description": "Shown for a lyric line that has no time yet"},
+  "@lyricsEditNoTime": {
+    "description": "Shown for a lyric line that has no time yet"
+  },
   "lyricsEditPlayFrom": "Play from {time}",
-  "@lyricsEditPlayFrom": {"placeholders": {"time": {"type": "String"}}},
+  "@lyricsEditPlayFrom": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "lyricsEditOutOfOrder": "Earlier than the line before it",
   "lyricsEditLineHint": "Lyric line",
   "lyricsEditAddLine": "Add line",
@@ -10552,48 +10813,86 @@
   "lyricsEditSaved": "Lyrics saved",
   "lyricsEditSaveFailed": "Couldn't save the lyrics to this file",
   "lyricsEditReadOnly": "Lyrics can't be saved to this song's file",
-  "@lyricsEditReadOnly": {"description": "Shown when the lyrics editor cannot write to the song's file"},
+  "@lyricsEditReadOnly": {
+    "description": "Shown when the lyrics editor cannot write to the song's file"
+  },
   "lyricsImportTitle": "Import lyrics file",
-  "@lyricsImportTitle": {"description": "Button under 'No lyrics' in the player that picks a .lrc file and saves its content as the song's lyrics"},
+  "@lyricsImportTitle": {
+    "description": "Button under 'No lyrics' in the player that picks a .lrc file and saves its content as the song's lyrics"
+  },
   "lyricsImportFailed": "Couldn't import lyrics from that file",
-  "@lyricsImportFailed": {"description": "Import failed because the picked lyrics file could not be read"},
+  "@lyricsImportFailed": {
+    "description": "Import failed because the picked lyrics file could not be read"
+  },
   "lyricsImportInvalid": "That file doesn't contain usable lyrics",
-  "@lyricsImportInvalid": {"description": "Import failed because the picked lyrics file holds no usable lyric lines"},
+  "@lyricsImportInvalid": {
+    "description": "Import failed because the picked lyrics file holds no usable lyric lines"
+  },
   "lyricsDeleteAction": "Delete lyrics",
-  "@lyricsDeleteAction": {"description": "Lyrics editor action that removes the lyrics embedded in the audio file, also used as the confirmation button label"},
+  "@lyricsDeleteAction": {
+    "description": "Lyrics editor action that removes the lyrics embedded in the audio file, also used as the confirmation button label"
+  },
   "lyricsDeleteConfirmTitle": "Delete lyrics?",
-  "@lyricsDeleteConfirmTitle": {"description": "Title of the confirmation dialog for deleting embedded lyrics"},
+  "@lyricsDeleteConfirmTitle": {
+    "description": "Title of the confirmation dialog for deleting embedded lyrics"
+  },
   "lyricsDeleteConfirmBody": "Lyrics embedded in this file will be removed. This can't be undone.",
-  "@lyricsDeleteConfirmBody": {"description": "Body of the confirmation dialog for deleting embedded lyrics"},
+  "@lyricsDeleteConfirmBody": {
+    "description": "Body of the confirmation dialog for deleting embedded lyrics"
+  },
   "lyricsDeleted": "Lyrics deleted",
-  "@lyricsDeleted": {"description": "Snack bar shown after embedded lyrics were deleted"},
+  "@lyricsDeleted": {
+    "description": "Snack bar shown after embedded lyrics were deleted"
+  },
   "lyricsVerifyTitle": "Do these lyrics match?",
-  "@lyricsVerifyTitle": {"description": "Title of the sheet that asks the user to verify online lyrics before they are saved"},
+  "@lyricsVerifyTitle": {
+    "description": "Title of the sheet that asks the user to verify online lyrics before they are saved"
+  },
   "lyricsVerifyQuestion": "This song's lyrics were deleted more than once, so toadPLAYER will only save lyrics you confirm. Does this look like the lyrics you intended?",
-  "@lyricsVerifyQuestion": {"description": "Explains why the lyrics verification sheet is shown"},
+  "@lyricsVerifyQuestion": {
+    "description": "Explains why the lyrics verification sheet is shown"
+  },
   "lyricsVerifyLooksRight": "Looks right — save",
-  "@lyricsVerifyLooksRight": {"description": "Button that approves the shown lyrics and saves them"},
+  "@lyricsVerifyLooksRight": {
+    "description": "Button that approves the shown lyrics and saves them"
+  },
   "lyricsVerifyWrong": "Wrong lyrics",
-  "@lyricsVerifyWrong": {"description": "Button that reports the shown lyrics as a mismatch and opens the refine form"},
+  "@lyricsVerifyWrong": {
+    "description": "Button that reports the shown lyrics as a mismatch and opens the refine form"
+  },
   "lyricsVerifyMoreLines": "+{count} more",
   "@lyricsVerifyMoreLines": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     },
     "description": "Footer under the lyrics excerpt counting the lines that are not shown"
   },
   "lyricsVerifyRefineTitle": "Help find the right lyrics",
-  "@lyricsVerifyRefineTitle": {"description": "Title of the form that collects corrected search details"},
+  "@lyricsVerifyRefineTitle": {
+    "description": "Title of the form that collects corrected search details"
+  },
   "lyricsVerifyRefineDescription": "Adjust the details used to search for lyrics, then search again.",
-  "@lyricsVerifyRefineDescription": {"description": "Explains the lyrics verification refine form"},
+  "@lyricsVerifyRefineDescription": {
+    "description": "Explains the lyrics verification refine form"
+  },
   "lyricsVerifyTrackField": "Track name",
-  "@lyricsVerifyTrackField": {"description": "Field for the corrected track name in the lyrics verification refine form"},
+  "@lyricsVerifyTrackField": {
+    "description": "Field for the corrected track name in the lyrics verification refine form"
+  },
   "lyricsVerifyArtistField": "Artist",
-  "@lyricsVerifyArtistField": {"description": "Field for the corrected artist in the lyrics verification refine form"},
+  "@lyricsVerifyArtistField": {
+    "description": "Field for the corrected artist in the lyrics verification refine form"
+  },
   "lyricsVerifySearch": "Search with these details",
-  "@lyricsVerifySearch": {"description": "Button that searches lyrics with the corrected details"},
+  "@lyricsVerifySearch": {
+    "description": "Button that searches lyrics with the corrected details"
+  },
   "lyricsVerifyNoResults": "No lyrics found for these details",
-  "@lyricsVerifyNoResults": {"description": "Shown in the refine form when a verification search returns nothing"},
+  "@lyricsVerifyNoResults": {
+    "description": "Shown in the refine form when a verification search returns nothing"
+  },
   "audioCompareTitle": "Audio compare",
   "audioComparePickTitle": "Pick the other version of the song",
   "audioCompareSameFile": "That is the same file the player is using. Pick a different version to compare.",
@@ -10607,30 +10906,75 @@
   "audioCompareGainInverted": "Polarity is inverted: the files cancel each other out when summed.",
   "audioCompareOffset": "Offset",
   "audioCompareOffsetValue": "{frames} frames ({ms} ms)",
-  "@audioCompareOffsetValue": {"placeholders": {"frames": {"type": "String"}, "ms": {"type": "String"}}},
+  "@audioCompareOffsetValue": {
+    "placeholders": {
+      "frames": {
+        "type": "String"
+      },
+      "ms": {
+        "type": "String"
+      }
+    }
+  },
   "audioCompareOffsetLater": "The other file starts later; the player lines it up.",
   "audioCompareOffsetEarlier": "The other file starts earlier; the player lines it up.",
   "audioComparePeak": "Largest residual at {clock}: {db}",
-  "@audioComparePeak": {"placeholders": {"clock": {"type": "String"}, "db": {"type": "String"}}},
+  "@audioComparePeak": {
+    "placeholders": {
+      "clock": {
+        "type": "String"
+      },
+      "db": {
+        "type": "String"
+      }
+    }
+  },
   "audioCompareSummaryTitle": "Summary",
   "audioCompareStagePreparing": "Preparing",
   "audioCompareStageAligning": "Aligning",
   "audioCompareStageMeasuring": "Measuring",
   "audioCompareStageSpectrogram": "Spectrogram",
   "audioCompareStepLabel": "Step {step} of {total}",
-  "@audioCompareStepLabel": {"placeholders": {"step": {"type": "String"}, "total": {"type": "String"}}},
+  "@audioCompareStepLabel": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "audioCompareExplainTitle": "What is a null test?",
   "audioCompareExplainBody": "The player lines the two files up, flips one's phase and plays the sum. What is left over is exactly what differs: silence means the files carry the same sound.",
   "audioCompareNoticeTitle": "Notes",
   "audioCompareNoticeWeakAlignment": "The files did not line up cleanly, so the numbers are rough.",
   "audioCompareNoticeResidualHigh": "A large difference remains even after alignment: the files may be different mixes or masters.",
   "audioCompareNoticeDrift": "The files drift apart by {ms} ms over their length.",
-  "@audioCompareNoticeDrift": {"placeholders": {"ms": {"type": "String"}}},
+  "@audioCompareNoticeDrift": {
+    "placeholders": {
+      "ms": {
+        "type": "String"
+      }
+    }
+  },
   "audioCompareNoticeDuration": "The files differ in length by {seconds} s after alignment.",
-  "@audioCompareNoticeDuration": {"placeholders": {"seconds": {"type": "String"}}},
+  "@audioCompareNoticeDuration": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
   "audioCompareNoticeFooter": "Compare similar files: two copies of the same master give the clearest read.",
   "audioCompareNoteResampled": "Resampled to {rate} to compare.",
-  "@audioCompareNoteResampled": {"placeholders": {"rate": {"type": "String"}}},
+  "@audioCompareNoteResampled": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
   "audioCompareNoteChannels": "Downmixed to one channel to compare.",
   "audioCompareTimelineTitle": "Residual over time",
   "audioCompareTimelineCaption": "Where the files differ the most. Tap a point to inspect it.",
@@ -10650,11 +10994,23 @@
   "audioCompareLevelModerate": "Audibly different",
   "audioCompareLevelLarge": "Very different",
   "audioCompareErrorUnreadable": "Could not read {fileName}.",
-  "@audioCompareErrorUnreadable": {"placeholders": {"fileName": {"type": "String"}}},
+  "@audioCompareErrorUnreadable": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "audioCompareErrorTooShort": "Files shorter than two seconds cannot be lined up.",
   "audioCompareErrorDecode": "A file would not decode, so the comparison stopped.",
   "audioCompareErrorGeneric": "Comparison failed: {error}",
-  "@audioCompareErrorGeneric": {"placeholders": {"error": {"type": "String"}}},
+  "@audioCompareErrorGeneric": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "audioInfoCompare": "Compare with another file",
   "spatialAudioDirectUsb": "Playing through the USB DAC directly; the system spatializer is bypassed.",
   "spatialAudioDirectAAudio": "Playing through AAudio exclusively; the system spatializer is bypassed.",
@@ -10670,7 +11026,13 @@
   "lyricsOffsetThisSong": "This song",
   "lyricsOffsetOptions": "Lyrics timing",
   "lyricsTranslateSongDefault": "Translate into {language}",
-  "@lyricsTranslateSongDefault": {"placeholders": {"language": {"type": "String"}}},
+  "@lyricsTranslateSongDefault": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
   "nowPlayingTranslateInto": "Translate into the song's language",
   "nowPlayingSaveTranslation": "Save translated lyrics",
   "nowPlayingTranslationSaved": "Translation saved into the song",
@@ -10680,5 +11042,46 @@
   "lyricsTranslationSaveIntoSong": "The song",
   "lyricsTranslationSaveIntoSongSubtitle": "Write the translation into the song's own tags.",
   "lyricsTranslationSaveNextToSong": "A lyrics file next to it",
-  "lyricsTranslationSaveNextToSongSubtitle": "Write a `.mlrc` file next to the song, read back like a `.lrc`."
+  "lyricsTranslationSaveNextToSongSubtitle": "Write a `.mlrc` file next to the song, read back like a `.lrc`.",
+  "lyricsRomanize": "Romanize Lyrics Offline",
+  "lyricsRomanizeSubtitle": "Shows how lyrics in other alphabets are sung, worked out on this device without AI",
+  "lyricsRomanizedMainLine": "Romanize Main Lines",
+  "lyricsRomanizedMainLineSubtitle": "Also show the romanization under each main line, not only the reading line",
+  "lyricsAiSecondLanguage": "Second Target Language",
+  "lyricsAiSecondLanguageApp": "Falls back to {language} when the song is already in the first target",
+  "@lyricsAiSecondLanguageApp": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "trackConvertResamplerSwrDetail": "{taps}-tap filter",
+  "@trackConvertResamplerSwrDetail": {
+    "placeholders": {
+      "taps": {
+        "type": "int"
+      }
+    }
+  },
+  "trackConvertResamplerSoxrDetail": "{bits}-bit precision",
+  "@trackConvertResamplerSoxrDetail": {
+    "placeholders": {
+      "bits": {
+        "type": "int"
+      }
+    }
+  },
+  "trackConvertResamplerSoxrPresetDetail": "{bits}-bit precision, SoX {preset}",
+  "@trackConvertResamplerSoxrPresetDetail": {
+    "placeholders": {
+      "bits": {
+        "type": "int"
+      },
+      "preset": {
+        "type": "String"
+      }
+    }
+  },
+  "trackConvertDitherSmart": "Auto"
 }

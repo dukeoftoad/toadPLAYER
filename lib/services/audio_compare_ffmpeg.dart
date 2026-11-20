@@ -6,6 +6,11 @@ import 'dart:typed_data';
 import 'package:toadplayer/services/audio_analysis_ffmpeg.dart';
 import 'package:toadplayer/services/audio_compare_dsp.dart';
 
+/// Escapes a file path for use inside an `ametadata=print:file=...` option
+/// of a libavfilter graph, like [buildAudioMetricsFilter] does inline.
+String escapeFFmpegFilterPath(String path) =>
+    path.replaceAll(r'\', r'\\').replaceAll(':', r'\:').replaceAll("'", r"\'");
+
 /// Decodes one input to float PCM at [sampleRate] with [channels] (1 or 2).
 String audioCompareDecodeChain({
   required int sampleRate,

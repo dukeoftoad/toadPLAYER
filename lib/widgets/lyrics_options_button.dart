@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart'
+    as m
+    show ButtonStyle, WidgetStatePropertyAll;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:toadplayer/controllers/player_metadata_controller.dart';
@@ -12,6 +15,7 @@ import 'package:toadplayer/providers/song_lyrics_offset_provider.dart';
 import 'package:toadplayer/services/lyrics_ai_client.dart';
 import 'package:toadplayer/services/lyrics_translation.dart';
 import 'package:toadplayer/services/lyrics_translation_languages.dart';
+import 'package:toadplayer/utils/lyrics_draft.dart' show LyricsDraft;
 import 'package:toadplayer/services/network_storage_service.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
 import 'package:toadplayer/utils/android_tv.dart';
@@ -277,10 +281,10 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
             : language
             ? const AppIcon(Icons.translate_rounded)
             : const AppIcon.adaptive(Icons.tune_rounded),
-        style: IconButton.styleFrom(
-          foregroundColor: foreground,
-          backgroundColor: colorScheme.onSurface.withValues(
-            alpha: _open ? 0.85 : 0.16,
+        style: m.ButtonStyle(
+          foregroundColor: m.WidgetStatePropertyAll(foreground),
+          backgroundColor: m.WidgetStatePropertyAll(
+            colorScheme.onSurface.withValues(alpha: _open ? 0.85 : 0.16),
           ),
         ),
         onPressed: () => _showMenu(
@@ -306,10 +310,10 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
       key: const ValueKey('lyrics-edit'),
       tooltip: context.l10n.lyricsEditTitle,
       icon: const AppIcon.adaptive(Icons.edit_note),
-      style: IconButton.styleFrom(
-        foregroundColor: foreground,
-        backgroundColor: colorScheme.onSurface.withValues(
-          alpha: _open ? 0.85 : 0.16,
+      style: m.ButtonStyle(
+        foregroundColor: m.WidgetStatePropertyAll(foreground),
+        backgroundColor: m.WidgetStatePropertyAll(
+          colorScheme.onSurface.withValues(alpha: _open ? 0.85 : 0.16),
         ),
       ),
       onPressed: _edit,
@@ -544,8 +548,15 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
           !await NetworkStorageService.instance.canEditFile(source)) {
         message = l10n.lyricsEditReadOnly;
       } else {
+        // Synced lyrics carry the translation and pronunciation as the
+        // `[x-translation:...]` / `[x-romaji:...]` tags the parsers read
+        // back; plain lyrics keep their text only.
+        final raw = metadata.rawLyrics;
+        final rendered = LyricsDraft.canEdit(raw)
+            ? (lyricsWithTranslations(raw, shown) ?? shown.plainText)
+            : shown.plainText;
         final target = await metadata.saveShownLyrics(
-          shown,
+          rendered,
           preferSidecar: saveTo == lyricsTranslationSaveToMlrc,
         );
         message = target == LyricsSaveTarget.sidecar

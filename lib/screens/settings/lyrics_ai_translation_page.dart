@@ -64,6 +64,9 @@ class _LyricsAiTranslationPageState
     final target = lyricsTranslationLanguageFor(
       settings.lyricsTranslationLanguage,
     );
+    final secondTarget = lyricsTranslationLanguageFor(
+      settings.lyricsTranslationSecondLanguage,
+    );
     final appLanguage = lyricsTranslationTargetFor(
       settings.copyWith(lyricsTranslationLanguage: ''),
     );
@@ -153,6 +156,27 @@ class _LyricsAiTranslationPageState
                 },
               ),
               SettingsItem(
+                key: const ValueKey('lyrics-ai-second-language'),
+                icon: Icons.translate_outlined,
+                title: l10n.lyricsAiSecondLanguage,
+                subtitle: secondTarget == null
+                    ? l10n.lyricsAiSecondLanguageApp(appLanguage.nativeName)
+                    : secondTarget.nativeName,
+                onTap: () async {
+                  final code = await showLyricsLanguagePicker(
+                    context,
+                    title: l10n.lyricsAiSecondLanguage,
+                    selected: secondTarget?.code ?? '',
+                    appDefaultLabel: l10n.lyricsAiSecondLanguageApp(
+                      appLanguage.nativeName,
+                    ),
+                  );
+                  if (code != null) {
+                    notifier.setLyricsTranslationSecondLanguage(code);
+                  }
+                },
+              ),
+              SettingsItem(
                 key: const ValueKey('lyrics-ai-mode'),
                 icon: Icons.speed_outlined,
                 title: l10n.lyricsAiMode,
@@ -182,6 +206,20 @@ class _LyricsAiTranslationPageState
                 subtitle: l10n.lyricsAiRomanizeSubtitle,
                 value: settings.lyricsAiRomanize,
                 onChanged: notifier.setLyricsAiRomanize,
+              ),
+              SettingsSwitchItem(
+                icon: Icons.abc_outlined,
+                title: l10n.lyricsRomanize,
+                subtitle: l10n.lyricsRomanizeSubtitle,
+                value: settings.lyricsRomanize,
+                onChanged: notifier.setLyricsRomanize,
+              ),
+              SettingsSwitchItem(
+                icon: Icons.line_weight_outlined,
+                title: l10n.lyricsRomanizedMainLine,
+                subtitle: l10n.lyricsRomanizedMainLineSubtitle,
+                value: settings.lyricsRomanizedMainLine,
+                onChanged: notifier.setLyricsRomanizedMainLine,
               ),
               SettingsItem(
                 icon: Icons.delete_outline,

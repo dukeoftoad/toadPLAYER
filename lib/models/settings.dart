@@ -114,6 +114,7 @@ class AppSettings {
   final double playbackPitch;
   final bool skipSilence;
   final bool spatialAudio;
+
   /// Android beta: play through the platform media3 engine (see
   /// [playbackMedia3Engine]). Off keeps every song on audioplayers.
   final bool media3Engine;
@@ -145,6 +146,7 @@ class AppSettings {
   final String exclusiveOutputDevice;
   final bool autoplay;
   final bool autoplayPersonalization;
+
   /// How far Autoplay reaches past the songs it played lately, from 0 (off)
   /// to 1. The ranker's exploration bonus reads it.
   final double autoplayRandomness;
@@ -299,6 +301,21 @@ class AppSettings {
   /// Align AI translations and readings to sung words instead of whole lines.
   final bool lyricsAiWordSync;
 
+  /// Romanize lyrics offline (no AI): transliterate lines into the reader
+  /// script the locale picks.
+  final bool lyricsRomanize;
+
+  /// Romanize the main line of each pair too, not only the reading line.
+  final bool lyricsRomanizedMainLine;
+
+  /// Save a finished translation into the song on its own, once the
+  /// translation is complete.
+  final bool lyricsTranslationAutoSave;
+
+  /// BCP-47 second target language, used when the song is already written
+  /// in the first target. Empty disables the fallback.
+  final String lyricsTranslationSecondLanguage;
+
   final String
   lastSeenVersion; // Last app version the user has acknowledged (e.g. '3.7.0')
 
@@ -335,6 +352,10 @@ class AppSettings {
   /// few idle seconds while playing, keeping the cover and the timeline
   /// visible; a double-tap on the cover or any touch restores them.
   final bool playerAutoHideUi;
+
+  /// Let the player's chrome hide even while accessible navigation is on,
+  /// which needs it restored through a switch instead of a touch.
+  final bool autoHideLyricsControlsWithAccessibility;
 
   /// What double-tapping the cover shows while the interface is hidden: the
   /// cover with its timeline (wave bar), or a plain black screen.
@@ -479,6 +500,10 @@ class AppSettings {
     this.lyricsAutoTranslate = false,
     this.lyricsAiRomanize = true,
     this.lyricsAiWordSync = false,
+    this.lyricsRomanize = true,
+    this.lyricsRomanizedMainLine = true,
+    this.lyricsTranslationAutoSave = false,
+    this.lyricsTranslationSecondLanguage = '',
     this.lastSeenVersion = '',
     this.deduplicateDownloads = true,
     this.allowQualityVariants = false,
@@ -492,6 +517,7 @@ class AppSettings {
     this.fadePlayback = false,
     this.fadeDuration = 2,
     this.playerAutoHideUi = false,
+    this.autoHideLyricsControlsWithAccessibility = false,
     this.playerZenBlackout = false,
     this.sleepModeEnabled = false,
   });
@@ -645,6 +671,10 @@ class AppSettings {
     bool? lyricsAutoTranslate,
     bool? lyricsAiRomanize,
     bool? lyricsAiWordSync,
+    bool? lyricsRomanize,
+    bool? lyricsRomanizedMainLine,
+    bool? lyricsTranslationAutoSave,
+    String? lyricsTranslationSecondLanguage,
     String? lastSeenVersion,
     bool? deduplicateDownloads,
     bool? allowQualityVariants,
@@ -658,6 +688,7 @@ class AppSettings {
     bool? fadePlayback,
     int? fadeDuration,
     bool? playerAutoHideUi,
+    bool? autoHideLyricsControlsWithAccessibility,
     bool? playerZenBlackout,
     bool? sleepModeEnabled,
   }) {
@@ -834,6 +865,14 @@ class AppSettings {
       lyricsAutoTranslate: lyricsAutoTranslate ?? this.lyricsAutoTranslate,
       lyricsAiRomanize: lyricsAiRomanize ?? this.lyricsAiRomanize,
       lyricsAiWordSync: lyricsAiWordSync ?? this.lyricsAiWordSync,
+      lyricsRomanize: lyricsRomanize ?? this.lyricsRomanize,
+      lyricsRomanizedMainLine:
+          lyricsRomanizedMainLine ?? this.lyricsRomanizedMainLine,
+      lyricsTranslationAutoSave:
+          lyricsTranslationAutoSave ?? this.lyricsTranslationAutoSave,
+      lyricsTranslationSecondLanguage:
+          lyricsTranslationSecondLanguage ??
+          this.lyricsTranslationSecondLanguage,
       lastSeenVersion: lastSeenVersion ?? this.lastSeenVersion,
       deduplicateDownloads: deduplicateDownloads ?? this.deduplicateDownloads,
       allowQualityVariants: allowQualityVariants ?? this.allowQualityVariants,
@@ -849,6 +888,9 @@ class AppSettings {
       fadePlayback: fadePlayback ?? this.fadePlayback,
       fadeDuration: fadeDuration ?? this.fadeDuration,
       playerAutoHideUi: playerAutoHideUi ?? this.playerAutoHideUi,
+      autoHideLyricsControlsWithAccessibility:
+          autoHideLyricsControlsWithAccessibility ??
+          this.autoHideLyricsControlsWithAccessibility,
       playerZenBlackout: playerZenBlackout ?? this.playerZenBlackout,
       sleepModeEnabled: sleepModeEnabled ?? this.sleepModeEnabled,
     );

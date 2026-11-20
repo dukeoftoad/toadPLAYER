@@ -310,7 +310,8 @@ class _WordHighlightedLyricLineState
     final decorativeMotion =
         !MediaQuery.disableAnimationsOf(context) &&
         !ref.read(lowEndDeviceProvider);
-    final glow = context.isToadplayer && ref.read(toadplayerLiquidGlassProvider);
+    final glow =
+        context.isToadplayer && ref.read(toadplayerLiquidGlassProvider);
     var end = Duration.zero;
     for (final words in [
       widget.line.words,
@@ -402,6 +403,21 @@ class _WordHighlightedLyricLineState
       pronunciationLayout: widget.pronunciationLayout,
       textAlign: widget.textAlign,
     );
+  }
+
+  /// Where a supplement reads relative to its line: the same script keeps
+  /// the line's alignment; a mirrored script keeps its own edge.
+  TextAlign _supplementTextAlign(
+    TextAlign textAlign,
+    TextDirection lineDirection,
+    TextDirection direction,
+  ) {
+    if (direction == lineDirection) return textAlign;
+    return switch (textAlign) {
+      TextAlign.left => TextAlign.right,
+      TextAlign.right => TextAlign.left,
+      _ => textAlign,
+    };
   }
 
   Widget _buildTimedText(
