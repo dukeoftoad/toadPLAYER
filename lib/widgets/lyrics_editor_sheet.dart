@@ -41,6 +41,41 @@ bool canEditPlayerLyrics(PlayerMetadataController metadata) {
   return !metadata.loading && LyricsDraft.canEdit(metadata.rawLyrics);
 }
 
+/// A tap can land while the route hosting the editor's button is still
+/// settling — the player screen mid-push, a context menu mid-fade — and a
+/// sheet pushed against a live transition races it. Wait briefly for the
+/// route to settle; a stalled transition still opens the editor rather than
+/// silently dropping the tap.
+Future<void> _waitForRouteToSettle(BuildContext context) async {
+  final animation = ModalRoute.of(context)?.animation;
+  if (animation == null) return;
+  switch (animation.status) {
+    case AnimationStatus.completed:
+    case AnimationStatus.dismissed:
+      return;
+    case AnimationStatus.forward:
+    case AnimationStatus.reverse:
+      break;
+  }
+  final settled = Completer<void>();
+  void listener(AnimationStatus status) {
+    if (status == AnimationStatus.completed ||
+        status == AnimationStatus.dismissed) {
+      animation.removeStatusListener(listener);
+      if (!settled.isCompleted) settled.complete();
+    }
+  }
+
+  animation.addStatusListener(listener);
+  try {
+    await settled.future.timeout(const Duration(milliseconds: 650));
+  } on TimeoutException {
+    // The transition stalled; open anyway.
+  } finally {
+    animation.removeStatusListener(listener);
+  }
+}
+
 /// Opens the lyrics editor for [metadata]'s track: a full-height sheet on
 /// phones, a 720dp editor dialog on desktop.
 Future<void> openLyricsEditor(
@@ -69,6 +104,8 @@ Future<void> openLyricsEditor(
     }
     return;
   }
+  if (!context.mounted) return;
+  await _waitForRouteToSettle(context);
   if (!context.mounted) return;
   final saved = await showAppModalBottomSheet<Object>(
     context: context,

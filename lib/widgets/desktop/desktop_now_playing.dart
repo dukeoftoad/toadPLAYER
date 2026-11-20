@@ -33,6 +33,7 @@ import 'package:toadplayer/widgets/player_artwork.dart';
 import 'package:toadplayer/widgets/player_details_sheet.dart';
 import 'package:toadplayer/widgets/player_lyrics_section.dart';
 import 'package:toadplayer/widgets/player_metadata_title.dart';
+import 'package:toadplayer/widgets/lyrics_options_activity.dart';
 import 'package:toadplayer/widgets/playback_source_label.dart';
 import 'package:toadplayer/widgets/player_playback_controls.dart';
 import 'package:toadplayer/widgets/player_volume_control.dart';
@@ -328,25 +329,29 @@ class _DesktopNowPlayingState extends ConsumerState<DesktopNowPlaying> {
                       children: [
                         // Hidden lyrics follow line positions so they reopen
                         // centered, without running word animations off screen.
-                        IgnorePointer(
-                          key: const ValueKey('desktop-now-playing-lyrics'),
-                          ignoring: !showsLyrics,
-                          child: ExcludeFocus(
-                            excluding: !showsLyrics,
-                            child: AnimatedOpacity(
-                              opacity: showsLyrics ? 1 : 0,
-                              duration: switchDuration,
-                              child: NoScrollbars(
-                                child: PlayerLyricsSection(
-                                  metadata: _metadata,
-                                  seekPreview: _seekPreview,
-                                  colorScheme: colorScheme,
-                                  isActive: true,
-                                  animateWords: showsLyrics,
-                                  options: LyricsOptionsButton(
+                        // The pane carries its own activity region: a touch on
+                        // the lyrics keeps the options button revealed.
+                        LyricsOptionsActivity(
+                          child: IgnorePointer(
+                            key: const ValueKey('desktop-now-playing-lyrics'),
+                            ignoring: !showsLyrics,
+                            child: ExcludeFocus(
+                              excluding: !showsLyrics,
+                              child: AnimatedOpacity(
+                                opacity: showsLyrics ? 1 : 0,
+                                duration: switchDuration,
+                                child: NoScrollbars(
+                                  child: PlayerLyricsSection(
                                     metadata: _metadata,
+                                    seekPreview: _seekPreview,
                                     colorScheme: colorScheme,
-                                    translationOwner: this,
+                                    isActive: true,
+                                    animateWords: showsLyrics,
+                                    options: LyricsOptionsButton(
+                                      metadata: _metadata,
+                                      colorScheme: colorScheme,
+                                      translationOwner: this,
+                                    ),
                                   ),
                                 ),
                               ),
