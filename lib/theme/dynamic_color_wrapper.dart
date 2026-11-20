@@ -5,6 +5,7 @@ import 'package:toadplayer/providers/theme_provider.dart';
 import 'package:toadplayer/providers/custom_font_provider.dart';
 import 'package:toadplayer/theme/app_theme.dart';
 import 'package:toadplayer/models/theme_settings.dart';
+import 'package:toadplayer/theme/sketchbook_theme.dart';
 import 'package:toadplayer/theme/toad_theme.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
 
@@ -77,6 +78,16 @@ class DynamicColorWrapper extends ConsumerWidget {
               useSystemFont: themeSettings.useSystemFont,
               fontFamily: fontFamily,
             ),
+            themeSettings.themeMode,
+          );
+        }
+
+        if (themeSettings.style == AppThemeStyle.sketchbook) {
+          // The sketchbook style keeps its own hand-written fonts, so the
+          // system-font and custom-font picks do not apply here.
+          return builder(
+            SketchbookTheme.build(Brightness.light),
+            SketchbookTheme.build(Brightness.dark),
             themeSettings.themeMode,
           );
         }

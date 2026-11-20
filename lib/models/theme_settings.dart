@@ -40,7 +40,7 @@ double normalizeToadplayerGlassClarity(num? value) =>
     ? value.toDouble().clamp(0.0, 1.0)
     : kDefaultToadplayerGlassClarity;
 
-enum AppThemeStyle { material, toad, toadplayer }
+enum AppThemeStyle { material, toad, toadplayer, sketchbook }
 
 enum ToadplayerAccent { red, orange, green, teal, blue, purple, pink }
 

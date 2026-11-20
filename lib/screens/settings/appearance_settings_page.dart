@@ -7,6 +7,7 @@ import 'package:toadplayer/models/theme_settings.dart';
 import 'package:toadplayer/providers/theme_provider.dart';
 import 'package:toadplayer/screens/settings/settings_widgets.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
+import 'package:toadplayer/widgets/sketchbook/toad_mascot.dart';
 
 class AppearanceSettingsPage extends ConsumerWidget {
   const AppearanceSettingsPage({super.key});
@@ -38,6 +39,20 @@ class AppearanceSettingsPage extends ConsumerWidget {
             selected: theme.style == AppThemeStyle.toad,
             onTap: () =>
                 ref.read(themeProvider.notifier).setStyle(AppThemeStyle.toad),
+          ),
+          _StyleCard(
+            title: 'Sketchbook',
+            subtitle: 'Hand-drawn ink on cream paper, straight from toadHEALTH',
+            selected: theme.style == AppThemeStyle.sketchbook,
+            onTap: () => ref
+                .read(themeProvider.notifier)
+                .setStyle(AppThemeStyle.sketchbook),
+            preview: SizedBox.square(
+              dimension: 40,
+              child: CustomPaint(
+                painter: ToadPainter(pose: ToadPose.idle, phase: 0.35),
+              ),
+            ),
           ),
           _StyleCard(
             icon: Icons.auto_awesome_outlined,
@@ -114,7 +129,8 @@ class AppearanceSettingsPage extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: Text(
                       'These switches style the System Material theme; the '
-                      'Toad and Glass palettes keep their crafted colors.',
+                      'Toad, Glass and Sketchbook palettes keep their '
+                      'crafted colors.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -157,14 +173,19 @@ class AppearanceSettingsPage extends ConsumerWidget {
 /// when selected — an easier target than the old cramped segmented button.
 class _StyleCard extends StatelessWidget {
   const _StyleCard({
-    required this.icon,
+    this.icon,
+    this.preview,
     required this.title,
     required this.subtitle,
     required this.selected,
     required this.onTap,
-  });
+  }) : assert(
+         icon != null || preview != null,
+         'A style card needs an icon or a preview widget',
+       );
 
-  final IconData icon;
+  final IconData? icon;
+  final Widget? preview;
   final String title;
   final String subtitle;
   final bool selected;
@@ -193,12 +214,15 @@ class _StyleCard extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                Icon(
-                  icon,
-                  color: selected
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant,
-                ),
+                if (preview != null)
+                  preview!
+                else
+                  Icon(
+                    icon,
+                    color: selected
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                  ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
