@@ -16372,6 +16372,36 @@ abstract class AppLocalizations {
   /// **'{bits}-bit precision, SoX {preset}'**
   String trackConvertResamplerSoxrPresetDetail(int bits, String preset);
 
+  /// Lossless conversion fast resampler quality
+  ///
+  /// In en, this message translates to:
+  /// **'Fast'**
+  String get trackConvertResamplerQualityFast;
+
+  /// Lossless conversion medium resampler quality
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get trackConvertResamplerQualityMedium;
+
+  /// Lossless conversion high resampler quality
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get trackConvertResamplerQualityHigh;
+
+  /// Lossless conversion very high resampler quality
+  ///
+  /// In en, this message translates to:
+  /// **'Very high'**
+  String get trackConvertResamplerQualityVeryHigh;
+
+  /// Lossless conversion best resampler quality
+  ///
+  /// In en, this message translates to:
+  /// **'Best'**
+  String get trackConvertResamplerQualityBest;
+
   /// No description provided for @trackConvertDitherSmart.
   ///
   /// In en, this message translates to:

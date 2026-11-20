@@ -10195,5 +10195,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get trackConvertResamplerQualityFast => 'Fast';
+
+  @override
+  String get trackConvertResamplerQualityMedium => 'Medium';
+
+  @override
+  String get trackConvertResamplerQualityHigh => 'High';
+
+  @override
+  String get trackConvertResamplerQualityVeryHigh => 'Very high';
+
+  @override
+  String get trackConvertResamplerQualityBest => 'Best';
+
+  @override
   String get trackConvertDitherSmart => 'Auto';
 }

@@ -9,6 +9,7 @@ import 'package:ffmpeg_kit_flutter_new_audio/media_information.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:toadplayer/services/audio_analysis_ffmpeg.dart';
 import 'package:toadplayer/services/audio_analysis_jobs.dart';
+import 'package:toadplayer/services/audio_analysis_models.dart';
 import 'package:toadplayer/services/audio_analysis_runner.dart';
 import 'package:toadplayer/services/audio_compare_dsp.dart';
 import 'package:toadplayer/services/audio_compare_ffmpeg.dart';

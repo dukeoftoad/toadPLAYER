@@ -11083,5 +11083,10 @@
       }
     }
   },
-  "trackConvertDitherSmart": "Auto"
+  "trackConvertDitherSmart": "Auto",
+  "trackConvertResamplerQualityFast": "Fast",
+  "trackConvertResamplerQualityMedium": "Medium",
+  "trackConvertResamplerQualityHigh": "High",
+  "trackConvertResamplerQualityVeryHigh": "Very high",
+  "trackConvertResamplerQualityBest": "Best"
 }

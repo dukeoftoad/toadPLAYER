@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:toadplayer/theme/app_motion.dart';
 import 'package:toadplayer/theme/cover_palette.dart';
 import 'package:toadplayer/widgets/cached_cover_image.dart';
