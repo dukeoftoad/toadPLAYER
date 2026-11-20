@@ -20,7 +20,6 @@ import 'package:toadplayer/services/audio_analysis_models.dart';
 import 'package:toadplayer/services/audio_analysis_runner.dart';
 import 'package:toadplayer/services/audio_compare_dsp.dart';
 import 'package:toadplayer/services/audio_compare_engine.dart';
-import 'package:toadplayer/services/audio_compare_ffmpeg.dart';
 import 'package:audio_service/audio_service.dart' show MediaItem;
 import 'package:toadplayer/services/audio_file_open_service.dart'
     show openAudioExtensions;

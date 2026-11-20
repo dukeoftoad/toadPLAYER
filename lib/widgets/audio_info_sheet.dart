@@ -246,7 +246,7 @@ class _AudioInfoSheetState extends State<_AudioInfoSheet>
                           ? null
                           : () => pickAndShowAudioCompare(
                               context,
-                              referencePath: path!,
+                              referencePath: path,
                               referenceSize: _fileSize ?? 0,
                             ),
                       icon: const Icon(Icons.compare, size: 18),
