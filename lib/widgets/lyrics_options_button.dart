@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart'
     as m
-    show ButtonStyle, WidgetStatePropertyAll;
+    show ButtonStyle, ColorScheme, WidgetStatePropertyAll;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:toadplayer/controllers/player_metadata_controller.dart';
