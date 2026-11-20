@@ -316,14 +316,15 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
           colorScheme.onSurface.withValues(alpha: _open ? 0.85 : 0.16),
         ),
       ),
-      onPressed: _edit,
+      onPressed: () => _edit(context),
     );
   }
 
-  Future<void> _edit() async {
+  Future<void> _edit(BuildContext buttonContext) async {
+    if (!mounted || !buttonContext.mounted) return;
     _setOpen(true);
     try {
-      await openLyricsEditor(context, widget.metadata);
+      await openLyricsEditor(buttonContext, widget.metadata);
     } finally {
       _setOpen(false);
     }
