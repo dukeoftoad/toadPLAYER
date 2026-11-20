@@ -40,7 +40,8 @@ double normalizeToadplayerGlassClarity(num? value) =>
     ? value.toDouble().clamp(0.0, 1.0)
     : kDefaultToadplayerGlassClarity;
 
-enum AppThemeStyle { material, toad, toadplayer, sketchbook }
+// Append new styles so previously persisted enum names continue to resolve.
+enum AppThemeStyle { material, toad, toadplayer, sketchbook, toadmark }
 
 enum ToadplayerAccent { red, orange, green, teal, blue, purple, pink }
 
@@ -61,7 +62,7 @@ AppThemeStyle themeStyleFromString(String? value) => AppThemeStyle.values
     .firstWhere((style) => style.name == value, orElse: defaultAppThemeStyle);
 
 /// Fallback seed when dynamic color and a custom seed are unavailable.
-const int kDefaultSeedColor = 0xFF84CC16;
+const int kDefaultSeedColor = 0xFF1DB954;
 
 class ThemeSettings {
   final ThemeMode themeMode;
@@ -84,7 +85,7 @@ class ThemeSettings {
     this.useDynamicColor = true,
     this.seedColorValue = kDefaultSeedColor,
     this.useAmoled = false,
-    this.style = AppThemeStyle.toad,
+    this.style = AppThemeStyle.material,
     this.toadplayerAccent = ToadplayerAccent.blue,
     this.useSystemFont = false,
     this.customFontId = '',
