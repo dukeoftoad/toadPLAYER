@@ -133,7 +133,7 @@ class _ToadplayerPlayerArtworkState
       layoutBuilder: (current, previous) => Stack(
         fit: StackFit.passthrough,
         alignment: Alignment.center,
-        children: [...previous, current],
+        children: [...previous, ?current],
       ),
       child: KeyedSubtree(
         key: ValueKey(widget.mediaItem.artUri?.toString()),

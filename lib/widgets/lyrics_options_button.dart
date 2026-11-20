@@ -104,7 +104,7 @@ class LyricsOptionsButton extends ConsumerStatefulWidget {
   });
 
   final PlayerMetadataController metadata;
-  final ColorScheme colorScheme;
+  final m.ColorScheme colorScheme;
 
   /// The screen that cancels a translation it started when it closes.
   final Object? translationOwner;

@@ -3,7 +3,7 @@ import 'dart:collection';
 import 'dart:ui' show BoxHeightStyle, ImageFilter;
 
 import 'package:audio_service/audio_service.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show ValueListenable, listEquals;
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter/rendering.dart'
@@ -45,7 +45,8 @@ const _toadplayerLyricFontSize = 34.0;
 /// a phone. Null keeps the text theme's size (phones and tablets).
 double? get _materialLyricFontSize => isDesktopPlatform ? 32 : null;
 double get _materialBackgroundLyricFontSize => isDesktopPlatform ? 24 : 18;
-const toadplayerLyricsContentInset = 28.0 + ToadplayerPlayerSlider.horizontalInset;
+const toadplayerLyricsContentInset =
+    28.0 + ToadplayerPlayerSlider.horizontalInset;
 
 /// How much of the lyrics area's bottom the player's controls cover. The
 /// Toadplayer phone player lays lyrics out under its controls so they can grow
