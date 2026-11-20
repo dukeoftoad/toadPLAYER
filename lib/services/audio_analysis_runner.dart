@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:ffmpeg_kit_flutter_new_audio/media_information.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:toadplayer/services/audio_analysis_ffmpeg.dart';
 import 'package:toadplayer/services/audio_analysis_jobs.dart';
@@ -117,6 +118,45 @@ class AudioAnalysisRunner {
     start: FFmpegExecution.start,
     cancel: FFmpegExecution.cancel,
   );
+
+  /// Reads the audio stream facts out of a probed [MediaInformation], for
+  /// callers that only need codec, sampling and length. Throws when the
+  /// probe carries no audio stream.
+  static AudioAnalysisMediaInfo parseMediaInfo(MediaInformation info) {
+    final streams = info.getStreams();
+    final audioStream = streams.firstWhere(
+      (s) => s.getAllProperties()?['codec_type'] == 'audio',
+      orElse: () => throw Exception('No audio stream found'),
+    );
+    final props = audioStream.getAllProperties() ?? {};
+    final codecName = props['codec_name']?.toString().toLowerCase() ?? '';
+    final sampleRate =
+        int.tryParse(props['sample_rate']?.toString() ?? '') ?? 0;
+    final channels = int.tryParse(props['channels']?.toString() ?? '') ?? 0;
+    final streamDuration = double.tryParse(props['duration']?.toString() ?? '');
+    final containerDuration = double.tryParse(info.getDuration() ?? '');
+    final duration =
+        (streamDuration != null && streamDuration > 0
+            ? streamDuration
+            : containerDuration) ??
+        0;
+    var bitsPerSample =
+        int.tryParse(props['bits_per_raw_sample']?.toString() ?? '') ?? 0;
+    if (bitsPerSample == 0) {
+      bitsPerSample =
+          int.tryParse(props['bits_per_sample']?.toString() ?? '') ?? 0;
+    }
+    final totalSamples =
+        int.tryParse(props['duration_ts']?.toString() ?? '') ?? 0;
+    return AudioAnalysisMediaInfo(
+      codecName: codecName,
+      sampleRate: sampleRate,
+      bitsPerSample: bitsPerSample,
+      channels: channels,
+      duration: duration,
+      totalSamples: totalSamples,
+    );
+  }
 
   void _checkCancelled(bool Function() isCancelled) {
     if (isCancelled()) {
