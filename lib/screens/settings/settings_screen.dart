@@ -37,6 +37,7 @@ class SettingsScreen extends ConsumerWidget {
                 AppThemeStyle.toad => 'Toad theme',
                 AppThemeStyle.toadplayer => 'Glass theme',
                 AppThemeStyle.sketchbook => 'Sketchbook theme',
+                AppThemeStyle.toadmark => 'Toadmark theme',
               },
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
