@@ -9,9 +9,11 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:toadplayer/controllers/open_audio_controller.dart';
+import 'package:toadplayer/models/theme_settings.dart';
 import 'package:toadplayer/providers/library_collections_provider.dart';
 import 'package:toadplayer/providers/music_player_provider.dart';
 import 'package:toadplayer/providers/settings_provider.dart';
+import 'package:toadplayer/providers/theme_provider.dart';
 import 'package:toadplayer/screens/equalizer_screen.dart';
 import 'package:toadplayer/screens/library_detail_screen.dart';
 import 'package:toadplayer/screens/library_smart_screen.dart';
@@ -25,6 +27,8 @@ import 'package:toadplayer/widgets/desktop/desktop_player_bar.dart';
 import 'package:toadplayer/widgets/library/library_views.dart';
 import 'package:toadplayer/widgets/lyrics_preview_card.dart';
 import 'package:toadplayer/widgets/mini_player.dart';
+import 'package:toadplayer/widgets/sketchbook/sketch_components.dart';
+import 'package:toadplayer/widgets/sketchbook/toad_mascot.dart';
 import 'package:toadplayer/widgets/sleep_timer_sheet.dart';
 
 class StandalonePlayerHomeScreen extends ConsumerStatefulWidget {
@@ -987,6 +991,9 @@ class _LibraryEmptyState extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final hasDefaultFolder =
         ref.watch(settingsProvider).defaultAudioFolder.isNotEmpty;
+    final isSketchbook =
+        ref.watch(themeProvider.select((s) => s.style)) ==
+        AppThemeStyle.sketchbook;
 
     return Center(
       child: Padding(
@@ -994,13 +1001,28 @@ class _LibraryEmptyState extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.library_music_outlined,
-              size: 72,
-              color: colorScheme.onSurfaceVariant,
-            ),
+            if (isSketchbook) ...[
+              // The family toad hosts the empty paper sheet in the
+              // Sketchbook theme: he bobs gently and cheers when tapped.
+              const SketchToad(size: 116),
+              const SizedBox(height: 10),
+              const SketchSpeechBubble(
+                text: 'Hop to it! Choose a music folder and I will hop '
+                    'through your tunes.',
+              ),
+              const SizedBox(height: 8),
+            ] else
+              Icon(
+                Icons.library_music_outlined,
+                size: 72,
+                color: colorScheme.onSurfaceVariant,
+              ),
             const SizedBox(height: 16),
             Text('Your library is empty', style: textTheme.titleMedium),
+            if (isSketchbook) ...[
+              const SizedBox(height: 5),
+              const SketchSquiggle(),
+            ],
             const SizedBox(height: 8),
             Text(
               'Choose a music folder in Settings to build your songs, '
@@ -1011,7 +1033,56 @@ class _LibraryEmptyState extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            if (hasDefaultFolder) ...[
+            if (isSketchbook)
+              // The calls to action on a paper note with a wobbly border.
+              SketchCard(
+                seed: 3.2,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (hasDefaultFolder) ...[
+                      SketchButton(
+                        seed: 4.4,
+                        onTap: () => _playDefaultFolder(context, ref),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.play_circle_outline, size: 18),
+                            SizedBox(width: 7),
+                            Text('Play default folder'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SketchButton(
+                        seed: 5.6,
+                        onTap: () => _openSettings(context),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.folder_open_outlined, size: 18),
+                            SizedBox(width: 7),
+                            Text('Folders & settings'),
+                          ],
+                        ),
+                      ),
+                    ] else
+                      SketchButton(
+                        seed: 4.4,
+                        onTap: () => _openSettings(context),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.folder_open_outlined, size: 18),
+                            SizedBox(width: 7),
+                            Text('Choose a music folder'),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              )
+            else if (hasDefaultFolder) ...[
               FilledButton.icon(
                 onPressed: () => _playDefaultFolder(context, ref),
                 icon: const Icon(Icons.play_circle_outline),
@@ -1019,27 +1090,26 @@ class _LibraryEmptyState extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const SettingsScreen(),
-                  ),
-                ),
+                onPressed: () => _openSettings(context),
                 icon: const Icon(Icons.folder_open_outlined),
                 label: const Text('Folders & settings'),
               ),
             ] else
               FilledButton.icon(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const SettingsScreen(),
-                  ),
-                ),
+                onPressed: () => _openSettings(context),
                 icon: const Icon(Icons.folder_open_outlined),
                 label: const Text('Choose a music folder'),
               ),
           ],
         ),
       ),
+    );
+  }
+
+  /// Opens the settings hub where the default music folder is picked.
+  void _openSettings(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
     );
   }
 

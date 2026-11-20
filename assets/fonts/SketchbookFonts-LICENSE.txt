@@ -1,0 +1,14 @@
+Sketchbook hand-written fonts
+=============================
+
+The Sketchbook theme bundles two Google Fonts, both licensed under the
+SIL Open Font License, Version 1.1:
+
+Caveat
+  Copyright 2011 The Caveat Project Authors (https://github.com/googlefonts/caveat)
+
+Patrick Hand
+  Copyright 2010 The Patrick Hand Project Authors (https://github.com/google/fonts/tree/main/ofl/patrickhand)
+
+Full licence text: https://openfontlicense.org
+Fonts sourced from Google Fonts (https://fonts.google.com).
