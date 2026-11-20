@@ -103,8 +103,8 @@ internal fun executeCoreFFmpegCommand(
 
 internal fun withCoreFFmpegExecution(
     execution: CoreExtensionExecution,
-    execute: (Array<String>, () -> Boolean) -> Pair<Boolean, String> = { arguments, cancelled ->
-        NativeDownloadFinalizer.runFFmpegArguments(arguments, cancelled, trackFinalizerSession = false)
+    execute: (Array<String>, () -> Boolean) -> Pair<Boolean, String> = { _, _ ->
+        false to "FFmpeg download finalizer is disabled in isolated player"
     },
     block: (CoreExtensionExecution) -> String,
 ): String {
