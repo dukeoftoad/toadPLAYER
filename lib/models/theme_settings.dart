@@ -51,12 +51,12 @@ ToadplayerAccent toadplayerAccentFromString(String? value) =>
       orElse: () => ToadplayerAccent.blue,
     );
 
-/// Style used until the person picks one: retain the native Toadplayer look on
-/// macOS, and use the shared Toadmark family theme on other platforms.
+/// Style used until the person picks one: Toadplayer on macOS, Material on
+/// Windows, Linux and mobile.
 AppThemeStyle defaultAppThemeStyle() =>
     isDesktopPlatform && defaultTargetPlatform == TargetPlatform.macOS
     ? AppThemeStyle.toadplayer
-    : AppThemeStyle.toad;
+    : AppThemeStyle.material;
 
 AppThemeStyle themeStyleFromString(String? value) => AppThemeStyle.values
     .firstWhere((style) => style.name == value, orElse: defaultAppThemeStyle);
