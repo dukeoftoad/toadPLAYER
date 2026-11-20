@@ -7,6 +7,7 @@ import 'package:toadplayer/theme/app_theme.dart';
 import 'package:toadplayer/models/theme_settings.dart';
 import 'package:toadplayer/theme/sketchbook_theme.dart';
 import 'package:toadplayer/theme/toad_theme.dart';
+import 'package:toadplayer/theme/toadmark_theme.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
 
 class DynamicColorWrapper extends ConsumerWidget {
@@ -74,6 +75,22 @@ class DynamicColorWrapper extends ConsumerWidget {
               fontFamily: fontFamily,
             ),
             ToadTheme.build(
+              Brightness.dark,
+              useSystemFont: themeSettings.useSystemFont,
+              fontFamily: fontFamily,
+            ),
+            themeSettings.themeMode,
+          );
+        }
+
+        if (themeSettings.style == AppThemeStyle.toadmark) {
+          return builder(
+            ToadmarkTheme.build(
+              Brightness.light,
+              useSystemFont: themeSettings.useSystemFont,
+              fontFamily: fontFamily,
+            ),
+            ToadmarkTheme.build(
               Brightness.dark,
               useSystemFont: themeSettings.useSystemFont,
               fontFamily: fontFamily,

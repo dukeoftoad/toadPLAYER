@@ -1,5 +1,5 @@
 // The Appearance page: the theme style picked from full-width cards (System
-// Material / the crafted Toad / Glass), light-dark mode and the color
+// Material / Toad / Toadmark / Glass), light-dark mode and the color
 // switches. Promoted from the crowded inline section on the old hub.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,10 +35,19 @@ class AppearanceSettingsPage extends ConsumerWidget {
           _StyleCard(
             icon: Icons.emoji_nature_outlined,
             title: 'Toad',
-            subtitle: 'The crafted Toad palette — moss green, every device',
+            subtitle: 'The original crafted Toad palette — moss green and warm earth accents',
             selected: theme.style == AppThemeStyle.toad,
             onTap: () =>
                 ref.read(themeProvider.notifier).setStyle(AppThemeStyle.toad),
+          ),
+          _StyleCard(
+            icon: Icons.eco_outlined,
+            title: 'Toadmark',
+            subtitle: 'Shared frog-lime and pond palette, with warm paper in light mode',
+            selected: theme.style == AppThemeStyle.toadmark,
+            onTap: () => ref
+                .read(themeProvider.notifier)
+                .setStyle(AppThemeStyle.toadmark),
           ),
           _StyleCard(
             title: 'Sketchbook',
@@ -129,7 +138,7 @@ class AppearanceSettingsPage extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: Text(
                       'These switches style the System Material theme; the '
-                      'Toad, Glass and Sketchbook palettes keep their '
+                      'Toad, Toadmark, Glass and Sketchbook palettes keep their '
                       'crafted colors.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
