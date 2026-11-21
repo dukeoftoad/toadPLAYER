@@ -188,15 +188,26 @@ jobs:
 
             - `toadplayer-*-arm64-v8a.apk` — one build for modern 64-bit devices
 
-            **What's new in v1.2.1**
+            **What's new in v1.4.0 — back to the v1.2.2 foundation**
 
-            - Maintenance release: a full comment audit of the Flutter UI
-              and service layer — the codebase documents its protocols,
-              format contracts and platform workarounds in place, so no
-              license headers or functional documentation were stripped;
-              only stale release notes were refreshed.
-            - Version bumped to 1.2.1+3; no behavior changes and no new
-              permissions.
+            - A stabilization release built directly on the trusted
+              v1.2.2 codebase. The v1.3.x mornye-port line is withdrawn
+              from this release; its features will return individually,
+              each behind its own tests.
+            - Fixed: Hi-Res / bit-perfect exclusive playback failed with
+              EACCES for SAF folder tracks. The AAudio, USB bit-perfect
+              and DSD pipelines now duplicate the granted SAF descriptor
+              instead of reopening /proc/self/fd/<n> (AppFuse rejects the
+              second open), so FLAC/WAV/DSF/DFF/WavPack DSD all play
+              through the exclusive path again.
+            - Fixed: the FTS5 capability probe no longer raises a native
+              "no such module: fts5" error on devices whose SQLite is
+              built without FTS5; search still falls back to LIKE there.
+            - New unit-test gates in CI: the Flutter test suite (path
+              matching, lyrics draft editing, conversion rules, SQLite
+              helpers), the Rust workspace tests, and the host libFLAC
+              decoder tests, including descriptor-based opens.
+            - Version bumped to 1.4.0+7.
 
             **v1.2.0 highlights**
 

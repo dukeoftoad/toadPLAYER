@@ -31,6 +31,13 @@ public:
     uint64_t samples = 0;
 
     explicit FlacPcmSource(const char *path);
+    // Opens an already-granted descriptor, duplicating it for the decoder's
+    // own FILE*. AppFuse SAF proxies reject reopening /proc/self/fd/<n>, so
+    // descriptorless path opens are not an option for those sources.
+    explicit FlacPcmSource(int descriptor);
     size_t read(uint8_t *output, size_t capacity, int outputBits);
     void seek(uint64_t sample);
+
+private:
+    void readHeaderAndCheckFormat();
 };

@@ -1,11 +1,59 @@
 package com.toadplayer.app
 
-import java.io.RandomAccessFile
+import java.io.Closeable
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.channels.FileChannel
+
+/** The RandomAccessFile surface [DsdFile] reads through. */
+internal interface RandomAccessInput : Closeable {
+    fun read(buffer: ByteArray): Int
+    fun readFully(buffer: ByteArray)
+    fun readInt(): Int
+    fun readUnsignedShort(): Int
+    fun seek(position: Long)
+    val filePointer: Long
+    val length: Long
+}
+
+/** Channel-backed input that serves real paths and duplicated SAF leases
+ * alike: AppFuse rejects reopening /proc/self/fd/<n>, so leases read through
+ * a dup instead. Closing the channel closes the underlying descriptor. */
+internal class ChannelRandomAccessInput(private val channel: FileChannel) : RandomAccessInput {
+    override fun read(buffer: ByteArray): Int = channel.read(ByteBuffer.wrap(buffer))
+
+    override fun readFully(buffer: ByteArray) {
+        val target = ByteBuffer.wrap(buffer)
+        while (target.hasRemaining()) {
+            val count = channel.read(target)
+            if (count < 0) throw java.io.EOFException("Truncated DSD data")
+        }
+    }
+
+    override fun readInt(): Int = readInteger(4)
+
+    override fun readUnsignedShort(): Int = readInteger(2)
+
+    // RandomAccessFile reads these big-endian; keep that byte order.
+    private fun readInteger(size: Int): Int {
+        val buffer = ByteArray(size)
+        readFully(buffer)
+        var value = 0
+        for (byte in buffer) value = (value shl 8) or (byte.toInt() and 0xff)
+        return value
+    }
+
+    override fun seek(position: Long) {
+        channel.position(position)
+    }
+
+    override val filePointer: Long get() = channel.position()
+    override val length: Long get() = channel.size()
+    override fun close() { channel.close() }
+}
 
 /** Bounded DSF/uncompressed DSDIFF reader. Samples are normalized to MSB first. */
-internal class DsdFile private constructor(private val file: RandomAccessFile) : DsdSource {
+internal class DsdFile private constructor(private val file: RandomAccessInput) : DsdSource {
     override var rate = 0
         private set
     override var channels = 0
@@ -21,7 +69,7 @@ internal class DsdFile private constructor(private val file: RandomAccessFile) :
 
     companion object {
         fun open(path: String): DsdFile? {
-            val file = RandomAccessFile(path, "r")
+            val file: RandomAccessInput = ChannelRandomAccessInput(SafFd.openChannel(path))
             try {
                 val magic = ByteArray(4)
                 if (file.read(magic) != 4 || (!magic.contentEquals("DSD ".toByteArray()) &&

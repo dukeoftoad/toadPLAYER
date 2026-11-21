@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <dlfcn.h>
 #include <limits>
@@ -14,7 +15,9 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <sys/stat.h>
 #include <sys/system_properties.h>
+#include <unistd.h>
 #include <unordered_map>
 #include <vector>
 
@@ -201,19 +204,107 @@ public:
     int rate = 0;
     int64_t samples = 0;
     explicit DsdDecoder(const char *path) {
-        char error[80]{};
-        context = WavpackOpenFileInput(path, error, OPEN_DSD_NATIVE | OPEN_ALT_TYPES, 0);
-        require(context != nullptr, "Cannot open WavPack file");
-        channels = WavpackGetNumChannels(context);
-        rate = static_cast<int>(WavpackGetNativeSampleRate(context));
-        samples = WavpackGetNumSamples64(context);
+        file = std::fopen(path, "rb");
+        if (file == nullptr) throw std::runtime_error("Cannot open WavPack file");
+        try { open(); } catch (...) { closeFile(); throw; }
     }
-    ~DsdDecoder() { if (context) WavpackCloseFile(context); }
+    // AppFuse SAF proxies reject reopening /proc/self/fd/<n>, so lease files
+    // arrive as descriptors; the decoder duplicates its own FILE* from it.
+    explicit DsdDecoder(int descriptor) {
+        require(descriptor >= 0, "Invalid WavPack descriptor");
+        const int duplicate = ::dup(descriptor);
+        require(duplicate >= 0, "Cannot duplicate WavPack descriptor");
+        file = ::fdopen(duplicate, "rb");
+        if (file == nullptr) {
+            ::close(duplicate);
+            throw std::runtime_error("Cannot open WavPack descriptor");
+        }
+        try { open(); } catch (...) { closeFile(); throw; }
+    }
+    ~DsdDecoder() {
+        if (context != nullptr) WavpackCloseFile(context);
+        closeFile();
+    }
     bool isDsd() const { return (WavpackGetQualifyMode(context) & QMODE_DSD_AUDIO) != 0; }
+private:
+    FILE *file = nullptr;
+    void open() {
+        char error[80]{};
+        // reader->close stays unset: this class, not the library, closes the
+        // FILE*, on both the success and the failure path of the open.
+        context = WavpackOpenFileInputEx64(&stdioReader(), file, nullptr, error,
+                                           OPEN_DSD_NATIVE | OPEN_ALT_TYPES, 0);
+        if (context == nullptr) throw std::runtime_error("Cannot open WavPack file");
+        try {
+            channels = WavpackGetNumChannels(context);
+            rate = static_cast<int>(WavpackGetNativeSampleRate(context));
+            samples = WavpackGetNumSamples64(context);
+        } catch (...) {
+            WavpackCloseFile(context);
+            context = nullptr;
+            throw;
+        }
+    }
+    void closeFile() {
+        if (file != nullptr) {
+            std::fclose(file);
+            file = nullptr;
+        }
+    }
+    // Mirrors WavPack's own stdio reader (open_filename.c), minus the close
+    // callback. The struct must outlive the context, hence the static.
+    static WavpackStreamReader64 &stdioReader() {
+        static WavpackStreamReader64 reader = [] {
+            WavpackStreamReader64 value{};
+            value.read_bytes = [](void *id, void *data, int32_t count) -> int32_t {
+                return static_cast<int32_t>(
+                    std::fread(data, 1, static_cast<size_t>(count), static_cast<FILE *>(id)));
+            };
+            value.get_pos = [](void *id) -> int64_t {
+                return std::ftell(static_cast<FILE *>(id));
+            };
+            value.set_pos_abs = [](void *id, int64_t position) -> int {
+                return std::fseek(static_cast<FILE *>(id), static_cast<long>(position), SEEK_SET);
+            };
+            value.set_pos_rel = [](void *id, int64_t delta, int mode) -> int {
+                return std::fseek(static_cast<FILE *>(id), static_cast<long>(delta), mode);
+            };
+            value.push_back_byte = [](void *id, int value) -> int {
+                return std::ungetc(value, static_cast<FILE *>(id));
+            };
+            value.get_length = [](void *id) -> int64_t {
+                struct stat status{};
+                return ::fstat(::fileno(static_cast<FILE *>(id)), &status) == 0 &&
+                               S_ISREG(status.st_mode)
+                           ? static_cast<int64_t>(status.st_size)
+                           : 0;
+            };
+            value.can_seek = [](void *id) -> int {
+                struct stat status{};
+                return ::fstat(::fileno(static_cast<FILE *>(id)), &status) == 0 &&
+                               S_ISREG(status.st_mode)
+                           ? 1
+                           : 0;
+            };
+            return value;
+        }();
+        return reader;
+    }
 };
 Handles<ExclusiveOutput> outputs;
 Handles<DsdDecoder> decoders;
 Handles<FlacPcmSource> flacSources;
+
+// Shared by the path and descriptor opens: a non-DSD WavPack belongs to the
+// ordinary playback path and reports "not openable here" as a 0 handle.
+jlong addValidatedWavPack(std::shared_ptr<DsdDecoder> decoder, Handles<DsdDecoder> &into) {
+    if (!decoder->isDsd()) return 0; // PCM WavPack uses ordinary playback.
+    require(decoder->channels >= 1 && decoder->channels <= 2 && decoder->samples > 0 &&
+            decoder->samples <= std::numeric_limits<int64_t>::max() / 8000000 &&
+            (decoder->rate == 2822400 || decoder->rate == 5644800 || decoder->rate == 11289600 || decoder->rate == 22579200),
+            "Unsupported WavPack DSD format");
+    return into.add(std::move(decoder));
+}
 }
 
 #define JNI_AUDIO(name) Java_com_toadplayer_app_NativeAudio_##name
@@ -253,16 +344,16 @@ JNIEXPORT jlong JNICALL JNI_AUDIO(openWavPack)(JNIEnv *env, jobject, jstring pat
         auto decoder = std::make_shared<DsdDecoder>(text);
         env->ReleaseStringUTFChars(path, text);
         text = nullptr;
-        if (!decoder->isDsd()) return 0; // PCM WavPack uses ordinary playback.
-        require(decoder->channels >= 1 && decoder->channels <= 2 && decoder->samples > 0 &&
-                decoder->samples <= std::numeric_limits<int64_t>::max() / 8000000 &&
-                (decoder->rate == 2822400 || decoder->rate == 5644800 || decoder->rate == 11289600 || decoder->rate == 22579200),
-                "Unsupported WavPack DSD format");
-        return decoders.add(std::move(decoder));
+        return addValidatedWavPack(std::move(decoder), decoders);
     } catch (const std::exception &e) {
         if (text) env->ReleaseStringUTFChars(path, text);
         report(env, e); return 0;
     }
+}
+JNIEXPORT jlong JNICALL JNI_AUDIO(openWavPackFd)(JNIEnv *env, jobject, jint descriptor) {
+    try {
+        return addValidatedWavPack(std::make_shared<DsdDecoder>(descriptor), decoders);
+    } catch (const std::exception &e) { report(env, e); return 0; }
 }
 JNIEXPORT jlongArray JNICALL JNI_AUDIO(infoWavPack)(JNIEnv *env, jobject, jlong handle) {
     try {
@@ -309,6 +400,11 @@ JNIEXPORT jlong JNICALL JNI_AUDIO(openFlac)(JNIEnv *env, jobject, jstring path) 
         if (text) env->ReleaseStringUTFChars(path, text);
         report(env, e); return 0;
     }
+}
+JNIEXPORT jlong JNICALL JNI_AUDIO(openFlacFd)(JNIEnv *env, jobject, jint descriptor) {
+    try {
+        return flacSources.add(std::make_shared<FlacPcmSource>(descriptor));
+    } catch (const std::exception &e) { report(env, e); return 0; }
 }
 JNIEXPORT jlongArray JNICALL JNI_AUDIO(infoFlac)(JNIEnv *env, jobject, jlong handle) {
     try {

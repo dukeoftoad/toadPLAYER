@@ -1,12 +1,24 @@
 #include "flac_pcm_source.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <limits>
 #include <stdexcept>
+#include <unistd.h>
 
 namespace {
 void require(bool condition, const char *message) {
     if (!condition) throw std::runtime_error(message);
+}
+
+// The decoder keeps its own FILE*, so a caller-owned descriptor must be
+// duplicated before fdopen hands the copy to libFLAC.
+FILE *duplicateToFile(int descriptor) {
+    const int duplicate = ::dup(descriptor);
+    if (duplicate < 0) return nullptr;
+    FILE *file = ::fdopen(duplicate, "rb");
+    if (file == nullptr) ::close(duplicate);
+    return file;
 }
 }
 
@@ -19,6 +31,23 @@ FlacPcmSource::FlacPcmSource(const char *path) : decoder(FLAC__stream_decoder_ne
     require(decoder != nullptr, "Cannot allocate FLAC decoder");
     require(FLAC__stream_decoder_init_file(decoder.get(), path, write, metadata, error, this) ==
             FLAC__STREAM_DECODER_INIT_STATUS_OK, "Cannot open FLAC file");
+    readHeaderAndCheckFormat();
+}
+
+FlacPcmSource::FlacPcmSource(int descriptor) : decoder(FLAC__stream_decoder_new()) {
+    require(decoder != nullptr, "Cannot allocate FLAC decoder");
+    FILE *file = duplicateToFile(descriptor);
+    require(file != nullptr, "Cannot duplicate FLAC descriptor");
+    if (FLAC__stream_decoder_init_FILE(decoder.get(), file, write, metadata, error, this) !=
+        FLAC__STREAM_DECODER_INIT_STATUS_OK) {
+        // init_FILE only owns the FILE* once initialization has succeeded.
+        std::fclose(file);
+        throw std::runtime_error("Cannot open FLAC file");
+    }
+    readHeaderAndCheckFormat();
+}
+
+void FlacPcmSource::readHeaderAndCheckFormat() {
     require(FLAC__stream_decoder_process_until_end_of_metadata(decoder.get()) && !failure,
             "Cannot read FLAC metadata");
     require(rate >= 8000 && rate <= 768000 && channels >= 1 && channels <= 2 &&

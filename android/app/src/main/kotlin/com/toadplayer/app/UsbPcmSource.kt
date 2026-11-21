@@ -3,6 +3,7 @@ package com.toadplayer.app
 import android.media.AudioFormat
 import android.media.MediaExtractor
 import android.media.MediaFormat
+import android.os.ParcelFileDescriptor
 import java.io.Closeable
 import java.io.FileInputStream
 import java.nio.ByteBuffer
@@ -10,6 +11,11 @@ import java.nio.ByteBuffer
 /** A source for the direct driver; decoding never passes through AudioTrack. */
 internal class UsbPcmSource(path: String) : Closeable {
     private var extractor: MediaExtractor? = null
+    // A duplicated SAF lease descriptor; kept open for this source's lifetime
+    // so the FLAC decoder and the extractor can read it. Null for real paths.
+    private val lease: ParcelFileDescriptor? = SafFd.descriptor(path)?.let {
+        ParcelFileDescriptor.fromFd(it)
+    }
     private var flac = 0L
     private val raw = ByteBuffer.allocateDirect(256 * 1024)
     private var converted: ByteBuffer? = null
@@ -27,19 +33,11 @@ internal class UsbPcmSource(path: String) : Closeable {
 
     init {
         try {
-            val header = ByteArray(42)
-            FileInputStream(path).use { input ->
-                var n = 0
-                while (n < header.size) {
-                    val count = input.read(header, n, header.size - n)
-                    if (count <= 0) break
-                    n += count
-                }
-            }
+            val header = readHeader(path)
             if (BitPerfectPcm.flacFormat(header) != null) {
                 // Some vendor extractors report FLAC as audio/raw and silently
                 // truncate it to 16-bit. Open the original file with libFLAC.
-                flac = NativeAudio.openFlac(path)
+                flac = if (lease != null) NativeAudio.openFlacFd(lease.fd) else NativeAudio.openFlac(path)
                 val format = NativeAudio.infoFlac(flac)
                 rate = format[0].toInt()
                 channels = format[1].toInt()
@@ -47,7 +45,13 @@ internal class UsbPcmSource(path: String) : Closeable {
                 durationUs = format[3] * 1000000 / rate
             } else {
                 val media = MediaExtractor().also { extractor = it }
-                FileInputStream(path).use { media.setDataSource(it.fd) }
+                if (lease != null) {
+                    // setDataSource duplicates the descriptor internally, so the
+                    // lease itself stays owned by this source.
+                    media.setDataSource(lease.fileDescriptor)
+                } else {
+                    FileInputStream(path).use { media.setDataSource(it.fd) }
+                }
                 val index = (0 until media.trackCount).firstOrNull {
                     media.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
                 } ?: error("No audio stream")
@@ -71,6 +75,20 @@ internal class UsbPcmSource(path: String) : Closeable {
         AudioFormat.ENCODING_PCM_24BIT_PACKED -> 24
         AudioFormat.ENCODING_PCM_32BIT -> 32
         else -> 0
+    }
+
+    private fun readHeader(path: String): ByteArray {
+        val header = ByteArray(42)
+        // A lease header read uses its own dup; the lifetime lease stays intact.
+        SafFd.openStream(path).use { input ->
+            var n = 0
+            while (n < header.size) {
+                val count = input.read(header, n, header.size - n)
+                if (count <= 0) break
+                n += count
+            }
+        }
+        return header
     }
 
     private fun convert(buffer: ByteBuffer, timeUs: Long, outputBits: Int): ByteBuffer {
@@ -121,5 +139,8 @@ internal class UsbPcmSource(path: String) : Closeable {
         converted = null
         runCatching { extractor?.release() }
         extractor = null
+        // The extractor and the FLAC decoder each own their own dup of the
+        // lease descriptor; closing the lease here releases the last one.
+        runCatching { lease?.close() }
     }
 }

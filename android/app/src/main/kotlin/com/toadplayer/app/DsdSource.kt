@@ -1,7 +1,6 @@
 package com.toadplayer.app
 
 import java.io.Closeable
-import java.io.FileInputStream
 
 internal interface DsdSource : Closeable {
     val rate: Int
@@ -13,7 +12,8 @@ internal interface DsdSource : Closeable {
     companion object {
         fun isDsd(path: String): Boolean {
             val header = ByteArray(32)
-            val count = FileInputStream(path).use { it.read(header) }
+            // SAF leases go through a dup; AppFuse rejects a second open.
+            val count = SafFd.openStream(path).use { it.read(header) }
             if (count < 4) return false
             return when (String(header, 0, 4, Charsets.US_ASCII)) {
                 "DSD ", "FRM8" -> true
@@ -23,7 +23,7 @@ internal interface DsdSource : Closeable {
         }
         fun open(path: String): DsdSource? {
             val magic = ByteArray(4)
-            FileInputStream(path).use { if (it.read(magic) != 4) return null }
+            SafFd.openStream(path).use { if (it.read(magic) != 4) return null }
             return if (magic.contentEquals("wvpk".toByteArray())) WavPackDsdSource.open(path)
                 else DsdFile.open(path)
         }
@@ -40,7 +40,8 @@ internal class WavPackDsdSource private constructor(private var handle: Long) : 
 
     companion object {
         fun open(path: String): WavPackDsdSource? {
-            val handle = NativeAudio.openWavPack(path)
+            val handle = SafFd.descriptor(path)?.let { NativeAudio.openWavPackFd(it) }
+                ?: NativeAudio.openWavPack(path)
             if (handle == 0L) return null
             try { return WavPackDsdSource(handle) }
             catch (error: Exception) { NativeAudio.closeWavPack(handle); throw error }
