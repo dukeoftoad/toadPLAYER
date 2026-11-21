@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 class AppInfo {
-  static const String version = '1.2.2';
+  // Keep in lockstep with pubspec.yaml's version (the release tag's name).
+  static const String version = '1.5.0';
 
   /// The GitHub Actions run number the installed build came from ("#16"),
   /// injected by CI via --dart-define. Empty in local builds — the version

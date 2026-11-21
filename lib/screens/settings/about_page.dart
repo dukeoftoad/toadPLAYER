@@ -1,8 +1,9 @@
-// The simple About page: who the app is, which build it is, and the legal
-// line. Kept deliberately minimal — no remote calls, no links to tap.
+// The simple About page: who the app is, which build it is, the legal
+// line, and the self-update card (a remote call only when asked).
 import 'package:flutter/material.dart';
 import 'package:toadplayer/constants/app_info.dart';
 import 'package:toadplayer/theme/sketch_theme_mark.dart';
+import 'package:toadplayer/widgets/app_update_card.dart';
 import 'package:toadplayer/widgets/sketchbook/sketch_components.dart';
 import 'package:toadplayer/widgets/sketchbook/sketch_decor.dart';
 
@@ -83,6 +84,9 @@ class AboutPage extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
+              // The self-update flow: check GitHub, download, install.
+              const AppUpdateCard(),
               const SizedBox(height: 12),
               Text(
                 AppInfo.copyright,
