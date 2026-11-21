@@ -99,7 +99,7 @@ internal class DsdFile private constructor(private val file: RandomAccessInput) 
         require(id() == "DSD " && le64() == 28L)
         val length = le64()
         le64() // Optional ID3 pointer; never needed to play samples.
-        require(length in 28..file.length())
+        require(length in 28..file.length)
         while (file.filePointer + 12 <= length) {
             val name = id()
             val size = le64()
@@ -137,7 +137,7 @@ internal class DsdFile private constructor(private val file: RandomAccessInput) 
 
     private fun readDff() {
         require(id() == "FRM8")
-        val limit = end(12, be64(), file.length())
+        val limit = end(12, be64(), file.length)
         require(id() == "DSD ")
         var compression = ""
         while (file.filePointer + 12 <= limit) {
