@@ -8,10 +8,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toadplayer/services/backend/backend_channel.dart';
-import 'package:toadplayer/services/desktop_diagnostics.dart';
 import 'package:toadplayer/services/download_request_payload.dart';
 import 'package:toadplayer/utils/audio_format_utils.dart';
-import 'package:toadplayer/utils/desktop_platform.dart';
 import 'package:toadplayer/utils/file_access.dart';
 import 'package:toadplayer/utils/hash_utils.dart';
 import 'package:toadplayer/utils/logger.dart';
@@ -211,10 +209,6 @@ class PlatformBridge {
   static final StreamController<List<String>>
   _iosBackgroundDownloadExpirationEvents =
       StreamController<List<String>>.broadcast();
-  static final StreamController<String> _discordPresenceStatusEvents =
-      StreamController<String>.broadcast();
-  static final StreamController<String> _libraryFolderChangeEvents =
-      StreamController<String>.broadcast();
   static final StreamController<Map<String, dynamic>> _linkRequestEvents =
       StreamController<Map<String, dynamic>>.broadcast();
   static final StreamController<Map<String, dynamic>> _linkMessageEvents =
@@ -229,10 +223,9 @@ class PlatformBridge {
       StreamController<Map<Object?, Object?>>.broadcast();
   static bool _backendEventHandlerInstalled = false;
 
-  /// The Rust backend answers on Android and iOS through the MethodChannel
-  /// and on desktop through dart:ffi, with plain filesystem paths.
+  /// The Rust backend answers on Android and iOS through the MethodChannel.
   static bool get supportsCoreBackend =>
-      Platform.isAndroid || Platform.isIOS || isDesktopPlatform;
+      Platform.isAndroid || Platform.isIOS;
 
   static bool get supportsExtensionSystem => supportsCoreBackend;
 
@@ -258,67 +251,6 @@ class PlatformBridge {
   static Future<void> processPendingExtensionCallbacks() =>
       _channel.invokeMethod<void>('processPendingExtensionCallbacks');
 
-  /// Desktop only: hands a `toadplayer://` URL the OS delivered to the backend.
-  /// Returns false when it is not an extension callback. The backend then
-  /// raises `extensionAuthCallbackReceived`, as the mobile hosts do.
-  static Future<bool> queueExtensionCallbackUrl(String url) async {
-    if (!isDesktopPlatform) return false;
-    final queued = await _channel.invokeMethod<bool>(
-      'queueExtensionCallbackUrl',
-      {'url': url},
-    );
-    return queued == true;
-  }
-
-  /// Desktop only: keeps the computer from idle sleeping while downloads
-  /// run. Idempotent; returns whether the OS granted the request.
-  static Future<bool> beginKeepAwake({
-    String reason = 'Downloading music',
-  }) async {
-    if (!isDesktopPlatform) return false;
-    final granted = await _channel.invokeMethod<bool>('beginKeepAwake', {
-      'reason': reason,
-    });
-    return granted == true;
-  }
-
-  /// Desktop only: releases [beginKeepAwake]. Safe without a prior begin.
-  static Future<void> endKeepAwake() async {
-    if (!isDesktopPlatform) return;
-    await _channel.invokeMethod<bool>('endKeepAwake');
-  }
-
-  /// Desktop Discord Rich Presence (`discordPresenceInitialize`, `Update`,
-  /// `Clear`, `Shutdown`) over Discord's local IPC in the Rust backend.
-  static Future<T?> invokeDiscordPresence<T>(
-    String method, [
-    Object? arguments,
-  ]) => _channel.invokeMethod<T>(method, arguments);
-
-  /// Desktop Discord status changes: `active` or `unavailable`.
-  static Stream<String> discordPresenceStatusEvents() =>
-      _events(_discordPresenceStatusEvents);
-
-  /// Desktop only: replaces the watched library folders. Returns the folders
-  /// that are being watched.
-  static Future<List<String>> watchLibraryFolders(List<String> paths) async {
-    if (!isDesktopPlatform) return const [];
-    final watched = await _channel.invokeMethod<List<dynamic>>(
-      'watchLibraryFolders',
-      {'paths': paths},
-    );
-    return [for (final path in watched ?? const []) path.toString()];
-  }
-
-  static Future<void> unwatchLibraryFolders() async {
-    if (!isDesktopPlatform) return;
-    await _channel.invokeMethod<void>('unwatchLibraryFolders');
-  }
-
-  /// Desktop watched library roots whose content changed (throttled).
-  static Stream<String> libraryFolderChangeEvents() =>
-      _events(_libraryFolderChangeEvents);
-
   static Future<String?> consumeVerificationNotification() =>
       _channel.invokeMethod<String>('consumeVerificationNotification');
 
@@ -340,8 +272,8 @@ class PlatformBridge {
 
   static Future<void> linkStop() => _invokeVoid('linkStop');
 
-  // Desktop Google Cast (rust_backend/crates/cast): one call per service
-  // method, and the session and device list as events.
+  // Google Cast (rust_backend/crates/cast): one call per service method,
+  // and the session and device list as events.
 
   static Future<Object?> castCall(
     String method, [
@@ -488,15 +420,6 @@ class PlatformBridge {
           return null;
         case 'libraryStorageChanged':
           _libraryStorageEvents.add(null);
-          return null;
-        case 'discordPresenceStatus':
-          final status = call.arguments;
-          if (status is String) _discordPresenceStatusEvents.add(status);
-          return null;
-        case 'libraryFolderChanged':
-          final args = call.arguments;
-          final root = args is Map ? args['root']?.toString() ?? '' : '';
-          if (root.isNotEmpty) _libraryFolderChangeEvents.add(root);
           return null;
         case 'linkRequest':
           if (call.arguments is Map) {
@@ -2646,29 +2569,24 @@ class PlatformBridge {
     }
   }
 
-  // Android reports process exits natively; desktop uses the session marker
-  // in DesktopDiagnostics.
+  // Android reports process exits natively.
 
   static Future<Map<String, dynamic>?> getPendingAppCrash() async {
-    if (isDesktopPlatform) return DesktopDiagnostics.instance?.pendingCrash();
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return null;
     return _invokeDecoded(_decodeNullableMapResult, 'getPendingAppCrash');
   }
 
   static Future<void> dismissAppCrash(String id) async {
-    if (isDesktopPlatform) return DesktopDiagnostics.instance?.dismiss(id);
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     await _channel.invokeMethod<void>('dismissAppCrash', {'id': id});
   }
 
   static Future<Map<String, dynamic>?> getLatestAppCrash() async {
-    if (isDesktopPlatform) return DesktopDiagnostics.instance?.latestCrash();
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return null;
     return _invokeDecoded(_decodeNullableMapResult, 'getLatestAppCrash');
   }
 
   static Future<void> markAppCrashShown(String id) async {
-    if (isDesktopPlatform) return DesktopDiagnostics.instance?.markShown(id);
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     await _channel.invokeMethod<void>('markAppCrashShown', {'id': id});
   }
@@ -2678,13 +2596,6 @@ class PlatformBridge {
     required String stack,
     required String logs,
   }) async {
-    if (isDesktopPlatform) {
-      return DesktopDiagnostics.instance?.recordRuntimeError(
-        error: error,
-        stack: stack,
-        logs: logs,
-      );
-    }
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     await _channel.invokeMethod<void>('recordAppRuntimeError', {
       'error': error,

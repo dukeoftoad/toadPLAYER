@@ -1,16 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:toadplayer/services/backend/method_channel_backend.dart';
-import 'package:toadplayer/services/backend/rust_ffi_backend.dart';
-import 'package:toadplayer/utils/desktop_platform.dart';
 
 /// Handles a host to Dart call, like [MethodChannel.setMethodCallHandler].
 typedef BackendCallHandler = Future<dynamic> Function(MethodCall call);
 
 /// Transport between Dart and the Rust backend.
 ///
-/// Android and iOS keep the platform channels ([MethodChannelBackend]);
-/// desktop builds call the Rust library directly ([RustFfiBackend]).
+/// Android and iOS talk to the host over platform channels
+/// ([MethodChannelBackend]).
 abstract class BackendChannel {
   const BackendChannel();
 
@@ -42,5 +40,4 @@ abstract class BackendChannel {
 }
 
 /// The backend of the running platform.
-BackendChannel get backendChannel =>
-    isDesktopPlatform ? RustFfiBackend.shared : MethodChannelBackend.shared;
+BackendChannel get backendChannel => MethodChannelBackend.shared;

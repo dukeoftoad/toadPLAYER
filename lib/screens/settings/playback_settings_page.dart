@@ -8,32 +8,25 @@ import 'package:toadplayer/controllers/clickable_metadata.dart';
 import 'package:toadplayer/l10n/l10n.dart';
 import 'package:toadplayer/providers/music_player_provider.dart';
 import 'package:toadplayer/providers/settings_provider.dart';
-import 'package:toadplayer/services/alsa_output_devices.dart';
 import 'package:toadplayer/services/autoplay_ranker.dart';
 import 'package:toadplayer/services/music_playback_deck.dart';
-import 'package:toadplayer/services/playback_deck.dart';
 import 'package:toadplayer/services/music_player_service.dart'
     show resetAutoplayLearning;
 import 'package:toadplayer/services/song_analysis.dart';
 import 'package:toadplayer/screens/listening_statistics_screen.dart';
 import 'package:toadplayer/screens/equalizer_screen.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
-import 'package:toadplayer/utils/desktop_platform.dart';
-import 'package:toadplayer/utils/exclusive_output_labels.dart';
 import 'package:toadplayer/utils/nav_bar_inset.dart';
 import 'package:toadplayer/utils/usb_output_status_label.dart';
 import 'package:toadplayer/widgets/animation_utils.dart';
 import 'package:toadplayer/widgets/app_alert_dialog.dart';
 import 'package:toadplayer/widgets/app_progress_indicator.dart';
-import 'package:toadplayer/widgets/app_bottom_sheet.dart';
 import 'package:toadplayer/widgets/app_icon.dart';
 import 'package:toadplayer/widgets/app_slider.dart';
 import 'package:toadplayer/widgets/app_sliver_header.dart';
 import 'package:toadplayer/widgets/beta_badge.dart';
 import 'package:toadplayer/widgets/player_volume_control.dart';
 import 'package:toadplayer/widgets/settings_group.dart';
-import 'package:toadplayer/widgets/discord_presence_settings.dart';
-import 'package:toadplayer/widgets/lastfm_settings.dart';
 import 'package:toadplayer/widgets/automix_settings.dart';
 import 'package:toadplayer/widgets/music_haptics_settings.dart';
 import 'package:toadplayer/widgets/playback_normalization_settings.dart';
@@ -150,12 +143,7 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
-    final autoMixActive =
-        settings.autoMix && !(isDesktopPlatform && settings.exclusiveOutput);
-    // Linux opens a chosen ALSA device; the other desktops use the default.
-    final linuxDevice =
-        settings.exclusiveOutput &&
-        defaultTargetPlatform == TargetPlatform.linux;
+    final autoMixActive = settings.autoMix;
     final colorScheme = Theme.of(context).colorScheme;
     final coverStyle = settings.playerCoverStyleFor(toadplayer: context.isToadplayer);
     // The charging rule applies to Android's background sweep only.
@@ -265,7 +253,7 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
               ),
               if (settings.playbackNormalization)
                 PlaybackNormalizationSettings(enabled: !settings.usbBitPerfect),
-              if (!isDesktopPlatform) ...[
+              ...[
                 SettingsSwitchItem(
                   icon: Icons.vibration,
                   title: context.l10n.musicHaptics,
@@ -299,9 +287,7 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
                 title: 'AutoMix',
                 subtitle: context.l10n.autoMixDescription,
                 value: autoMixActive,
-                enabled:
-                    !settings.usbBitPerfect &&
-                    !(isDesktopPlatform && settings.exclusiveOutput),
+                enabled: !settings.usbBitPerfect,
                 onChanged: (value) =>
                     ref.read(settingsProvider.notifier).setAutoMix(value),
               ),
@@ -444,9 +430,8 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
             ],
           ),
           // Mute and headphone routes come from mobile system audio.
-          if (!isDesktopPlatform)
-            ...settingsSectionSlivers(
-              title: context.l10n.playbackAutomation,
+          ...settingsSectionSlivers(
+            title: context.l10n.playbackAutomation,
               children: [
                 SettingsSwitchItem(
                   icon: Icons.volume_off_outlined,
@@ -513,9 +498,8 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
                     .read(settingsProvider.notifier)
                     .setLandscapeLyricsArtwork(value),
               ),
-              if (!isDesktopPlatform)
-                SettingsSwitchItem(
-                  key: const ValueKey('auto-hide-lyrics-controls'),
+              SettingsSwitchItem(
+                key: const ValueKey('auto-hide-lyrics-controls'),
                   icon: Icons.fullscreen,
                   title: context.l10n.autoHideLyricsControls,
                   subtitle: context.l10n.autoHideLyricsControlsDescription,
@@ -551,57 +535,6 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
               ),
             ],
           ),
-          if (Platform.isAndroid || Platform.isIOS || isDesktopPlatform) ...[
-            const SliverToBoxAdapter(
-              child: SettingsSectionHeader(title: 'Discord'),
-            ),
-            const SliverToBoxAdapter(child: DiscordPresenceSettings()),
-          ],
-          if (isDesktopPlatform) ...[
-            const SliverToBoxAdapter(
-              child: SettingsSectionHeader(title: 'Last.fm'),
-            ),
-            SliverToBoxAdapter(
-              child: LastfmSettings(
-                service: ref.read(musicPlayerRuntimeProvider).lastfm,
-              ),
-            ),
-          ],
-          if (isDesktopPlatform)
-            ...settingsSectionSlivers(
-              title: context.l10n.sectionAudioOutput,
-              children: [
-                ValueListenableBuilder<ExclusiveOutputStatus>(
-                  valueListenable: playbackExclusiveStatus,
-                  builder: (context, status, _) {
-                    final labels = exclusiveOutputLabels(context.l10n);
-                    return SettingsSwitchItem(
-                      icon: Icons.speaker_outlined,
-                      title: labels.title,
-                      subtitle: [
-                        labels.description,
-                        if (settings.exclusiveOutput)
-                          switch (status) {
-                            ExclusiveOutputStatus.pending =>
-                              context.l10n.exclusiveOutputPending,
-                            ExclusiveOutputStatus.active =>
-                              context.l10n.exclusiveOutputActive,
-                            ExclusiveOutputStatus.unavailable =>
-                              labels.unavailable,
-                          },
-                      ].join('\n\n'),
-                      value: settings.exclusiveOutput,
-                      onChanged: (value) => ref
-                          .read(settingsProvider.notifier)
-                          .setExclusiveOutput(value),
-                      showDivider: linuxDevice,
-                    );
-                  },
-                ),
-                if (linuxDevice)
-                  _AlsaDeviceItem(device: settings.exclusiveOutputDevice),
-              ],
-            ),
           if (Platform.isAndroid)
             ...settingsSectionSlivers(
               title: context.l10n.sectionAudioOutput,
@@ -745,72 +678,6 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
           const NavBarSliverSpacer(),
         ],
       ),
-    );
-  }
-}
-
-/// The ALSA device Linux exclusive output opens, chosen from the cards the
-/// system lists.
-class _AlsaDeviceItem extends ConsumerStatefulWidget {
-  const _AlsaDeviceItem({required this.device});
-
-  /// The saved mpv device name; empty for the first card.
-  final String device;
-
-  @override
-  ConsumerState<_AlsaDeviceItem> createState() => _AlsaDeviceItemState();
-}
-
-class _AlsaDeviceItemState extends ConsumerState<_AlsaDeviceItem> {
-  final _devices = listAlsaOutputDevices();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return FutureBuilder<List<AlsaOutputDevice>>(
-      future: _devices,
-      builder: (context, snapshot) {
-        final devices = snapshot.data ?? const <AlsaOutputDevice>[];
-        final chosen = devices
-            .where((device) => device.id == widget.device)
-            .firstOrNull;
-        return SettingsItem(
-          icon: Icons.speaker_group_outlined,
-          title: l10n.exclusiveOutputDevice,
-          subtitle: devices.isEmpty && snapshot.hasData
-              ? l10n.exclusiveOutputNoDevices
-              : chosen?.label ??
-                    (widget.device.isEmpty
-                        ? l10n.exclusiveOutputDeviceFirst
-                        : widget.device),
-          onTap: devices.isEmpty
-              ? null
-              : () => showAppChoiceSheet<String>(
-                  context: context,
-                  title: l10n.exclusiveOutputDevice,
-                  selected: widget.device,
-                  choices: [
-                    AppChoice(
-                      '',
-                      Icons.speaker_outlined,
-                      l10n.exclusiveOutputDeviceFirst,
-                      subtitle: devices.first.label,
-                    ),
-                    for (final device in devices)
-                      AppChoice(
-                        device.id,
-                        Icons.speaker_outlined,
-                        device.label,
-                        subtitle: device.id.replaceFirst('alsa/', ''),
-                      ),
-                  ],
-                  onSelected: ref
-                      .read(settingsProvider.notifier)
-                      .setExclusiveOutputDevice,
-                ),
-          showDivider: false,
-        );
-      },
     );
   }
 }

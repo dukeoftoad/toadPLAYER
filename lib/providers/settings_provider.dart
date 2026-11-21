@@ -688,9 +688,6 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void setAutoMixLowPass(bool enabled) =>
       _commit(state.copyWith(autoMixLowPass: enabled));
 
-  void setDiscordRichPresenceEnabled(bool enabled) =>
-      _commit(state.copyWith(discordRichPresenceEnabled: enabled));
-
   void setAutoplay(bool enabled) => _commit(state.copyWith(autoplay: enabled));
 
   void setAutoplayPersonalization(bool enabled) =>
@@ -742,12 +739,6 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void setDapExclusive(bool enabled) => _commit(
     state.copyWith(dapExclusive: enabled, usbDirect: enabled ? false : null),
   );
-
-  void setExclusiveOutput(bool enabled) =>
-      _commit(state.copyWith(exclusiveOutput: enabled));
-
-  void setExclusiveOutputDevice(String device) =>
-      _commit(state.copyWith(exclusiveOutputDevice: device));
 
   void setEmbedMetadata(bool enabled) =>
       _commit(state.copyWith(embedMetadata: enabled));

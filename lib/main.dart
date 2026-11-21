@@ -22,18 +22,12 @@ import 'package:toadplayer/services/app_orientation.dart';
 import 'package:toadplayer/services/audio_file_open_service.dart';
 import 'package:toadplayer/services/background_favorites.dart';
 import 'package:toadplayer/services/cover_cache_manager.dart';
-import 'package:toadplayer/services/desktop_diagnostics.dart';
 import 'package:toadplayer/services/music_player_service.dart';
 import 'package:toadplayer/services/playback_notification.dart';
 import 'package:toadplayer/services/platform_bridge.dart';
 import 'package:toadplayer/services/player_widget_service.dart';
 import 'package:toadplayer/utils/android_tv.dart';
-import 'package:toadplayer/utils/desktop_platform.dart';
 import 'package:toadplayer/utils/logger.dart';
-import 'package:toadplayer/widgets/desktop/desktop_inspector.dart'
-    show bindDesktopFullScreenLyrics;
-import 'package:toadplayer/widgets/desktop/desktop_window.dart'
-    show listenDesktopWindowFullScreen;
 
 final _log = AppLogger('PlayerMain');
 
@@ -50,7 +44,6 @@ void main() {
       }
       final dynamicColors = DynamicColors.request();
       final orientation = _initializeOrientation()..ignore();
-      await DesktopDiagnostics.initialize();
       _registerPlayerLicenses();
 
       final prefs = await preferences;
@@ -227,10 +220,6 @@ class _StandalonePlayerBootstrapState
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      if (isDesktopPlatform) {
-        listenDesktopWindowFullScreen();
-        bindDesktopFullScreenLyrics();
-      }
       await CoverCacheManager.initialize();
       CoverCacheManager.scheduleMaintenance();
       await AudioFileOpenService.instance.initialize();
@@ -247,7 +236,7 @@ class _StandalonePlayerBootstrapState
   @override
   Widget build(BuildContext context) {
     // Keep the launcher widgets' lyric line following playback for the
-    // whole session; the provider no-ops on desktop.
+    // whole session.
     ref.watch(widgetLyricSyncProvider);
     return widget.child;
   }

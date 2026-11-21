@@ -1,7 +1,7 @@
 name: toadplayer
 description: Isolated standalone Toadplayer music player (Flutter UI + Rust backend + Native Audio/USB DAC/DSP bridges)
 publish_to: "none"
-version: 1.4.1+8
+version: 1.5.0+9
 
 environment:
   sdk: ^3.10.0
@@ -76,10 +76,6 @@ dependencies:
     path: third_party/audio_service
   audio_session: ^0.2.4
   app_links: ^7.2.2
-  media_kit: ^1.2.6
-  media_kit_libs_windows_audio: ^1.0.9
-  media_kit_libs_linux: ^1.2.1
-  media_kit_libs_macos_audio: ^1.1.4
   audio_service_platform_interface: ^0.1.3
   dbus: ^0.7.15
   smtc_windows: ^1.1.0
@@ -93,8 +89,6 @@ dependency_overrides:
   flutter_rust_bridge: 2.11.1
   ffmpeg_kit_flutter_new_audio:
     path: third_party/ffmpeg_kit_flutter_new_audio
-  media_kit_libs_windows_audio:
-    path: third_party/media_kit_libs_windows_audio
 
 hooks:
   user_defines:
