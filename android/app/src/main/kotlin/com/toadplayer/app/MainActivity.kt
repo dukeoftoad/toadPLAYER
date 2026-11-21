@@ -484,6 +484,9 @@ class MainActivity: FlutterFragmentActivity() {
         registerConcertCalendarChannel(messenger)
         registerAudioOutputChannel(messenger)
 
+        // The self-update flow's native half: download + installer handoff.
+        UpdatePlugin.register(this, messenger)
+
         registerProgressStreams(messenger)
 
         // Replaces the playback subset the engine registered without an

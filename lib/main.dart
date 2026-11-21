@@ -25,6 +25,7 @@ import 'package:toadplayer/services/cover_cache_manager.dart';
 import 'package:toadplayer/services/music_player_service.dart';
 import 'package:toadplayer/services/playback_notification.dart';
 import 'package:toadplayer/services/platform_bridge.dart';
+import 'package:toadplayer/services/app_update_service.dart';
 import 'package:toadplayer/services/player_widget_service.dart';
 import 'package:toadplayer/utils/android_tv.dart';
 import 'package:toadplayer/utils/logger.dart';
@@ -220,6 +221,9 @@ class _StandalonePlayerBootstrapState
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+      // The silent once-per-process update probe: any failure stays quiet;
+      // a newer release only raises the home banner. Never downloads.
+      AppUpdateController.instance.checkSilentlyOnce();
       await CoverCacheManager.initialize();
       CoverCacheManager.scheduleMaintenance();
       await AudioFileOpenService.instance.initialize();

@@ -15829,7 +15829,99 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No lyrics found for these details'**
   String get lyricsVerifyNoResults;
+  /// The About page section for the self-update flow.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateSectionTitle;
+
+  /// Button that fetches the latest GitHub release.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get updateCheckButton;
+
+  /// Shown while the release check is in flight.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking for updates…'**
+  String get updateChecking;
+
+  /// The manual check found nothing newer.
+  ///
+  /// In en, this message translates to:
+  /// **'You're on the latest release'**
+  String get updateUpToDate;
+
+  /// Header of the update card naming the newer release tag.
+  ///
+  /// In en, this message translates to:
+  /// **'Toadplayer {version} is available'**
+  String updateAvailableTitle(String version);
+
+  /// Reassurance under the update header: nothing downloads on its own.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded only if you ask.'**
+  String get updateAvailableDescription;
+
+  /// Button that starts the APK download and opens the installer.
+  ///
+  /// In en, this message translates to:
+  /// **'Download & install'**
+  String get updateDownloadAndInstall;
+
+  /// Shown after the APK was handed to the system installer.
+  ///
+  /// In en, this message translates to:
+  /// **'The installer has the update — confirm it there.'**
+  String get updateInstalling;
+
+  /// Shown when the Install unknown apps toggle is off; the APK is kept so
+  /// the same button finishes the job.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow installs from this app in Android Settings, then tap Install again.'**
+  String get updateNeedsPermission;
+
+  /// Retry button after the install-permission round-trip.
+  ///
+  /// In en, this message translates to:
+  /// **'Install now'**
+  String get updateInstallNow;
+
+  /// Shown when the watch loop gave up or the system job failed.
+  ///
+  /// In en, this message translates to:
+  /// **'The download did not finish — its notification keeps any progress; try again when convenient.'**
+  String get updateDownloadStalled;
+
+  /// Opens the release page in the browser.
+  ///
+  /// In en, this message translates to:
+  /// **'View on GitHub'**
+  String get updateViewOnGithub;
+
+  /// The quiet home banner after the silent startup check found a newer
+  /// release.
+  ///
+  /// In en, this message translates to:
+  /// **'Toadplayer {version} available'**
+  String updateBannerTitle(String version);
+
+  /// Sub-line of the home update banner.
+  ///
+  /// In en, this message translates to:
+  /// **'Update to the latest release — downloaded only if you ask.'**
+  String get updateBannerBody;
+
+  /// The banner's action, deep-linking to the About update flow.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateBannerAction;
 }
+
 
 class _AppLocalizationsDelegate
     extends LocalizationsDelegate<AppLocalizations> {

@@ -23,6 +23,7 @@ import 'package:toadplayer/widgets/app_snack_bar.dart';
 import 'package:toadplayer/widgets/cached_cover_image.dart';
 import 'package:toadplayer/widgets/library/library_views.dart';
 import 'package:toadplayer/widgets/lyrics_preview_card.dart';
+import 'package:toadplayer/widgets/update_banner.dart';
 import 'package:toadplayer/widgets/mini_player.dart';
 import 'package:toadplayer/widgets/sketchbook/sketch_components.dart';
 import 'package:toadplayer/widgets/sketchbook/toad_mascot.dart';
@@ -94,6 +95,8 @@ class _StandalonePlayerHomeScreenState
         ),
         body: Column(
           children: [
+            // The quiet update banner the silent startup check can raise.
+            const UpdateBanner(),
             Expanded(
               child: Stack(
                 children: [

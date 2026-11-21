@@ -9867,4 +9867,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lyricsVerifyNoResults => 'No lyrics found for these details';
+  @override
+  String get updateSectionTitle => 'Update';
+
+  @override
+  String get updateCheckButton => 'Check for updates';
+
+  @override
+  String get updateChecking => 'Checking for updates…';
+
+  @override
+  String get updateUpToDate => "You're on the latest release";
+
+  @override
+  String updateAvailableTitle(String version) =>
+      'Toadplayer $version is available';
+
+  @override
+  String get updateAvailableDescription => 'Downloaded only if you ask.';
+
+  @override
+  String get updateDownloadAndInstall => 'Download & install';
+
+  @override
+  String get updateInstalling =>
+      'The installer has the update — confirm it there.';
+
+  @override
+  String get updateNeedsPermission =>
+      'Allow installs from this app in Android Settings, then tap Install again.';
+
+  @override
+  String get updateInstallNow => 'Install now';
+
+  @override
+  String get updateDownloadStalled =>
+      'The download did not finish — its notification keeps any progress; try again when convenient.';
+
+  @override
+  String get updateViewOnGithub => 'View on GitHub';
+
+  @override
+  String updateBannerTitle(String version) => 'Toadplayer $version available';
+
+  @override
+  String get updateBannerBody =>
+      'Update to the latest release — downloaded only if you ask.';
+
+  @override
+  String get updateBannerAction => 'Update';
 }

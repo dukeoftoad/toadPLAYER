@@ -10589,5 +10589,45 @@
   "lyricsVerifySearch": "Search with these details",
   "@lyricsVerifySearch": {"description": "Button that searches lyrics with the corrected details"},
   "lyricsVerifyNoResults": "No lyrics found for these details",
-  "@lyricsVerifyNoResults": {"description": "Shown in the refine form when a verification search returns nothing"}
+  "@lyricsVerifyNoResults": {"description": "Shown in the refine form when a verification search returns nothing"},
+  "updateSectionTitle": "Update",
+  "@updateSectionTitle": {"description": "The About page section for the self-update flow"},
+  "updateCheckButton": "Check for updates",
+  "@updateCheckButton": {"description": "Button that fetches the latest GitHub release"},
+  "updateChecking": "Checking for updates…",
+  "@updateChecking": {"description": "Shown while the release check is in flight"},
+  "updateUpToDate": "You're on the latest release",
+  "@updateUpToDate": {"description": "The manual check found nothing newer"},
+  "updateAvailableTitle": "Toadplayer {version} is available",
+  "@updateAvailableTitle": {
+    "placeholders": {
+      "version": {"type": "String"}
+    },
+    "description": "Header of the update card naming the newer release tag"
+  },
+  "updateAvailableDescription": "Downloaded only if you ask.",
+  "@updateAvailableDescription": {"description": "Reassurance under the update header: nothing downloads on its own"},
+  "updateDownloadAndInstall": "Download & install",
+  "@updateDownloadAndInstall": {"description": "Button that starts the APK download and opens the installer"},
+  "updateInstalling": "The installer has the update — confirm it there.",
+  "@updateInstalling": {"description": "Shown after the APK was handed to the system installer"},
+  "updateNeedsPermission": "Allow installs from this app in Android Settings, then tap Install again.",
+  "@updateNeedsPermission": {"description": "Shown when the Install unknown apps toggle is off; the APK is kept so the same button finishes the job"},
+  "updateInstallNow": "Install now",
+  "@updateInstallNow": {"description": "Retry button after the install-permission round-trip"},
+  "updateDownloadStalled": "The download did not finish — its notification keeps any progress; try again when convenient.",
+  "@updateDownloadStalled": {"description": "Shown when the watch loop gave up or the system job failed"},
+  "updateViewOnGithub": "View on GitHub",
+  "@updateViewOnGithub": {"description": "Opens the release page in the browser"},
+  "updateBannerTitle": "Toadplayer {version} available",
+  "@updateBannerTitle": {
+    "placeholders": {
+      "version": {"type": "String"}
+    },
+    "description": "The quiet home banner after the silent startup check found a newer release"
+  },
+  "updateBannerBody": "Update to the latest release — downloaded only if you ask.",
+  "@updateBannerBody": {"description": "Sub-line of the home update banner"},
+  "updateBannerAction": "Update",
+  "@updateBannerAction": {"description": "The banner's action, deep-linking to the About update flow"}
 }
