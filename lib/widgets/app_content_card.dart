@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:toadplayer/theme/material_expressive.dart';
+import 'package:toadplayer/theme/sketch_theme_mark.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
+import 'package:toadplayer/widgets/sketchbook/sketch_components.dart';
 
 /// One inline surface, matching the metadata groups and dialog controls.
 class AppContentCard extends StatelessWidget {
@@ -39,6 +41,33 @@ class AppContentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A paper theme draws every card as a sheet of paper with a wobbly ink
+    // border, keeping the caller's own tint when one was given.
+    if (context.isSketchPaper) {
+      final scheme = Theme.of(context).colorScheme;
+      final interactive = onTap != null || onLongPress != null;
+      final content = Material(
+        color: color ?? scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: interactive
+            ? InkWell(onTap: onTap, onLongPress: onLongPress, child: child)
+            : child,
+      );
+      return Padding(
+        padding:
+            margin ?? CardTheme.of(context).margin ?? const EdgeInsets.all(4),
+        child: CustomPaint(
+          foregroundPainter: SketchBorderPainter(
+            color: scheme.onSurface.withValues(alpha: 0.7),
+            seed: 2.8,
+            radius: 16,
+            amp: 1.1,
+          ),
+          child: content,
+        ),
+      );
+    }
     if (!context.isToadplayer || !toadplayerSurface) {
       if (!context.isToadplayer &&
           materialExpressiveEnabled(context) &&
