@@ -47,10 +47,9 @@ void main() {
       final authority = base64Url.encode(
         utf8.encode('com.android.externalstorage.documents'),
       );
-      expect(
-        keys,
-        contains('saf-document:$authority:primary%3AMusic%2Fa.flac'),
-      );
+      // Dart's Uri decodes path segments, so the document ID is its
+      // decoded primary:Music/a.flac spelling.
+      expect(keys, contains('saf-document:$authority:primary:Music/a.flac'));
     });
 
     test('expand primary storage aliases', () {

@@ -23,6 +23,6 @@ metadata-plus-real-line	true	[ti:Title]\n[00:01.00]Real content follows
 writer-credit-counts-as-content	true	Written by: Someone
 crlf-plain-text	true	Verse text\r\nChorus text
 whitespace-only	false	   \n \n
-empty-string	false
+empty-escaped-newline-only	false	\n
 instrumental-marker	true	[instrumental:true]
 instrumental-marker-uppercase	true	[INSTRUMENTAL:TRUE]
