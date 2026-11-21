@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:toadplayer/theme/material_symbols.dart';
-import 'package:toadplayer/theme/sketch_theme_mark.dart';
 import 'package:toadplayer/theme/toadplayer_icons.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
-import 'package:toadplayer/widgets/sketchbook/sketch_decor.dart';
 
 /// [widget] as an [AppIcon] when it is a plain [Icon], so shared components
 /// can adopt Material Symbols without changing every caller.
@@ -77,7 +75,7 @@ class AppIcon extends StatelessWidget {
     }
     final symbol = materialSymbolFor(icon);
     if (symbol == null) {
-      final plain = Icon(
+      return Icon(
         icon,
         size: size,
         color: color,
@@ -85,34 +83,18 @@ class AppIcon extends StatelessWidget {
         shadows: shadows,
         textDirection: textDirection,
       );
-      // A paper theme rings explicitly filled glyphs in hand-drawn ink.
-      return context.isSketchPaper && fill == 1
-          ? SketchInkBadge(
-              color: color?.withValues(alpha: 0.55),
-              child: plain,
-            )
-          : plain;
     }
     final resolvedSize = size ?? IconTheme.of(context).size ?? 24;
-    final resolvedFill = fill ?? (symbol.filled ? 1 : 0);
-    final glyph = Icon(
+    return Icon(
       symbol.icon,
       size: size,
       color: color,
-      fill: resolvedFill,
+      fill: fill ?? (symbol.filled ? 1 : 0),
       // Material Symbols adjust stroke detail for the drawn size.
       opticalSize: resolvedSize.clamp(20, 48).toDouble(),
       semanticLabel: semanticLabel,
       shadows: shadows,
       textDirection: textDirection,
     );
-    // Filled symbols read as selected or prominent, so a paper theme gives
-    // each one its hand-drawn ink badge — the toadHEALTH lilypad ring.
-    return context.isSketchPaper && resolvedFill == 1
-        ? SketchInkBadge(
-            color: color?.withValues(alpha: 0.55),
-            child: glyph,
-          )
-        : glyph;
   }
 }

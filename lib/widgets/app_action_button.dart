@@ -1,10 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:toadplayer/theme/sketch_theme_mark.dart';
 import 'package:toadplayer/theme/toadplayer_icons.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
 import 'package:toadplayer/widgets/app_icon.dart';
-import 'package:toadplayer/widgets/sketchbook/sketch_decor.dart';
 import 'package:toadplayer/widgets/toadplayer_chrome.dart';
 import 'package:toadplayer/widgets/expressive_button.dart';
 
@@ -35,18 +33,6 @@ class AppActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // A paper theme takes the squash-when-pressed sheet-of-paper button.
-    if (context.isSketchPaper) {
-      return SketchActionButton(
-        onPressed: onPressed,
-        icon: icon,
-        label: label,
-        tonal: tonal,
-        outlined: outlined,
-        isDestructive: isDestructive,
-        fontSize: fontSize,
-      );
-    }
     if (!context.isToadplayer) {
       return ExpressiveButton(
         onPressed: onPressed,

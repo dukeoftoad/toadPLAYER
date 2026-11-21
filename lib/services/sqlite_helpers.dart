@@ -210,6 +210,26 @@ Future<bool> _supportsTrigramFts5(DatabaseExecutor db) {
 }
 
 Future<bool> _probeTrigramFts5(DatabaseExecutor db) async {
+  // FTS5 is a compile-time SQLite module. When PRAGMA compile_options lacks
+  // ENABLE_FTS5 the virtual table can never work, so skip the probe outright:
+  // the platform logs a scary native "no such module: fts5" error for the
+  // failed CREATE on every start of an app running on such a runtime
+  // (several vendor Android builds ship SQLite without FTS5).
+  try {
+    final compileOptions = await db.rawQuery('PRAGMA compile_options');
+    final fts5Compiled = compileOptions.any(
+      (row) => row.values.firstOrNull?.toString() == 'ENABLE_FTS5',
+    );
+    if (!fts5Compiled) {
+      _log.i(
+        'This SQLite runtime is built without FTS5; '
+        'search will use the LIKE fallback',
+      );
+      return false;
+    }
+  } catch (error) {
+    _log.d('Could not read PRAGMA compile_options; probing FTS5 directly: $error');
+  }
   try {
     await db.execute('''
       CREATE VIRTUAL TABLE temp.$_trigramFts5ProbeTable USING fts5(

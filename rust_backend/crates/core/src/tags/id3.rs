@@ -211,7 +211,6 @@ fn frames<R: Read + Seek>(
     mut cover: Option<&mut Option<CoverArt>>,
 ) -> Result<(), String> {
     let (header_size, id_size) = if version == 2 { (6, 3) } else { (10, 4) };
-    let mut user_text_lyrics = false;
     while remaining >= header_size as u64 {
         let header = bytes(input, header_size)?;
         remaining -= header_size as u64;
@@ -275,13 +274,7 @@ fn frames<R: Read + Seek>(
                 *cover = picture_frame(&data[offset..], version);
             }
         } else {
-            apply(
-                metadata,
-                version,
-                id,
-                &data[offset..],
-                &mut user_text_lyrics,
-            );
+            apply(metadata, version, id, &data[offset..]);
         }
     }
     Ok(())
@@ -321,13 +314,7 @@ pub(in crate::tags) fn picture_frame(data: &[u8], version: u8) -> Option<CoverAr
     })
 }
 
-fn apply(
-    metadata: &mut AudioMetadata,
-    version: u8,
-    id: &[u8],
-    data: &[u8],
-    user_text_lyrics: &mut bool,
-) {
+fn apply(metadata: &mut AudioMetadata, version: u8, id: &[u8], data: &[u8]) {
     let text = data
         .split_first()
         .map(|(encoding, body)| decode(*encoding, body))
@@ -382,11 +369,8 @@ fn apply(
             if !value.is_empty() {
                 if id == b"COMM" {
                     metadata.comment = value;
-                } else if metadata.lyrics.is_empty() || *user_text_lyrics {
-                    // A real USLT wins over lyrics a TXXX frame supplied,
-                    // wherever in the tag each frame sits.
+                } else if metadata.lyrics.is_empty() {
                     metadata.lyrics = value;
-                    *user_text_lyrics = false;
                 }
             }
         }
@@ -407,7 +391,6 @@ fn apply(
                 && !value.is_empty()
             {
                 metadata.lyrics = value.clone();
-                *user_text_lyrics = true;
             }
             match uppercase(&description).as_str() {
                 "ITUNESADVISORY" => metadata.explicit = truthy(&value),

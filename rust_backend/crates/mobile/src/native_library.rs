@@ -147,9 +147,8 @@ pub(crate) fn scan_incremental(
     _request: &Value,
     _check: &(dyn Fn() -> Result<(), String> + Sync),
 ) -> Result<Value, String> {
-    // The snapshot-driven incremental scanner belongs to the extension
-    // runtime that this isolated player does not ship; SAF scans deliver
-    // their delta from the platform adapter instead.
+    // The extension runtime (and with it the snapshot-driven incremental
+    // scanner) was removed with the extensions feature of the full product.
     Err("Incremental library scan is unavailable in this build".into())
 }
 
@@ -554,14 +553,18 @@ fn import(request: &Value, delta: Option<&Value>, check: Check<'_>) -> Result<Va
                     .ok_or("Deleted Library path must be a string")?;
                 if retain_removed {
                     transaction
-                        .prepare_cached("INSERT INTO main.native_library_removed_paths VALUES(?,?)")
-                        .and_then(|mut statement| statement.execute(params![ordinal as i64, path]))
+                        .execute(
+                            "INSERT INTO main.native_library_removed_paths VALUES(?,?)",
+                            params![ordinal as i64, path],
+                        )
                         .map_err(|e| error("retain removed Library path", e))?;
                 }
-                transaction.prepare_cached("DELETE FROM library_path_keys WHERE item_id IN(SELECT id FROM library WHERE source_id = ? AND file_path = ?)").and_then(|mut statement| statement.execute(params![source,path])).map_err(|e| error("delete removed path keys", e))?;
+                transaction.execute("DELETE FROM library_path_keys WHERE item_id IN(SELECT id FROM library WHERE source_id = ? AND file_path = ?)", params![source,path]).map_err(|e| error("delete removed path keys", e))?;
                 deleted += transaction
-                    .prepare_cached("DELETE FROM library WHERE source_id = ? AND file_path = ?")
-                    .and_then(|mut statement| statement.execute(params![source, path]))
+                    .execute(
+                        "DELETE FROM library WHERE source_id = ? AND file_path = ?",
+                        params![source, path],
+                    )
                     .map_err(|e| error("delete removed track", e))?;
             }
         }
@@ -695,9 +698,11 @@ fn snapshot(request: &Value, check: Check<'_>) -> Result<Value, String> {
         transaction
             .commit()
             .map_err(|e| error("close snapshot read", e))?;
-        // The scan reads the snapshot in this session and its caller then
-        // deletes it, so it needs no sync.
         output.flush().map_err(|e| error("flush snapshot", e))?;
+        output
+            .get_ref()
+            .sync_all()
+            .map_err(|e| error("sync snapshot", e))?;
         check()?;
         let write = db
             .transaction_with_behavior(TransactionBehavior::Immediate)

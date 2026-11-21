@@ -2,8 +2,6 @@
 // and the outlined card wrapper every settings page renders its content in,
 // so the hub and the section pages share one look.
 import 'package:flutter/material.dart';
-import 'package:toadplayer/theme/sketch_theme_mark.dart';
-import 'package:toadplayer/widgets/sketchbook/sketch_components.dart';
 
 /// The small primary-colored label above a card of related entries.
 class SettingsSectionHeader extends StatelessWidget {
@@ -34,25 +32,6 @@ class SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // A paper theme swaps the outlined Material card for a paper sheet with
-    // a wobbly ink border, matching the app-wide SketchDecor treatment.
-    if (context.isSketchPaper) {
-      final scheme = Theme.of(context).colorScheme;
-      return CustomPaint(
-        foregroundPainter: SketchBorderPainter(
-          color: scheme.onSurface.withValues(alpha: 0.7),
-          seed: 5.2,
-          radius: 16,
-          amp: 1.1,
-        ),
-        child: Material(
-          color: scheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          clipBehavior: Clip.antiAlias,
-          child: child,
-        ),
-      );
-    }
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,

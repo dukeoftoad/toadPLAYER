@@ -1,7 +1,7 @@
 name: toadplayer
 description: Isolated standalone Toadplayer music player (Flutter UI + Rust backend + Native Audio/USB DAC/DSP bridges)
 publish_to: "none"
-version: 1.3.1+6
+version: 1.4.0+7
 
 environment:
   sdk: ^3.10.0
@@ -44,7 +44,7 @@ dependencies:
 
   # Material Expressive 3 / Dynamic Color
   dynamic_color: ^2.1.0
-  material_ui: "1.9.0"
+  material_ui: ^1.9.0
   material_3_expressive: ^1.2.0
   material_color_utilities: 0.13.0
 

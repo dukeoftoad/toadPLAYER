@@ -2,9 +2,6 @@
 // line. Kept deliberately minimal — no remote calls, no links to tap.
 import 'package:flutter/material.dart';
 import 'package:toadplayer/constants/app_info.dart';
-import 'package:toadplayer/theme/sketch_theme_mark.dart';
-import 'package:toadplayer/widgets/sketchbook/sketch_components.dart';
-import 'package:toadplayer/widgets/sketchbook/sketch_decor.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -23,25 +20,20 @@ class AboutPage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // A paper theme has the family toad sign the About page
-              // himself instead of the icon raster.
-              if (context.isSketchPaper)
-                const ToadMark(size: 88)
-              else
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Image.asset(
-                    'assets/brand/logo/png/toadplayer-icon.png',
-                    width: 96,
-                    height: 96,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                      Icons.music_note,
-                      size: 72,
-                      color: colorScheme.primary,
-                    ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Image.asset(
+                  'assets/brand/logo/png/toadplayer-icon.png',
+                  width: 96,
+                  height: 96,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Icon(
+                    Icons.music_note,
+                    size: 72,
+                    color: colorScheme.primary,
                   ),
                 ),
+              ),
               const SizedBox(height: 16),
               Text(AppInfo.appName, style: textTheme.headlineSmall),
               const SizedBox(height: 4),
@@ -52,10 +44,6 @@ class AboutPage extends StatelessWidget {
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              if (context.isSketchPaper) ...[
-                const SizedBox(height: 6),
-                const SketchSquiggle(),
-              ],
               const SizedBox(height: 20),
               Card(
                 elevation: 0,

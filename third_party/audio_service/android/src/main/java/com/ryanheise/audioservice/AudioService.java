@@ -74,7 +74,6 @@ public class AudioService extends MediaBrowserServiceCompat {
     public static final int KEYCODE_BYPASS_PAUSE = KeyEvent.KEYCODE_MEDIA_RECORD;
     public static final int MAX_COMPACT_ACTIONS = 3;
     private static final int ART_CACHE_ENTRIES = 3;
-    private static final String NOTIFICATION_ART = "notification";
     private static final long AUTO_ENABLED_ACTIONS = PlaybackStateCompat.ACTION_STOP
             | PlaybackStateCompat.ACTION_PAUSE
             | PlaybackStateCompat.ACTION_PLAY
@@ -298,8 +297,6 @@ public class AudioService extends MediaBrowserServiceCompat {
     private int[] compactActionIndices;
     private MediaMetadataCompat mediaMetadata;
     private Bitmap artBitmap;
-    // The session's and notification's copies of the current cover.
-    private final ArtCopies<Bitmap> artCopies = MediaArtwork.newCopies();
     private String notificationChannelId;
     private RecentArtCache<Bitmap> artBitmapCache;
     private boolean playing = false;
@@ -396,7 +393,6 @@ public class AudioService extends MediaBrowserServiceCompat {
         queue = Collections.emptyList();
         controls.clear();
         artBitmapCache.evictAll();
-        artCopies.clear();
         compactActionIndices = null;
         releaseMediaSession();
         ServiceCompat.stopForeground(this, config.androidResumeOnClick
@@ -453,7 +449,7 @@ public class AudioService extends MediaBrowserServiceCompat {
 
     private Intent customActionActivity(MediaControl control) {
         Bundle extras = mapToBundle(control.customAction.extras);
-        String activityClass = extras == null ? null : extras.getString("mornye.activity");
+        String activityClass = extras == null ? null : extras.getString("toadplayer.activity");
         if (activityClass == null) return null;
         // setClassName keeps the component inside this application's package.
         return new Intent(control.customAction.name)
@@ -638,7 +634,11 @@ public class AudioService extends MediaBrowserServiceCompat {
 
     public void setPlaybackInfo(int playbackType, Integer volumeControlType, Integer maxVolume, Integer volume) {
         if (playbackType == MediaControllerCompat.PlaybackInfo.PLAYBACK_TYPE_LOCAL) {
-            // We have to wait 'til media2 before we can use AudioAttributes.
+            // MediaSessionCompat only exposes the stream-type overload
+            // (setPlaybackToLocal(int)); the AudioAttributes overload lives on
+            // the framework MediaSession, which audio_service does not use.
+            // Local volume routing therefore stays on STREAM_MUSIC, which the
+            // compat layer maps appropriately.
             mediaSession.setPlaybackToLocal(AudioManager.STREAM_MUSIC);
             volumeProvider = null;
         } else if (playbackType == MediaControllerCompat.PlaybackInfo.PLAYBACK_TYPE_REMOTE) {
@@ -692,7 +692,7 @@ public class AudioService extends MediaBrowserServiceCompat {
             if (description.getDescription() != null)
                 builder.setSubText(description.getDescription());
             if (artBitmap != null)
-                builder.setLargeIcon(MediaArtwork.copy(artBitmap, 256, artCopies, NOTIFICATION_ART));
+                builder.setLargeIcon(MediaArtwork.copy(artBitmap, 256));
         }
         if (config.androidNotificationClickStartsActivity)
             builder.setContentIntent(mediaSession.getController().getSessionActivity());
@@ -891,7 +891,7 @@ public class AudioService extends MediaBrowserServiceCompat {
         if (destroyed || mediaSession == null) return;
         mediaMetadata = MediaArtwork.sanitize(mediaMetadata);
         try {
-            mediaSession.setMetadata(MediaArtwork.forSession(mediaMetadata, artCopies));
+            mediaSession.setMetadata(MediaArtwork.forSession(mediaMetadata));
         } catch (IllegalArgumentException | IllegalStateException error) {
             Log.w("AudioService", "Artwork rejected by media session; publishing text metadata", error);
             mediaMetadata = MediaArtwork.withoutArtwork(mediaMetadata);
@@ -903,20 +903,13 @@ public class AudioService extends MediaBrowserServiceCompat {
         this.mediaMetadata = mediaMetadata;
         artBitmap = bitmap != null && !bitmap.isRecycled() ? bitmap : null;
         PlaybackStateCompat state = mediaSession.getController().getPlaybackState();
-        String mediaId = mediaMetadata.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID);
-        // The same item again (a lock screen lyric line) leaves the state as it is.
-        if (state != null && !hasMediaId(state, mediaId)) {
+        if (state != null) {
             Bundle extras = state.getExtras() == null ? new Bundle() : new Bundle(state.getExtras());
-            extras.putString(MediaConstants.PLAYBACK_STATE_EXTRAS_KEY_MEDIA_ID, mediaId);
+            extras.putString(MediaConstants.PLAYBACK_STATE_EXTRAS_KEY_MEDIA_ID,
+                    mediaMetadata.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID));
             mediaSession.setPlaybackState(new PlaybackStateCompat.Builder(state).setExtras(extras).build());
         }
         updateNotification();
-    }
-
-    private static boolean hasMediaId(PlaybackStateCompat state, String mediaId) {
-        Bundle extras = state.getExtras();
-        return mediaId != null && extras != null
-                && mediaId.equals(extras.getString(MediaConstants.PLAYBACK_STATE_EXTRAS_KEY_MEDIA_ID));
     }
 
     private MediaMetadataCompat putArtToMetadata(MediaMetadataCompat mediaMetadata, Bitmap bitmap) {

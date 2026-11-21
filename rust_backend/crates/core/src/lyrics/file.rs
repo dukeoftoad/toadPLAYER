@@ -49,37 +49,26 @@ pub fn sidecar<R: Read>(
     if base.trim().is_empty() {
         return Err("no lyrics found in file".into());
     }
-    let read_one = |name: String| -> Result<String, String> {
-        let mut file = open(&name)?;
-        let mut bytes = Vec::new();
-        let mut buffer = [0; 16 * 1024];
-        loop {
-            check()?;
-            let count = file.read(&mut buffer).map_err(|error| error.to_string())?;
-            if count == 0 {
-                break;
-            }
-            if bytes.len() + count > MAX_SIDECAR_BYTES {
-                return Err("lyrics sidecar exceeds size limit".into());
-            }
-            bytes.extend_from_slice(&buffer[..count]);
-        }
+    let mut file = open(&format!("{base}.lrc"))?;
+    let mut bytes = Vec::new();
+    let mut buffer = [0; 16 * 1024];
+    loop {
         check()?;
-        let text = text_from_bytes(&bytes).trim().to_owned();
-        if text.is_empty() {
-            Err("no lyrics found in file".into())
-        } else {
-            Ok(text)
+        let count = file.read(&mut buffer).map_err(|error| error.to_string())?;
+        if count == 0 {
+            break;
         }
-    };
-    // A `.mlrc` holds the song's lyrics with translations; `.lrc` stays the
-    // plain form. Either answers for the song, `.lrc` first.
-    match read_one(format!("{base}.lrc")) {
-        Ok(text) => Ok(text),
-        Err(lrc_error) => match read_one(format!("{base}.mlrc")) {
-            Ok(text) => Ok(text),
-            Err(_) => Err(lrc_error),
-        },
+        if bytes.len() + count > MAX_SIDECAR_BYTES {
+            return Err("lyrics sidecar exceeds size limit".into());
+        }
+        bytes.extend_from_slice(&buffer[..count]);
+    }
+    check()?;
+    let text = text_from_bytes(&bytes).trim().to_owned();
+    if text.is_empty() {
+        Err("no lyrics found in file".into())
+    } else {
+        Ok(text)
     }
 }
 

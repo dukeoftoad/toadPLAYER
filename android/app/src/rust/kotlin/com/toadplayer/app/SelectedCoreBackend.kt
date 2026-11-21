@@ -349,13 +349,6 @@ internal object RustCoreBackend : CoreBackend {
         libraryCoverDirectory = directory
     }
 
-    override fun cacheLibraryFolderCover(path: String): String? {
-        val directory = libraryCoverDirectory ?: return null
-        // The thumbnail and content-addressed store live in the Rust backend,
-        // mirroring how embedded artwork is cached for document metadata.
-        return com.toadplayer.backend.cacheLibraryFolderCover(directory.path, path)
-    }
-
     override fun scanLibraryFolderToNdjsonFile(folder: String, output: String): Long =
         withLibraryDirectories(listOf(folder)) { current ->
             require(File(output).isAbsolute && File(output).extension.equals("ndjson", ignoreCase = true)) {

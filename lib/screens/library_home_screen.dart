@@ -9,10 +9,11 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:toadplayer/controllers/open_audio_controller.dart';
-import 'package:toadplayer/theme/sketch_theme_mark.dart';
+import 'package:toadplayer/models/theme_settings.dart';
 import 'package:toadplayer/providers/library_collections_provider.dart';
 import 'package:toadplayer/providers/music_player_provider.dart';
 import 'package:toadplayer/providers/settings_provider.dart';
+import 'package:toadplayer/providers/theme_provider.dart';
 import 'package:toadplayer/screens/equalizer_screen.dart';
 import 'package:toadplayer/screens/library_detail_screen.dart';
 import 'package:toadplayer/screens/library_smart_screen.dart';
@@ -990,8 +991,9 @@ class _LibraryEmptyState extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final hasDefaultFolder =
         ref.watch(settingsProvider).defaultAudioFolder.isNotEmpty;
-    // Any paper theme — Sketchbook or Toadmark — hosts the empty library.
-    final isSketchPaper = context.isSketchPaper;
+    final isSketchbook =
+        ref.watch(themeProvider.select((s) => s.style)) ==
+        AppThemeStyle.sketchbook;
 
     return Center(
       child: Padding(
@@ -999,9 +1001,9 @@ class _LibraryEmptyState extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (isSketchPaper) ...[
-              // The family toad hosts the empty paper sheet in the paper
-              // themes: he bobs gently and cheers when tapped.
+            if (isSketchbook) ...[
+              // The family toad hosts the empty paper sheet in the
+              // Sketchbook theme: he bobs gently and cheers when tapped.
               const SketchToad(size: 116),
               const SizedBox(height: 10),
               const SketchSpeechBubble(
@@ -1017,7 +1019,7 @@ class _LibraryEmptyState extends ConsumerWidget {
               ),
             const SizedBox(height: 16),
             Text('Your library is empty', style: textTheme.titleMedium),
-            if (isSketchPaper) ...[
+            if (isSketchbook) ...[
               const SizedBox(height: 5),
               const SketchSquiggle(),
             ],
@@ -1031,7 +1033,7 @@ class _LibraryEmptyState extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            if (isSketchPaper)
+            if (isSketchbook)
               // The calls to action on a paper note with a wobbly border.
               SketchCard(
                 seed: 3.2,

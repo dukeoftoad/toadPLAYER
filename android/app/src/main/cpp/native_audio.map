@@ -9,11 +9,13 @@
         Java_com_toadplayer_app_NativeAudio_framesOboe;
         Java_com_toadplayer_app_NativeAudio_closeOboe;
         Java_com_toadplayer_app_NativeAudio_openWavPack;
+        Java_com_toadplayer_app_NativeAudio_openWavPackFd;
         Java_com_toadplayer_app_NativeAudio_infoWavPack;
         Java_com_toadplayer_app_NativeAudio_readWavPack;
         Java_com_toadplayer_app_NativeAudio_seekWavPack;
         Java_com_toadplayer_app_NativeAudio_closeWavPack;
         Java_com_toadplayer_app_NativeAudio_openFlac;
+        Java_com_toadplayer_app_NativeAudio_openFlacFd;
         Java_com_toadplayer_app_NativeAudio_infoFlac;
         Java_com_toadplayer_app_NativeAudio_readFlac;
         Java_com_toadplayer_app_NativeAudio_seekFlac;

@@ -13,7 +13,7 @@ import 'package:toadplayer/widgets/app_icon_button.dart';
 import 'package:toadplayer/widgets/app_loading_indicator.dart';
 import 'package:toadplayer/widgets/expressive_button.dart';
 
-/// On-demand full-file authenticity analysis for one FLAC/WAV file.
+/// On-demand sampled spectrum and bit-depth analysis for one FLAC/WAV file.
 class HiResCheckCard extends StatefulWidget {
   final String filePath;
   final String? formatHint;
@@ -70,7 +70,6 @@ class _HiResCheckCardState extends State<HiResCheckCard> {
       result = await HiResCheckService.check(
         widget.filePath,
         networkInput: _networkInput,
-        detailed: true,
       );
     } on AudioAnalysisCancelled {
       return;

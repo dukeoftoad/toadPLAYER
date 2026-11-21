@@ -754,7 +754,14 @@ mod tests {
             )
             .unwrap_err()
             .to_string();
-        assert!(error.contains("invalid URL"), "{error}");
+        // The isolated player ships no online cover downloader, so the owner
+        // refuses the request outright instead of validating the URL. The
+        // recovery this test guards is the temporary cover file surviving
+        // the private cache removal, plus the owner call staying sane.
+        assert!(
+            error.contains("invalid URL") || error.contains("disabled in isolated player"),
+            "{error}"
+        );
         backend.shutdown_owner();
     }
 }

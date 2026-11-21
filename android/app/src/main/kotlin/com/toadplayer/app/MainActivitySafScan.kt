@@ -164,20 +164,17 @@ internal fun MainActivity.scanSafTree(
             val doc: DocumentFile,
             val name: String,
             val lastModified: Long,
-            val folderImage: SafChildEntry?,
         )
         data class SafCueEntry(
             val doc: DocumentFile,
             val parentDir: DocumentFile,
             val name: String,
             val lastModified: Long,
-            val folderImage: SafChildEntry?,
         )
         val audioFiles = mutableListOf<SafAudioEntry>()
         val cueFiles = mutableListOf<SafCueEntry>()
         val visitedDirUris = mutableSetOf<String>()
         val safChildLookupCache = mutableMapOf<String, Map<String, DocumentFile>>()
-        val folderCovers = SafFolderCovers(this, coreBackend)
         var traversalErrors = 0
 
         val queue: ArrayDeque<Pair<DocumentFile, String>> = ArrayDeque()
@@ -208,7 +205,6 @@ internal fun MainActivity.scanSafTree(
                 continue
             }
             rememberCueDirectoryListing(dir, children, safChildLookupCache)
-            val folderImage = folderCovers.image(dir, path, children)
 
             for (child in children) {
                 if (safScanStopRequested()) {
@@ -230,9 +226,9 @@ internal fun MainActivity.scanSafTree(
                         val lastModified = child.lastModified
                         val ext = name.substringAfterLast('.', "").lowercase(Locale.ROOT)
                         if (ext == "cue") {
-                            cueFiles.add(SafCueEntry(child.doc, dir, name, lastModified, folderImage))
+                            cueFiles.add(SafCueEntry(child.doc, dir, name, lastModified))
                         } else if (ext.isNotBlank() && supportedAudioExt.contains(".$ext")) {
-                            audioFiles.add(SafAudioEntry(child.doc, name, lastModified, folderImage))
+                            audioFiles.add(SafAudioEntry(child.doc, name, lastModified))
                         }
                     }
                 } catch (e: Exception) {
@@ -384,9 +380,7 @@ internal fun MainActivity.scanSafTree(
                     cue.lastModified,
                 ) { cueDoc.lastModified() }
                 for (j in 0 until cueArray.length()) {
-                    val trackObj = cueArray.getJSONObject(j)
-                    folderCovers.fill(trackObj, cue.folderImage)
-                    putResult(trackObj)
+                    putResult(cueArray.getJSONObject(j))
                 }
                 ndjsonWriter?.flush()
                 recordCheckpoint(cueUri, cue.lastModified)
@@ -464,7 +458,6 @@ internal fun MainActivity.scanSafTree(
                     error = e.message ?: e.javaClass.simpleName
                     null
                 }
-                metadata?.let { folderCovers.fill(it, audio.folderImage) }
                 SafAudioScanOutcome(stableUri, name, lastModified, metadata, error)
             },
         ) { audio, result ->
@@ -563,18 +556,12 @@ internal fun MainActivity.scanSafTreeIncremental(
         val supportedAudioExt = libraryScanAudioExtensions
         // Names and timestamps come from the directory listing; querying each
         // document again costs a provider round trip per changed file.
-        data class ChangedAudio(
-            val doc: DocumentFile,
-            val name: String,
-            val lastModified: Long,
-            val folderImage: SafChildEntry?,
-        )
+        data class ChangedAudio(val doc: DocumentFile, val name: String, val lastModified: Long)
         data class CueEntry(
             val doc: DocumentFile,
             val parentDir: DocumentFile,
             val name: String,
             val lastModified: Long,
-            val folderImage: SafChildEntry?,
         )
         val audioFiles = mutableListOf<ChangedAudio>()
         val cueFilesToScan = mutableListOf<CueEntry>()
@@ -582,7 +569,6 @@ internal fun MainActivity.scanSafTreeIncremental(
         val currentUris = mutableSetOf<String>()
         val visitedDirUris = mutableSetOf<String>()
         val safChildLookupCache = mutableMapOf<String, Map<String, DocumentFile>>()
-        val folderCovers = SafFolderCovers(this, coreBackend)
         var traversalErrors = 0
 
         val existingCueVirtualPaths = mutableMapOf<String, MutableList<String>>()
@@ -629,7 +615,6 @@ internal fun MainActivity.scanSafTreeIncremental(
                 continue
             }
             rememberCueDirectoryListing(dir, children, safChildLookupCache)
-            val folderImage = folderCovers.image(dir, path, children)
 
             for (child in children) {
                 if (safScanStopRequested(cancelled)) {
@@ -667,19 +652,19 @@ internal fun MainActivity.scanSafTreeIncremental(
                             val existingModified = virtualPaths?.firstOrNull()?.let { existingFiles[it] }
 
                             if (existingModified != null && existingModified == lastModified) {
-                                unchangedCueFiles.add(CueEntry(child.doc, dir, name, lastModified, folderImage))
+                                unchangedCueFiles.add(CueEntry(child.doc, dir, name, lastModified))
                                 for (vp in virtualPaths) {
                                     currentUris.add(vp)
                                 }
                             } else {
-                                cueFilesToScan.add(CueEntry(child.doc, dir, name, lastModified, folderImage))
+                                cueFilesToScan.add(CueEntry(child.doc, dir, name, lastModified))
                             }
                         } else if (ext.isNotBlank() && supportedAudioExt.contains(".$ext")) {
                             val existingModified = existingFiles[uriStr]
                             val lastModified = child.lastModified
 
                             if (existingModified == null || existingModified != lastModified) {
-                                audioFiles.add(ChangedAudio(child.doc, name, lastModified, folderImage))
+                                audioFiles.add(ChangedAudio(child.doc, name, lastModified))
                             }
                         }
                     }
@@ -747,7 +732,7 @@ internal fun MainActivity.scanSafTreeIncremental(
 
         val cueReferencedAudioUris = mutableSetOf<String>()
 
-        for ((cueDoc, parentDir, cueName, cueLastModified, cueFolderImage) in cueFilesToScan) {
+        for ((cueDoc, parentDir, cueName, cueLastModified) in cueFilesToScan) {
             if (safScanStopRequested(cancelled)) {
                 updateSafScanProgress { it.isComplete = true }
                 spill.abandon()
@@ -796,7 +781,6 @@ internal fun MainActivity.scanSafTreeIncremental(
                 ) { cueLastModified }
                 for (j in 0 until cueArray.length()) {
                     val trackObj = cueArray.getJSONObject(j)
-                    folderCovers.fill(trackObj, cueFolderImage)
                     putFile(trackObj)
                     val virtualPath = trackObj.optString("filePath", "")
                     if (virtualPath.isNotBlank()) {
@@ -875,7 +859,7 @@ internal fun MainActivity.scanSafTreeIncremental(
                     onFailure = { message ->
                         reportLibraryScanError(audio.doc.uri.toString(), "Read metadata", message)
                     },
-                )?.also { folderCovers.fill(it, audio.folderImage) }
+                )
             },
         ) { audio, result ->
             updateSafScanProgress { it.currentFile = audio.name }

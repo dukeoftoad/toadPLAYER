@@ -12,7 +12,6 @@ import 'package:toadplayer/services/app_state_database.dart';
 import 'package:toadplayer/services/exclusive_output_deck.dart';
 import 'package:toadplayer/services/file_access_check.dart';
 import 'package:toadplayer/services/ffmpeg_support.dart' show FFmpegExecution;
-import 'package:toadplayer/services/autoplay_history.dart';
 import 'package:toadplayer/services/autoplay_personalization.dart';
 import 'package:toadplayer/services/autoplay_ranker.dart';
 import 'package:toadplayer/services/autoplay_taste.dart';
@@ -28,7 +27,6 @@ import 'package:toadplayer/services/library_database.dart';
 import 'package:toadplayer/services/listening_statistics.dart';
 import 'package:toadplayer/services/lastfm/lastfm_service.dart';
 import 'package:toadplayer/services/media_kit_playback_deck.dart';
-import 'package:toadplayer/services/media3_playback_deck.dart';
 import 'package:toadplayer/services/media_library_browser.dart';
 import 'package:toadplayer/services/media_session_art_cache.dart';
 import 'package:toadplayer/services/media_session_desktop.dart';
@@ -209,15 +207,6 @@ class PlaybackDependencies {
       return MediaKitPlaybackDeck(playerId: playerId);
     }
     final shared = AudioplayersPlaybackDeck(playerId: playerId);
-    // Android routes ordinary sources through media3 while the beta engine
-    // switch is on; USB and AAudio sources stay on audioplayers (see
-    // [Media3EngineDeck]). Every other platform keeps the deck as is.
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return Media3EngineDeck(
-        audioplayers: shared,
-        createMedia3: () => Media3PlaybackDeck(playerId: playerId),
-      );
-    }
     if (!isDesktopPlatform || defaultTargetPlatform != TargetPlatform.macOS) {
       return shared;
     }
@@ -315,9 +304,7 @@ class MusicPlayerRuntime {
   MusicPlayerRuntime({
     AppSettings settings = const AppSettings(),
     this.dependencies = const PlaybackDependencies(),
-  }) : _settings = settings {
-    applyPlaybackNotifiers(settings);
-  }
+  }) : _settings = settings;
 
   final PlaybackDependencies dependencies;
   LastfmService? _lastfm;
@@ -333,12 +320,6 @@ class MusicPlayerRuntime {
   AutoplayTaste get taste => _taste ??= dependencies.createTaste();
   AutoplayRanker? _ranker;
   AutoplayRanker get ranker => _ranker ??= dependencies.createRanker();
-
-  /// The songs Autoplay picked lately, persisted as fingerprints only, so a
-  /// later session still leans away from them (see [AutoplayHistory]).
-  AutoplayHistory? _autoplayHistory;
-  AutoplayHistory get autoplayHistory =>
-      _autoplayHistory ??= AutoplayHistory();
   SongAnalysis? _songAnalysis;
 
   /// How the Library's songs sound, analyzed in the background for Autoplay.
@@ -347,22 +328,6 @@ class MusicPlayerRuntime {
         dependencies.libraryDatabase,
       )..configure(_settings);
   AppSettings _settings;
-
-  /// Keeps the playback notifiers the decks read — pitch, silence skipping,
-  /// spatialization and the media3 engine switch — in step with the settings
-  /// snapshot, at boot and on every later settings change.
-  static void applyPlaybackNotifiers(AppSettings settings) {
-    playbackPitch.value = settings.playbackKeepPitch
-        ? PlaybackPitch(semitones: settings.playbackPitch)
-        : PlaybackPitch(
-            semitones: settings.playbackPitch,
-            followsRate: true,
-          );
-    playbackSkipSilence.value = settings.skipSilence;
-    playbackSpatialAudio.value = settings.spatialAudio;
-    playbackMedia3Engine.value = settings.media3Engine;
-  }
-
   MusicPlayerHandler? _handler;
   void Function()? _unsubscribeSourceDeletion;
   void Function()? _unsubscribeSourceMetadata;
@@ -445,7 +410,6 @@ class MusicPlayerRuntime {
   void configure(AppSettings settings) {
     final previous = _settings;
     _settings = settings;
-    applyPlaybackNotifiers(settings);
     _configureExclusiveOutput(settings);
     _songAnalysis?.configure(settings);
     _handler?.applySettings(previous);

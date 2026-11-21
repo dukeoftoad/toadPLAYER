@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:toadplayer/models/equalizer_settings.dart';
-import 'package:toadplayer/services/playback_deck.dart' show PlaybackPitch;
 
 /// One filter in the equalizer's libavfilter graph.
 @immutable
@@ -158,81 +157,11 @@ class MpvAudioFilterChain {
 
   bool get isEmpty => filters.isEmpty;
 
-  /// This chain with the shift [tempo] asks for. A shift through
-  /// `rubberband` joins the graph; without the filter the shift rides the
-  /// speed (`audio-pitch-correction` off), which the deck applies apart.
-  MpvAudioFilterChain withTempo(MpvTempo tempo) {
-    if (tempo.ratio == 1) return this;
-    return MpvAudioFilterChain([
-      ...filters,
-      MpvAudioFilter(
-        'tempo',
-        'rubberband',
-        options: {'pitch': _number(tempo.ratio)},
-      ),
-    ], volumeGainDb: volumeGainDb);
-  }
-
   static String _number(num value) {
     final text = value.toStringAsFixed(4);
     final trimmed = text.contains('.')
         ? text.replaceFirst(RegExp(r'\.?0+$'), '')
         : text;
     return trimmed == '-0' ? '0' : trimmed;
-  }
-}
-
-/// The speed and pitch handling a libmpv output applies for the current
-/// [PlaybackPitch]. `MpvTempo.of` works out both from what the libmpv build
-/// can do: a semitone shift prefers the `rubberband` filter in the graph;
-/// without it, the shift rides the speed with the pitch correction off
-/// (the song plays faster or slower with it, as a turntable would).
-@immutable
-class MpvTempo {
-  const MpvTempo({
-    required this.speed,
-    required this.pitchCorrection,
-    this.ratio = 1,
-  });
-
-  /// Speed mpv plays at; a shift without `rubberband` carries its factor.
-  final double speed;
-
-  /// mpv's `audio-pitch-correction`: true keeps the pitch while the speed
-  /// changes, false lets it follow.
-  final bool pitchCorrection;
-
-  /// Pitch factor the `rubberband` filter applies, 1 for none.
-  final double ratio;
-
-  /// Filters a semitone shift prefers. Probed like the equalizer's filters,
-  /// once a shift is first asked for.
-  static const Set<String> optionalFilters = {'rubberband'};
-
-  /// The tempo for [rate] (the effective rate, [playbackSpeed] included)
-  /// and [pitch], given the libavfilter filters [unavailable] here.
-  factory MpvTempo.of(
-    double rate,
-    PlaybackPitch pitch, {
-    Set<String> unavailable = const {},
-  }) {
-    final shift = math.pow(2, pitch.semitones / 12).toDouble();
-    final canRubberband =
-        pitch.semitones != 0 && !unavailable.contains('rubberband');
-    if (canRubberband) {
-      // The shift goes through rubberband; the pitch follows the rate only
-      // when asked to, with the correction off.
-      return MpvTempo(
-        speed: rate,
-        pitchCorrection: !pitch.followsRate,
-        ratio: shift,
-      );
-    }
-    if (pitch.semitones == 0 && !pitch.followsRate) {
-      // No shift; the pitch stays put while the speed changes.
-      return MpvTempo(speed: rate, pitchCorrection: true);
-    }
-    // The shift, and the pitch following the rate, ride the speed.
-    return MpvTempo(speed: rate * shift, pitchCorrection: false, ratio: 1);
   }
 }

@@ -13,9 +13,6 @@ import 'package:toadplayer/screens/settings/library_settings_page.dart';
 import 'package:toadplayer/screens/settings/lyrics_settings_page.dart';
 import 'package:toadplayer/screens/settings/playback_settings_page.dart';
 import 'package:toadplayer/screens/settings/settings_widgets.dart';
-import 'package:toadplayer/theme/sketch_theme_mark.dart';
-import 'package:toadplayer/widgets/sketchbook/sketch_components.dart';
-import 'package:toadplayer/widgets/sketchbook/sketch_decor.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -30,18 +27,6 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
-          // A paper theme brands the hub: the family toad stamps the top of
-          // Settings with his squiggle signature.
-          if (context.isSketchPaper) ...[
-            const SizedBox(height: 6),
-            const Column(
-              children: [
-                ToadMark(size: 56),
-                SizedBox(height: 6),
-                SketchSquiggle(width: 72),
-              ],
-            ),
-          ],
           const SettingsSectionHeader('Look & feel'),
           SettingsCard(
             child: SettingsNavTile(
@@ -52,7 +37,6 @@ class SettingsScreen extends ConsumerWidget {
                 AppThemeStyle.toad => 'Toad theme',
                 AppThemeStyle.toadplayer => 'Glass theme',
                 AppThemeStyle.sketchbook => 'Sketchbook theme',
-                AppThemeStyle.toadmark => 'Toadmark theme',
               },
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(

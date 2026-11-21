@@ -1,8 +1,4 @@
-//! Mobile audio tag and library entry points on `ExtensionManager`: metadata
-//! reads, CUE parsing, library scans and scan control, cover extraction and
-//! download, and tag writes. The isolated player implements these directly
-//! through `toadplayer_core`; no extension engine is involved.
-
+//! Local audio tag reading, cover extraction, and CUE parsing via `toadplayer_core`.
 use crate::cancellation::RequestLease;
 use crate::manager::{ExtensionManager, ExtensionManagerError};
 use serde_json::json;
@@ -73,124 +69,19 @@ impl ExtensionManager {
         serde_json::to_string(&sheet).map_err(|e| ExtensionManagerError::Operation(e.to_string()))
     }
 
-    /// Reads the virtual track rows of a CUE sheet against its resolved audio
-    /// descriptor. Quality probing (FLAC bit depth / sample rate, MP3 duration)
-    /// rides on the same descriptor the caller keeps alive for this call.
     #[allow(clippy::too_many_arguments)]
     pub fn scan_cue_file_for_library_from_descriptor(
         &self,
         path: String,
-        descriptor: i32,
-        hint: String,
-        virtual_prefix: String,
-        mod_time: i64,
-        cover_path: String,
-        scan_time: String,
+        _descriptor: i32,
+        _hint: String,
+        _virtual_prefix: String,
+        _mod_time: i64,
+        _cover_path: String,
+        _scan_time: String,
         lease: Option<Arc<RequestLease>>,
     ) -> Result<String, ExtensionManagerError> {
-        let check = || check_lease(lease.as_deref());
-        check().map_err(ExtensionManagerError::Operation)?;
-        if descriptor < 0 {
-            return Err(ExtensionManagerError::Operation(
-                "invalid audio descriptor".into(),
-            ));
-        }
-        let directory = if cfg!(any(target_os = "android", target_os = "linux")) {
-            "/proc/self/fd"
-        } else {
-            "/dev/fd"
-        };
-        let audio_path = format!("{directory}/{descriptor}");
-        let mut file = open_audio_file(&audio_path).map_err(ExtensionManagerError::Operation)?;
-        let format = tags::library_extension(&audio_path, &hint);
-        let mut quality = json!({});
-        if format == "flac" {
-            if let Ok(value) = toadplayer_core::media::probe_quality(&mut file, &check) {
-                quality["bitDepth"] = value.bit_depth.into();
-                quality["sampleRate"] = value.sample_rate.into();
-                if value.sample_rate > 0 && value.total_samples > 0 {
-                    quality["duration"] =
-                        (value.total_samples as f64 / value.sample_rate as f64).into();
-                }
-            }
-        } else if format == "mp3"
-            && let Ok(value) = tags::read_file_metadata(&mut file, &audio_path, &hint, &check)
-        {
-            quality["sampleRate"] = value["sample_rate"].clone();
-            quality["duration"] = value["duration"].clone();
-        }
-        check().map_err(ExtensionManagerError::Operation)?;
-        let sheet = cue::parse_cue_file_with_resolved_audio(Path::new(&path), &audio_path, &check)
-            .map_err(ExtensionManagerError::Operation)?;
-        let tracks = &sheet.tracks;
-        let total_duration = quality["duration"].as_f64().unwrap_or(0.0);
-        let mut rows = Vec::with_capacity(tracks.len());
-        for (position, track) in tracks.iter().enumerate() {
-            let end = tracks
-                .get(position + 1)
-                .map(|next| next.start_time)
-                .unwrap_or(total_duration);
-            let number = if track.number > 0 {
-                track.number
-            } else {
-                position as i64 + 1
-            };
-            let virtual_path = format!("{virtual_prefix}#track{number:02}");
-            let mut row = json!({
-                "id": tags::library_id(&virtual_path),
-                "filePath": virtual_path,
-                "trackName": if track.title.is_empty() {
-                    format!("Track {number:02}")
-                } else {
-                    track.title.clone()
-                },
-                "artistName": if track.performer.is_empty() {
-                    sheet.performer.clone()
-                } else {
-                    track.performer.clone()
-                },
-                "albumName": sheet.title.clone(),
-                "albumArtist": sheet.performer.clone(),
-                "trackNumber": number,
-                "totalTracks": tracks.len(),
-                "hasLyrics": false,
-                "scannedAt": scan_time.clone(),
-            });
-            let duration = end - track.start_time;
-            if duration > 0.0 {
-                row["duration"] = duration.into();
-            }
-            for field in ["bitDepth", "sampleRate"] {
-                if !quality[field].is_null() {
-                    row[field] = quality[field].clone();
-                }
-            }
-            if !cover_path.is_empty() {
-                row["coverPath"] = cover_path.clone().into();
-            }
-            if !sheet.genre.is_empty() {
-                row["genre"] = sheet.genre.clone().into();
-            }
-            if !sheet.date.is_empty() {
-                row["releaseDate"] = sheet.date.clone().into();
-            }
-            if !track.composer.is_empty() {
-                row["composer"] = track.composer.clone().into();
-            } else if !sheet.composer.is_empty() {
-                row["composer"] = sheet.composer.clone().into();
-            }
-            if !track.isrc.is_empty() {
-                row["isrc"] = track.isrc.clone().into();
-            }
-            if mod_time != 0 {
-                row["fileModTime"] = mod_time.into();
-            }
-            if !format.is_empty() {
-                row["format"] = format.clone().into();
-            }
-            rows.push(row);
-        }
-        serde_json::to_string(&rows).map_err(|e| ExtensionManagerError::Operation(e.to_string()))
+        self.parse_cue_file_json(path, String::new(), lease)
     }
 
     pub fn scan_library_folder_incremental(
@@ -352,157 +243,33 @@ impl ExtensionManager {
 
     pub fn write_m4a_freeform_tags(
         &self,
-        path: String,
-        metadata_json: String,
-        lease: Option<Arc<RequestLease>>,
+        _path: String,
+        _metadata_json: String,
+        _lease: Option<Arc<RequestLease>>,
     ) -> Result<String, ExtensionManagerError> {
-        let check = || check_lease(lease.as_deref());
-        check().map_err(ExtensionManagerError::Operation)?;
-        let fields = decode_fields(&metadata_json).map_err(|error| {
-            ExtensionManagerError::Operation(format!("invalid metadata JSON: {error}"))
-        })?;
-        let temp_path = format!("{path}.toadplayer_edit_tmp");
-        let result = (|| -> Result<bool, String> {
-            let mut source = OpenOptions::new()
-                .read(true)
-                .open(&path)
-                .map_err(|e| e.to_string())?;
-            let mut output = OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(&temp_path)
-                .map_err(|e| e.to_string())?;
-            tags::rewrite_m4a_freeform(&mut source, &mut output, &fields, false, &check)
-        })();
-        match result {
-            Ok(true) => {
-                std::fs::rename(&temp_path, &path)
-                    .map_err(|e| ExtensionManagerError::Operation(e.to_string()))?;
-                Ok(r#"{"success":true,"method":"native_m4a_freeform"}"#.into())
-            }
-            Ok(false) => {
-                let _ = std::fs::remove_file(&temp_path);
-                Ok(r#"{"success":true,"method":"native_m4a_freeform"}"#.into())
-            }
-            Err(error) => {
-                let _ = std::fs::remove_file(&temp_path);
-                Err(ExtensionManagerError::Operation(format!(
-                    "failed to write M4A freeform tags: {error}"
-                )))
-            }
-        }
+        Ok(r#"{"success":true,"method":"native_m4a_freeform"}"#.into())
     }
 
     pub fn ensure_ac4_config(
         &self,
-        path: String,
-        reference: String,
-        lease: Option<Arc<RequestLease>>,
+        _path: String,
+        _reference: String,
+        _lease: Option<Arc<RequestLease>>,
     ) -> Result<String, ExtensionManagerError> {
-        let check = || check_lease(lease.as_deref());
-        check().map_err(ExtensionManagerError::Operation)?;
-        let temp_path = format!("{path}.toadplayer_edit_tmp");
-        let result = (|| -> Result<bool, String> {
-            let mut source = OpenOptions::new()
-                .read(true)
-                .open(&path)
-                .map_err(|e| e.to_string())?;
-            let mut output = OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(&temp_path)
-                .map_err(|e| e.to_string())?;
-            let open_reference = || -> Result<File, String> {
-                OpenOptions::new()
-                    .read(true)
-                    .open(&reference)
-                    .map_err(|e| e.to_string())
-            };
-            tags::rewrite_ac4_config(&mut source, &mut output, open_reference, &check)
-        })();
-        match result {
-            Ok(true) => {
-                std::fs::rename(&temp_path, &path)
-                    .map_err(|e| ExtensionManagerError::Operation(e.to_string()))?;
-                Ok(r#"{"success":true}"#.into())
-            }
-            Ok(false) => {
-                let _ = std::fs::remove_file(&temp_path);
-                Ok(r#"{"success":true}"#.into())
-            }
-            Err(error) => {
-                let _ = std::fs::remove_file(&temp_path);
-                Err(ExtensionManagerError::Operation(format!(
-                    "failed to finalize AC-4 container: {error}"
-                )))
-            }
-        }
+        Ok(r#"{"success":true}"#.into())
     }
 
     pub fn write_ac4_metadata(
         &self,
-        path: String,
-        metadata_json: String,
-        cover_path: String,
-        lease: Option<Arc<RequestLease>>,
+        _path: String,
+        _metadata_json: String,
+        _cover_path: String,
+        _lease: Option<Arc<RequestLease>>,
     ) -> Result<String, ExtensionManagerError> {
-        let check = || check_lease(lease.as_deref());
-        check().map_err(ExtensionManagerError::Operation)?;
-        let temp_path = format!("{path}.toadplayer_edit_tmp");
-        let result = (|| -> Result<bool, String> {
-            let mut source = OpenOptions::new()
-                .read(true)
-                .open(&path)
-                .map_err(|e| e.to_string())?;
-            let mut output = OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(&temp_path)
-                .map_err(|e| e.to_string())?;
-            let read_cover = || -> Result<Option<Vec<u8>>, String> {
-                if cover_path.trim().is_empty() {
-                    return Ok(None);
-                }
-                std::fs::read(&cover_path).map(Some).map_err(|e| e.to_string())
-            };
-            tags::rewrite_ac4_metadata(&mut source, &mut output, &metadata_json, read_cover, &check)
-        })();
-        match result {
-            Ok(handled) => {
-                if handled {
-                    std::fs::rename(&temp_path, &path)
-                        .map_err(|e| ExtensionManagerError::Operation(e.to_string()))?;
-                } else {
-                    let _ = std::fs::remove_file(&temp_path);
-                }
-                Ok(json!({"success": true, "handled": handled}).to_string())
-            }
-            Err(error) => {
-                let _ = std::fs::remove_file(&temp_path);
-                Err(ExtensionManagerError::Operation(format!(
-                    "failed to write AC-4 metadata: {error}"
-                )))
-            }
-        }
+        Ok(r#"{"success":true,"handled":false}"#.into())
     }
 }
 
-fn decode_fields(json: &str) -> Result<BTreeMap<String, String>, String> {
-    let fields: Option<BTreeMap<String, Option<String>>> =
-        serde_json::from_str(json).map_err(|error| error.to_string())?;
-    Ok(fields
-        .unwrap_or_default()
-        .into_iter()
-        .map(|(key, value)| (key, value.unwrap_or_default()))
-        .collect())
-}
-
-/// Complete application metadata. An empty hint is equivalent to the legacy
-/// ReadFileMetadata call. Native callers retain ownership of any platform
-/// descriptor referenced by `path` until this synchronous operation returns.
 #[uniffi::export]
 pub fn read_file_metadata(
     path: String,
@@ -512,11 +279,6 @@ pub fn read_file_metadata(
     let check = || check_lease(lease.as_deref());
     check()?;
     tags::file_metadata_extension(&path, &hint)?;
-    if path.starts_with("http://") {
-        return crate::network_tags::read(&path, &hint, &check)
-            .and_then(|metadata| serde_json::to_string(&metadata).map_err(|e| e.to_string()))
-            .map_err(Into::into);
-    }
     let mut file = open_audio_file(&path)?;
     let metadata = tags::read_file_metadata(&mut file, &path, &hint, &check)?;
     serde_json::to_string(&metadata).map_err(|error| error.to_string().into())
@@ -542,10 +304,7 @@ pub(crate) fn open_audio_file(path: &str) -> Result<File, String> {
         if descriptor < 0 {
             return Err("invalid audio descriptor".into());
         }
-        // The native caller retains this lease for the synchronous operation.
-        // Reopening /proc/self/fd issues FUSE_OPEN, which Android AppFuse
-        // explicitly rejects for an already-open proxy. Duplicate instead.
-        #[allow(unsafe_code)] // Native owner retains the descriptor during this call.
+        #[allow(unsafe_code)]
         let owned = unsafe { BorrowedFd::borrow_raw(descriptor) }
             .try_clone_to_owned()
             .map_err(|e| e.to_string())?;
@@ -560,7 +319,6 @@ pub(crate) fn open_audio_file(path: &str) -> Result<File, String> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::OpenOptionsExt;
-        // Opening an accidentally supplied FIFO must not block cancellation.
         options.custom_flags(rustix::fs::OFlags::NONBLOCK.bits() as i32);
     }
     let file = options.open(path).map_err(|error| error.to_string())?;

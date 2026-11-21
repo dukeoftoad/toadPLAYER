@@ -3,8 +3,6 @@
 //! band-limited 44.1 kHz signal carried at a higher rate, which a few lines
 //! build more clearly than any committed binary could describe.
 
-mod inspect;
-
 use super::fft::Radix2Fft;
 use super::*;
 use std::path::{Path, PathBuf};

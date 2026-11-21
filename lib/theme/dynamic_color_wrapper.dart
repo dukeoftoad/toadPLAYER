@@ -7,7 +7,6 @@ import 'package:toadplayer/theme/app_theme.dart';
 import 'package:toadplayer/models/theme_settings.dart';
 import 'package:toadplayer/theme/sketchbook_theme.dart';
 import 'package:toadplayer/theme/toad_theme.dart';
-import 'package:toadplayer/theme/toadmark_theme.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
 
 class DynamicColorWrapper extends ConsumerWidget {
@@ -79,17 +78,6 @@ class DynamicColorWrapper extends ConsumerWidget {
               useSystemFont: themeSettings.useSystemFont,
               fontFamily: fontFamily,
             ),
-            themeSettings.themeMode,
-          );
-        }
-
-        if (themeSettings.style == AppThemeStyle.toadmark) {
-          // The Toadmark paper keeps the hand-written Sketchbook fonts on
-          // purpose, like the Sketchbook style: a custom or system font pick
-          // would erase the handwriting itself.
-          return builder(
-            ToadmarkTheme.build(Brightness.light),
-            ToadmarkTheme.build(Brightness.dark),
             themeSettings.themeMode,
           );
         }

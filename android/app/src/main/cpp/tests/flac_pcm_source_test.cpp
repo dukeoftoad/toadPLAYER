@@ -112,6 +112,31 @@ void retainsDescriptor() {
     source.seek(5001);
     compare(source, fixture, 5001, 24);
 }
+
+void decodesFromDuplicatedDescriptor() {
+    Fixture fixture(24, 96000, 2);
+    auto *file = std::fopen(fixture.path.c_str(), "rb");
+    check(file != nullptr, "open descriptor fixture");
+    // The SAF lease pattern: the caller keeps its descriptor open while the
+    // source decodes through its own duplicate, and closing the caller's
+    // descriptor must not disturb the source.
+    {
+        FlacPcmSource source(fileno(file));
+        std::fclose(file);
+        compare(source, fixture, 0, 32);
+        source.seek(5001);
+        compare(source, fixture, 5001, 24);
+    }
+    // A closed descriptor must be rejected, not dereferenced.
+    int endpoints[2];
+    check(pipe(endpoints) == 0, "create pipe");
+    close(endpoints[0]);
+    close(endpoints[1]);
+    bool rejected = false;
+    try { FlacPcmSource source(endpoints[0]); }
+    catch (const std::exception &) { rejected = true; }
+    check(rejected, "accepted a closed descriptor");
+}
 }
 
 int main() {
@@ -123,7 +148,9 @@ int main() {
         }
         rejectsTruncatedData();
         retainsDescriptor();
-        std::cout << "FLAC integer precision, padding, seek, EOF and truncation checks passed\n";
+        decodesFromDuplicatedDescriptor();
+        std::cout << "FLAC integer precision, padding, seek, EOF, truncation and "
+                     "descriptor checks passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception &error) {
         std::cerr << error.what() << '\n';

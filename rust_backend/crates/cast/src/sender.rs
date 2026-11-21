@@ -575,19 +575,9 @@ impl Actor {
                         | "LAUNCH_ERROR"
                         | "ERROR"
                 ) {
-                    if matches!(kind, "LOAD_FAILED" | "ERROR") {
+                    if kind == "LOAD_FAILED" {
                         let mut snapshot = self.status.lock().expect("cast status").snapshot();
-                        if kind == "LOAD_FAILED" {
-                            snapshot["error"] = json!("Cast receiver could not play this file");
-                        } else {
-                            // For the logs only: a receiver that really stopped
-                            // says so with its idle reason.
-                            snapshot["mediaError"] = json!(format!(
-                                "reason={} code={}",
-                                payload["reason"].as_str().unwrap_or("unknown"),
-                                payload["detailedErrorCode"]
-                            ));
-                        }
+                        snapshot["error"] = json!("Cast receiver could not play this file");
                         (self.emit)("castStatus", snapshot);
                     }
                     self.answer(request, Err(format!("TV rejected the request ({kind})")));

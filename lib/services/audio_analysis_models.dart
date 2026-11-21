@@ -173,25 +173,3 @@ class ChannelAnalysisStats {
     );
   }
 }
-
-/// The stream facts an analysis or comparison reads from a probed audio
-/// file: codec, sampling and length. Built by
-/// [AudioAnalysisRunner.parseMediaInfo].
-class AudioAnalysisMediaInfo {
-  const AudioAnalysisMediaInfo({
-    required this.codecName,
-    required this.sampleRate,
-    required this.bitsPerSample,
-    required this.channels,
-    required this.duration,
-    required this.totalSamples,
-  });
-
-  /// FFmpeg's codec name, lowercase (`flac`, `aac`, `opus`).
-  final String codecName;
-  final int sampleRate;
-  final int bitsPerSample;
-  final int channels;
-  final double duration;
-  final int totalSamples;
-}

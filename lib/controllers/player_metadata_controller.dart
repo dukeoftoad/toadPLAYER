@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path/path.dart' as p;
 import 'package:toadplayer/services/platform_bridge.dart';
 import 'package:toadplayer/services/playback_metadata.dart';
 import 'package:toadplayer/services/player_lyrics_persistence.dart';
@@ -21,25 +19,6 @@ final _log = AppLogger('PlayerMetadata');
 typedef OnlineLyricsFetcher =
     Future<String> Function(MediaItem item, {String? track, String? artist});
 typedef OnlineLyricsSaver = Future<void> Function(String source, String lyrics);
-
-/// Where [PlayerMetadataController.saveShownLyrics] wrote a translation.
-enum LyricsSaveTarget {
-  /// A `.mlrc` file next to the song, read back like a `.lrc` sidecar.
-  sidecar,
-
-  /// The song's own tags.
-  embedded,
-}
-
-/// Thrown when the playing source cannot take a saved translation at all.
-class LyricsSaveUnsupported implements Exception {
-  const LyricsSaveUnsupported(this.reason);
-
-  final String reason;
-
-  @override
-  String toString() => reason;
-}
 
 Future<String> _fetchOnlineLyrics(
   MediaItem item, {
@@ -128,18 +107,6 @@ class PlayerMetadataController extends ChangeNotifier {
   bool get canSearchOnline =>
       (_item?.title.trim().isNotEmpty ?? false) &&
       (_item?.artist?.trim().isNotEmpty ?? false);
-
-  /// Whether a shown translation can be saved into this song: only an
-  /// editable audio file takes it, never a stream or a network source.
-  bool get canSaveTranslations {
-    final source = this.source;
-    if (source == null || source.isEmpty) return false;
-    final uri = Uri.tryParse(source);
-    final localPath = uri?.scheme == 'file' ? uri!.toFilePath() : source;
-    return source.startsWith('content://') ||
-        (!source.startsWith('network://') &&
-            (p.posix.isAbsolute(localPath) || p.windows.isAbsolute(localPath)));
-  }
 
   /// Displays fetched lyrics and embeds them in the original audio file.
   Future<void> searchOnline() async {
@@ -312,52 +279,6 @@ class PlayerMetadataController extends ChangeNotifier {
     _onlineSearchMissed = false;
     _onlineLyricsSaveFailed = false;
     notifyListeners();
-  }
-
-  /// Saves the lyrics the player shows — the translation included — either
-  /// into a `.mlrc` file next to the song ([preferSidecar]) or into the
-  /// song's own tags, so they play offline and travel with the song.
-  /// Network songs are rewritten in place when the storage allows it.
-  /// Throws [LyricsSaveUnsupported] when this source can never take lyrics;
-  /// write errors propagate as they are. What is shown stays on screen.
-  Future<LyricsSaveTarget> saveShownLyrics(
-    String shown, {
-    bool preferSidecar = false,
-  }) async {
-    final source = this.source;
-    if (_disposed || _item == null || source == null) {
-      throw const LyricsSaveUnsupported('No editable track is loaded');
-    }
-    final sidecarPath = _localSidecarPath(source);
-    if (preferSidecar && sidecarPath != null) {
-      await File(sidecarPath).writeAsString(shown, flush: true);
-      return LyricsSaveTarget.sidecar;
-    }
-    // The persistence layer rejects sources it cannot rewrite with an
-    // UnsupportedError; the save flow surfaces that as its own signal.
-    try {
-      await _saveOnline(source, shown);
-      return LyricsSaveTarget.embedded;
-    } on UnsupportedError catch (error) {
-      throw LyricsSaveUnsupported(
-        error.message ?? 'This source cannot take lyrics',
-      );
-    }
-  }
-
-  /// The song file's path when the source is a plain local file, where a
-  /// `.mlrc` sidecar can live next to it; null for documents, content URIs
-  /// and network sources.
-  String? _localSidecarPath(String source) {
-    if (source.startsWith('content://') || source.startsWith('network://')) {
-      return null;
-    }
-    final uri = Uri.tryParse(source);
-    final local = uri?.scheme == 'file' ? uri!.toFilePath() : source;
-    if (!p.posix.isAbsolute(local) && !p.windows.isAbsolute(local)) {
-      return null;
-    }
-    return p.setExtension(p.normalize(local), '.mlrc');
   }
 
   /// Reads deferred file tags when opening technical details. Already loaded

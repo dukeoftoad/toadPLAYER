@@ -1,35 +1,18 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
-import 'package:toadplayer/theme/app_motion.dart';
-import 'package:toadplayer/theme/app_tokens.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
-import 'package:toadplayer/providers/music_player_provider.dart';
 import 'package:toadplayer/services/audio_analysis_jobs.dart';
 import 'package:toadplayer/services/audio_analysis_cache.dart';
 import 'package:toadplayer/services/audio_analysis_ffmpeg.dart';
 import 'package:toadplayer/services/audio_analysis_models.dart';
 import 'package:toadplayer/services/audio_analysis_runner.dart';
-import 'package:toadplayer/services/audio_compare_dsp.dart';
-import 'package:toadplayer/services/audio_compare_engine.dart';
-import 'package:audio_service/audio_service.dart' show MediaItem;
-import 'package:toadplayer/services/audio_file_open_service.dart'
-    show openAudioExtensions;
-import 'package:path_provider/path_provider.dart';
 import 'package:toadplayer/services/network_audio_analysis_input.dart';
-import 'package:toadplayer/utils/android_tv.dart';
-import 'package:toadplayer/widgets/expressive_button.dart';
 import 'package:toadplayer/widgets/settings_group.dart';
-import 'package:toadplayer/widgets/toadplayer_chrome.dart';
-import 'package:toadplayer/widgets/app_bottom_sheet.dart';
 import 'package:toadplayer/widgets/app_content_card.dart';
 import 'package:toadplayer/widgets/app_progress_indicator.dart';
 import 'package:toadplayer/widgets/app_choice_chip.dart';
@@ -44,7 +27,6 @@ export 'package:toadplayer/services/audio_analysis_models.dart';
 
 part 'audio_analysis_info_card.dart';
 part 'audio_analysis_spectrogram.dart';
-part 'audio_compare_view.dart';
 
 class AudioAnalysisCard extends StatefulWidget {
   final String filePath;

@@ -121,12 +121,6 @@ class MainActivity: FlutterFragmentActivity() {
         "safCreateCollisionAwareFromPath",
         "writeTempToSaf",
         "writeSafSidecarLrc",
-        "writeSafSidecar",
-        "readSafSidecar",
-        "findSafSibling",
-        "findSafSiblings",
-        "safSongFolders",
-        "listSafFolder",
         "downloadCoverToFile",
         "extractCoverToFile",
         "rewriteSplitArtistTags",
@@ -564,12 +558,6 @@ class MainActivity: FlutterFragmentActivity() {
                         "writeAC4Metadata" -> handleWriteAC4Metadata(call, result)
                         "writeTempToSaf" -> handleWriteTempToSaf(call, result)
                         "writeSafSidecarLrc" -> handleWriteSafSidecarLrc(call, result)
-                        "writeSafSidecar" -> handleWriteSafSidecar(call, result)
-                        "readSafSidecar" -> handleReadSafSidecar(call, result)
-                        "findSafSibling" -> handleFindSafSibling(call, result)
-                        "findSafSiblings" -> handleFindSafSiblings(call, result)
-                        "safSongFolders" -> handleSafSongFolders(call, result)
-                        "listSafFolder" -> handleListSafFolder(call, result)
                         "downloadCoverToFile" -> handleDownloadCoverToFile(call, result)
                         "extractCoverToFile" -> handleExtractCoverToFile(call, result)
                         "reEnrichFile" -> handleReEnrichFile(call, result)

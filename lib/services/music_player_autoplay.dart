@@ -531,28 +531,6 @@ class _MusicAutoplay {
           ? runtime.ranker.weights
           : const <String, double>{};
       final revision = handler._sessionQueueRevision;
-      // Persisted rotation: while the variety setting is on, songs Autoplay
-      // picked lately step aside in favour of fresh ones. The bonus never
-      // promotes a dismissed source (they are filtered first) and vanishes
-      // entirely when the setting is off.
-      double Function(PlayableMedia)? exploration;
-      final randomness = runtime.settings.autoplayRandomness;
-      if (randomness > 0) {
-        await runtime.autoplayHistory.load();
-        final orders = runtime.autoplayHistory.snapshot();
-        if (orders.isNotEmpty) {
-          final maxOrder = orders.values.fold(0, max);
-          exploration = (media) {
-            final order = max(
-              orders[AutoplayHistory.sourceKey(media)] ?? -1,
-              orders[AutoplayHistory.songKey(media)] ?? -1,
-            );
-            if (order < 0) return randomness;
-            final recency = maxOrder <= 0 ? 1.0 : order / maxOrder;
-            return randomness * (1 - recency);
-          };
-        }
-      }
       List<AutoplayPick> ordinaryRanking() => rankAutoplayTracks(
         seed: current,
         candidates: candidates,
@@ -561,7 +539,6 @@ class _MusicAutoplay {
         dismissedSources: _dismissed,
         random: handler._random,
         limit: 6 - upcoming.length,
-        exploration: exploration,
       );
       List<AutoplayPick> selected;
       if (model == null && signals.isEmpty && weights.isEmpty) {
@@ -613,12 +590,6 @@ class _MusicAutoplay {
         for (final pick in selected)
           PlayableMedia.fromJson({...pick.media.toJson(), 'autoplay': true})!,
       ];
-      // Rotation memory: these picks just entered, so later fills lean away
-      // from them (and from this session's picks after a restart).
-      for (final pick in selected) {
-        runtime.autoplayHistory.remember(pick.media);
-      }
-      unawaited(runtime.autoplayHistory.flush());
       final queueItems = additions.map(handler._toMediaItem).toList();
       handler._media.addAll(additions);
       handler._queueItems.addAll(queueItems);

@@ -1,25 +1,13 @@
-import 'dart:async';
-
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart'
-    as m
-    show ButtonStyle, ColorScheme, WidgetStatePropertyAll;
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:toadplayer/controllers/player_metadata_controller.dart';
 import 'package:toadplayer/l10n/l10n.dart';
-import 'package:toadplayer/models/settings.dart';
 import 'package:toadplayer/providers/lyrics_translation_provider.dart';
 import 'package:toadplayer/providers/settings_provider.dart';
-import 'package:toadplayer/providers/song_lyrics_offset_provider.dart';
 import 'package:toadplayer/services/lyrics_ai_client.dart';
 import 'package:toadplayer/services/lyrics_translation.dart';
 import 'package:toadplayer/services/lyrics_translation_languages.dart';
-import 'package:toadplayer/utils/lyrics_draft.dart' show LyricsDraft;
-import 'package:toadplayer/services/network_storage_service.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
-import 'package:toadplayer/utils/android_tv.dart';
-import 'package:toadplayer/utils/logger.dart';
 import 'package:toadplayer/utils/lyrics_parser.dart';
 import 'package:toadplayer/widgets/app_bottom_sheet.dart';
 import 'package:toadplayer/widgets/app_icon.dart';
@@ -27,12 +15,7 @@ import 'package:toadplayer/widgets/app_icon_button.dart';
 import 'package:toadplayer/widgets/app_progress_indicator.dart';
 import 'package:toadplayer/widgets/app_snack_bar.dart';
 import 'package:toadplayer/widgets/lyrics_editor_sheet.dart';
-import 'package:toadplayer/widgets/lyrics_options_activity.dart';
-import 'package:toadplayer/widgets/lyrics_size_setting.dart';
 import 'package:toadplayer/widgets/toadplayer_context_menu.dart';
-import 'package:toadplayer/widgets/player_lyrics_controls.dart';
-
-final _log = AppLogger('LyricsOptions');
 
 /// The localized message for a translation failure. Raw errors never reach
 /// the user.
@@ -91,9 +74,9 @@ Future<String?> showLyricsLanguagePicker(
   ),
 );
 
-/// The player's lyrics menu: pronunciation and translation toggles, AI
-/// translation once a provider is set up, and the timing of synced lyrics.
-/// Hidden when it would offer nothing.
+/// The player's lyrics language menu: pronunciation and translation
+/// toggles, plus AI translation once a provider is set up. Hidden when it
+/// would offer nothing.
 class LyricsOptionsButton extends ConsumerStatefulWidget {
   const LyricsOptionsButton({
     super.key,
@@ -104,7 +87,7 @@ class LyricsOptionsButton extends ConsumerStatefulWidget {
   });
 
   final PlayerMetadataController metadata;
-  final m.ColorScheme colorScheme;
+  final ColorScheme colorScheme;
 
   /// The screen that cancels a translation it started when it closes.
   final Object? translationOwner;
@@ -119,51 +102,6 @@ class LyricsOptionsButton extends ConsumerStatefulWidget {
 
 class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
   bool _open = false;
-  bool _hidden = false;
-  bool _hovered = false;
-  bool _focused = false;
-  bool _canHide = false;
-  Timer? _hideTimer;
-  ValueListenable<(int, bool)>? _activity;
-  ParsedLyrics? _lastLyrics;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final activity = LyricsOptionsActivity.maybeOf(context);
-    if (identical(activity, _activity)) return;
-    _activity?.removeListener(_reveal);
-    _activity = activity;
-    _activity?.addListener(_reveal);
-  }
-
-  @override
-  void dispose() {
-    _hideTimer?.cancel();
-    _activity?.removeListener(_reveal);
-    super.dispose();
-  }
-
-  void _scheduleHide() {
-    _hideTimer?.cancel();
-    if (!_canHide ||
-        _hidden ||
-        _open ||
-        _hovered ||
-        _focused ||
-        _activity?.value.$2 == true) {
-      return;
-    }
-    _hideTimer = Timer(const Duration(seconds: 5), () {
-      if (!mounted || ModalRoute.of(context)?.isCurrent == false) return;
-      setState(() => _hidden = true);
-    });
-  }
-
-  void _reveal() {
-    if (_hidden) setState(() => _hidden = false);
-    _scheduleHide();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -173,47 +111,10 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
     final apiKey =
         ref.watch(lyricsAiKeyProvider(settings.lyricsAiProvider)).value ?? '';
     final ready = lyricsAiReady(settings, apiKey);
-    // The button sits over lyric text, so it fades whether or not the
-    // player's own controls stay. Accessible navigation keeps it unless
-    // hiding was chosen there.
-    final autoHide =
-        !isAndroidTv &&
-        (!MediaQuery.accessibleNavigationOf(context) ||
-            settings.autoHideLyricsControlsWithAccessibility);
     return ListenableBuilder(
       listenable: widget.metadata,
-      builder: (context, _) {
-        final button = _buildButton(context, job, ready);
-        final canHide = autoHide && button != null && _activity != null;
-        final lyrics = widget.metadata.lyrics;
-        if (_canHide != canHide || !identical(_lastLyrics, lyrics)) {
-          _canHide = canHide;
-          _lastLyrics = lyrics;
-          _hidden = false;
-          _scheduleHide();
-        }
-        if (button == null) return const SizedBox.shrink();
-        return Focus(
-          onFocusChange: (focused) {
-            _focused = focused;
-            _reveal();
-          },
-          child: MouseRegion(
-            onEnter: (_) {
-              _hovered = true;
-              _reveal();
-            },
-            onExit: (_) {
-              _hovered = false;
-              _scheduleHide();
-            },
-            child: PlayerLyricsControlsVisibility(
-              hidden: _hidden,
-              child: button,
-            ),
-          ),
-        );
-      },
+      builder: (context, _) =>
+          _buildButton(context, job, ready) ?? const SizedBox.shrink(),
     );
   }
 
@@ -225,33 +126,19 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
     final metadata = widget.metadata;
     if (metadata.loading || metadata.lyrics.isEmpty) return null;
     final canEdit = canEditPlayerLyrics(metadata);
+    if (!metadata.lyrics.synced) return canEdit ? _editButton(context) : null;
     final original = metadata.lyrics;
     final lyrics = ref
         .read(lyricsTranslationProvider.notifier)
         .display(original);
     final source = LyricsTranslationSource.cached(original);
-    // The offline romanization can be hidden too, though it is never saved.
-    final pronunciation = ref
-        .read(lyricsTranslationProvider.notifier)
-        .shown(original)
-        .lines
-        .any((line) => line.romanization?.trim().isNotEmpty == true);
+    final pronunciation = lyrics.lines.any(
+      (line) => line.romanization?.trim().isNotEmpty == true,
+    );
     final translation = lyricsHaveTranslation(lyrics);
     final translating = job != null && job.sourceHash == source.hash;
     final canTranslate = ready && !source.isEmpty && job == null;
-    final canSaveTranslation =
-        metadata.canSaveTranslations &&
-        !translating &&
-        lyricsTranslationUnsaved(original, lyrics);
-    // Synced lyrics can always be timed, for this song or every song.
-    final timing = original.synced;
-    if (canSaveTranslation &&
-        ref.read(settingsProvider).lyricsTranslationAutoSave) {
-      _scheduleAutoSave(lyrics);
-    }
-    final language =
-        pronunciation || translation || canTranslate || translating;
-    if (!language && !timing) {
+    if (!pronunciation && !translation && !canTranslate && !translating) {
       return canEdit ? _editButton(context) : null;
     }
     final colorScheme = widget.colorScheme;
@@ -259,14 +146,10 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
     final percent = ((job?.progress ?? 0) * 100).round();
     return Builder(
       builder: (buttonContext) => AppIconButton.filledTonal(
-        // Without language choices the menu holds timing (and editing), so
-        // a language glyph would mislead.
-        key: ValueKey(language ? 'lyrics-language-options' : 'lyrics-options'),
+        key: const ValueKey('lyrics-language-options'),
         tooltip: translating
             ? context.l10n.nowPlayingTranslatingLyrics(percent)
-            : language
-            ? context.l10n.nowPlayingLyricsLanguageOptions
-            : context.l10n.lyricsOffsetOptions,
+            : context.l10n.nowPlayingLyricsLanguageOptions,
         icon: translating
             ? SizedBox.square(
                 dimension: 20,
@@ -278,13 +161,11 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
                   wavy: false,
                 ),
               )
-            : language
-            ? const AppIcon(Icons.translate_rounded)
-            : const AppIcon.adaptive(Icons.tune_rounded),
-        style: m.ButtonStyle(
-          foregroundColor: m.WidgetStatePropertyAll(foreground),
-          backgroundColor: m.WidgetStatePropertyAll(
-            colorScheme.onSurface.withValues(alpha: _open ? 0.85 : 0.16),
+            : const AppIcon(Icons.translate_rounded),
+        style: IconButton.styleFrom(
+          foregroundColor: foreground,
+          backgroundColor: colorScheme.onSurface.withValues(
+            alpha: _open ? 0.85 : 0.16,
           ),
         ),
         onPressed: () => _showMenu(
@@ -294,9 +175,7 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
           translation: translation,
           canTranslate: canTranslate,
           translating: translating,
-          canSaveTranslation: canSaveTranslation,
           canEdit: canEdit,
-          timing: timing,
         ),
       ),
     );
@@ -310,28 +189,20 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
       key: const ValueKey('lyrics-edit'),
       tooltip: context.l10n.lyricsEditTitle,
       icon: const AppIcon.adaptive(Icons.edit_note),
-      style: m.ButtonStyle(
-        foregroundColor: m.WidgetStatePropertyAll(foreground),
-        backgroundColor: m.WidgetStatePropertyAll(
-          colorScheme.onSurface.withValues(alpha: _open ? 0.85 : 0.16),
+      style: IconButton.styleFrom(
+        foregroundColor: foreground,
+        backgroundColor: colorScheme.onSurface.withValues(
+          alpha: _open ? 0.85 : 0.16,
         ),
       ),
-      onPressed: () => _edit(context),
+      onPressed: _edit,
     );
   }
 
-  /// Opens the editor from [buttonContext] when it still exists — the track
-  /// can change under an open menu and rebuild the button away — falling
-  /// back to this widget's own context, which hosts the same overlays.
-  Future<void> _edit([BuildContext? buttonContext]) async {
-    final editContext =
-        buttonContext != null && buttonContext.mounted
-            ? buttonContext
-            : context;
-    if (!mounted || !editContext.mounted) return;
+  Future<void> _edit() async {
     _setOpen(true);
     try {
-      await openLyricsEditor(editContext, widget.metadata);
+      await openLyricsEditor(context, widget.metadata);
     } finally {
       _setOpen(false);
     }
@@ -340,7 +211,6 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
   void _setOpen(bool open) {
     if (!mounted) return;
     setState(() => _open = open);
-    _reveal();
     widget.onOpenChanged?.call(open);
   }
 
@@ -351,15 +221,11 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
     required bool translation,
     required bool canTranslate,
     required bool translating,
-    required bool canSaveTranslation,
     required bool canEdit,
-    required bool timing,
   }) async {
     final settings = ref.read(settingsProvider);
     final l10n = context.l10n;
-    final translations = ref.read(lyricsTranslationProvider.notifier);
-    final target = translations.targetFor(original);
-    final inTarget = translations.inTargetLanguage(original);
+    final target = lyricsTranslationTargetFor(settings);
     final actions = <(String, String, IconData)>[
       if (pronunciation)
         (
@@ -387,25 +253,18 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
         )
       else if (canTranslate) ...[
         // The language from settings applies at once; the picker is only
-        // for another language. Lyrics already in it, or translated into
-        // it, only offer the picker.
-        if (!inTarget)
-          (
-            'translate',
-            l10n.nowPlayingTranslateLyricsTo(target.nativeName),
-            Icons.auto_awesome_outlined,
-          ),
+        // for another language.
+        (
+          'translate',
+          l10n.nowPlayingTranslateLyricsTo(target.nativeName),
+          Icons.auto_awesome_outlined,
+        ),
         (
           'translateInto',
-          inTarget
-              ? l10n.nowPlayingTranslateInto
-              : l10n.nowPlayingTranslateOtherLanguage,
+          l10n.nowPlayingTranslateOtherLanguage,
           Icons.language_rounded,
         ),
       ],
-      if (canSaveTranslation)
-        ('saveTranslation', l10n.nowPlayingSaveTranslation, Icons.save_alt),
-      if (timing) ('timing', l10n.lyricsOffset, Icons.timer_outlined),
       if (canEdit) ('edit', l10n.lyricsEditTitle, Icons.edit_note),
     ];
     _setOpen(true);
@@ -478,35 +337,15 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
           notifier.setPlayerShowTranslation(!settings.playerShowTranslation);
         case 'cancelTranslation':
           ref.read(lyricsTranslationProvider.notifier).cancel();
-        case 'saveTranslation':
-          unawaited(_saveTranslation());
       }
     } finally {
-      // The language sheet, the timing sheet and the editor keep controls
-      // visible until they close.
-      if (action != 'translateInto' && action != 'edit' && action != 'timing') {
-        _setOpen(false);
-      }
-    }
-    if (action == 'timing') {
-      try {
-        final item = widget.metadata.item;
-        if (mounted) {
-          await showLyricsTimingSheet(
-            context,
-            songKey: songLyricsOffsetKeyOf(item),
-            songTitle: item?.title,
-          );
-        }
-      } finally {
-        _setOpen(false);
-      }
+      // The language sheet and the editor keep controls visible until they
+      // close.
+      if (action != 'translateInto' && action != 'edit') _setOpen(false);
     }
     if (action == 'edit') {
       try {
-        // The menu outlives its button, so the edit keeps the button's own
-        // context when it can and falls back to this widget above.
-        if (mounted) await _edit(buttonContext);
+        if (mounted) await openLyricsEditor(context, widget.metadata);
       } finally {
         _setOpen(false);
       }
@@ -520,79 +359,14 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
     }
   }
 
-  /// Songs a save is writing to, across every player view: two views of one
-  /// song must not both save the same translation.
-  static final _savingSources = <String>{};
-
-  /// Translations already saved automatically here, or tried once.
-  final _autoSaved = <(String, ParsedLyrics)>{};
-
-  /// Saves [shown] once it is on screen, when the settings ask for that.
-  void _scheduleAutoSave(ParsedLyrics shown) {
-    final source = widget.metadata.source;
-    if (source == null || _savingSources.contains(source)) return;
-    if (_autoSaved.length > 32) _autoSaved.clear();
-    if (!_autoSaved.add((source, shown))) return;
-    scheduleMicrotask(() {
-      if (mounted) unawaited(_saveTranslation(automatic: true));
-    });
-  }
-
-  /// Saves the translation and pronunciation the player shows with the
-  /// song, so they play offline and travel with it: in the song's own lyrics
-  /// or a `.mlrc` file next to it, as the settings choose. An automatic save
-  /// stays quiet; one that fails is only logged.
-  Future<void> _saveTranslation({bool automatic = false}) async {
-    final metadata = widget.metadata;
-    final source = metadata.source;
-    if (source == null || !_savingSources.add(source)) return;
-    final l10n = context.l10n;
-    final saveTo = ref.read(settingsProvider).lyricsTranslationSaveTo;
-    final shown = ref
-        .read(lyricsTranslationProvider.notifier)
-        .display(metadata.lyrics);
-    String message;
-    try {
-      // Only SMB and WebDAV network songs can be rewritten in place.
-      if (source.startsWith('network://') &&
-          !await NetworkStorageService.instance.canEditFile(source)) {
-        message = l10n.lyricsEditReadOnly;
-      } else {
-        // Synced lyrics carry the translation and pronunciation as the
-        // `[x-translation:...]` / `[x-romaji:...]` tags the parsers read
-        // back; plain lyrics keep their text only.
-        final raw = metadata.rawLyrics;
-        final rendered = LyricsDraft.canEdit(raw)
-            ? (lyricsWithTranslations(raw, shown) ?? shown.plainText)
-            : shown.plainText;
-        final target = await metadata.saveShownLyrics(
-          rendered,
-          preferSidecar: saveTo == lyricsTranslationSaveToMlrc,
-        );
-        message = target == LyricsSaveTarget.sidecar
-            ? l10n.nowPlayingTranslationSavedMlrc
-            : l10n.nowPlayingTranslationSaved;
-      }
-    } on LyricsSaveUnsupported {
-      message = l10n.lyricsEditReadOnly;
-    } catch (error) {
-      _log.w('Could not save the lyrics translation: $error');
-      message = l10n.lyricsEditSaveFailed;
-    } finally {
-      _savingSources.remove(source);
-    }
-    if (!automatic && mounted) {
-      showAppSnackBar(context, content: Text(message));
-    }
-  }
-
-  /// Translates into the song's language, or into one picked now when
-  /// [choose] is set. A picked language stays with this song alone.
+  /// Translates into the language from settings, or into one picked now
+  /// when [choose] is set. A picked language becomes the new setting.
   Future<void> _translate(ParsedLyrics lyrics, {required bool choose}) async {
     final l10n = context.l10n;
     final settings = ref.read(settingsProvider);
-    final translations = ref.read(lyricsTranslationProvider.notifier);
+    final target = lyricsTranslationTargetFor(settings).code;
     final settingsNotifier = ref.read(settingsProvider.notifier);
+    final String code;
     if (choose) {
       final provider = LyricsAiProvider.fromId(settings.lyricsAiProvider);
       final picked = await showLyricsLanguagePicker(
@@ -601,15 +375,14 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
         subtitle: l10n.lyricsTranslateSheetSubtitle(
           lyricsAiProviderName(l10n, provider),
         ),
-        selected: translations.songLanguage(lyrics) ?? '',
-        appDefaultLabel: l10n.lyricsTranslateSongDefault(
-          translations.settingsTargetFor(lyrics).nativeName,
-        ),
+        selected: target,
       );
-      if (picked == null || !mounted) return;
-      translations.chooseSongLanguage(lyrics, picked);
+      if (picked == null || picked.isEmpty || !mounted) return;
+      code = picked;
+      settingsNotifier.setLyricsTranslationLanguage(code);
+    } else {
+      code = target;
     }
-    final code = translations.targetFor(lyrics).code;
     if (!ref.read(settingsProvider).playerShowTranslation) {
       settingsNotifier.setPlayerShowTranslation(true);
     }

@@ -19,10 +19,6 @@ Future<T?> showToadplayerContextMenu<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   Rect? anchor,
-
-  /// Where the menu pours out of, in global coordinates: the control the
-  /// menu opens from. Null uses the anchor rect's center.
-  Offset? origin,
   bool preferAbove = false,
   double maxWidth = 320,
 }) {
@@ -59,7 +55,7 @@ Future<T?> showToadplayerContextMenu<T>({
             ),
             child: _MenuFlight(
               animation: animation,
-              anchor: origin ?? target?.center,
+              anchor: target?.center,
               child: themes.wrap(Builder(builder: builder)),
             ),
           ),
@@ -552,8 +548,7 @@ class _MenuSurface extends StatelessWidget {
           ? const Color(0xff414141)
           : Colors.white,
       tintOpacity: dark
-          ? 0.80 -
-                0.20 * (theme.extension<ToadplayerTheme>()?.glassClarity ?? 0)
+          ? 0.80 - 0.20 * (theme.extension<ToadplayerTheme>()?.glassClarity ?? 0)
           : 0.80,
       child: child,
     );

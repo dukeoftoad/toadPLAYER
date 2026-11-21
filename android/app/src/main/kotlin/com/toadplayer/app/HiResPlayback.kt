@@ -103,23 +103,12 @@ internal class HiResPlayback(context: Context, private val emit: (Map<String, An
                 "duration" to pcm.durationUs / 1000,
                 "device" to (devices.firstOrNull { it.id == device }?.productName?.toString() ?: "AAudio"))
         } catch (error: Exception) {
-            val info = (error as? UsbDirectException)?.info ?: source?.info
             close()
             if (expected != revision) return mapOf("reason" to "cancelled")
-            val reason = when {
-                isDsd -> "dsd_unsupported"
-                error is UsbDirectException -> error.reason
-                error.message.orEmpty().startsWith("Decoder timed out") -> UsbDirectFormats.TIMEOUT
-                else -> failureReason
-            }
-            val detail = listOfNotNull(info?.describe(), error.message.orEmpty().take(3000)).joinToString(": ")
+            val reason = if (isDsd) "dsd_unsupported" else failureReason
+            val detail = error.message.orEmpty().take(3000)
             android.util.Log.i("HiResPlayback", "$reason: $detail")
-            return buildMap {
-                info?.let { putAll(it.toMap()) }
-                put("reason", reason)
-                put("fatal", isDsd)
-                put("detail", detail)
-            }
+            return mapOf("reason" to reason, "fatal" to isDsd, "detail" to detail)
         }
     }
 

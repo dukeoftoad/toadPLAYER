@@ -18,7 +18,6 @@ import 'package:toadplayer/widgets/app_icon.dart';
 import 'package:toadplayer/widgets/app_icon_button.dart';
 import 'package:toadplayer/widgets/desktop/desktop_window.dart'
     show desktopWindowFullScreen;
-import 'package:toadplayer/widgets/lyrics_options_activity.dart';
 import 'package:toadplayer/widgets/lyrics_options_button.dart';
 import 'package:toadplayer/widgets/toadplayer_player_background.dart';
 import 'package:toadplayer/widgets/toadplayer_player_queue.dart';
@@ -478,19 +477,15 @@ class _InspectorLyricsState extends ConsumerState<_InspectorLyrics> {
   }
 
   @override
-  Widget build(BuildContext context) => LyricsOptionsActivity(
-    // The standalone inspector supplies its own activity region around the
-    // lyric list, so a touch on the lyrics keeps the options revealed.
-    child: PlayerLyricsSection(
+  Widget build(BuildContext context) => PlayerLyricsSection(
+    metadata: _metadata,
+    seekPreview: _seekPreview,
+    colorScheme: widget.colorScheme,
+    isActive: true,
+    options: LyricsOptionsButton(
       metadata: _metadata,
-      seekPreview: _seekPreview,
       colorScheme: widget.colorScheme,
-      isActive: true,
-      options: LyricsOptionsButton(
-        metadata: _metadata,
-        colorScheme: widget.colorScheme,
-        translationOwner: this,
-      ),
+      translationOwner: this,
     ),
   );
 }

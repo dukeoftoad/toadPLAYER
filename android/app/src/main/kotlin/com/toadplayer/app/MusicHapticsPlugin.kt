@@ -30,7 +30,6 @@ class MusicHapticsPlugin : FlutterPlugin {
                 pulse(
                     (call.argument<Double>("intensity") ?: 0.0).coerceIn(0.0, 1.0),
                     (call.argument<Double>("sharpness") ?: 0.0).coerceIn(0.0, 1.0),
-                    touch = call.argument<String>("usage") == "touch",
                 )
             }
             result.success(null)
@@ -43,11 +42,7 @@ class MusicHapticsPlugin : FlutterPlugin {
         vibrator = null
     }
 
-    /**
-     * Music pulses answer to media vibration. [touch] pulses are UI feedback
-     * (a swipe's ticks) and answer to the touch feedback setting instead.
-     */
-    private fun pulse(intensity: Double, sharpness: Double, touch: Boolean) {
+    private fun pulse(intensity: Double, sharpness: Double) {
         val vibrator = vibrator ?: return
         if (Build.VERSION.SDK_INT < 26 || !vibrator.hasVibrator() || intensity <= 0) return
         // Without tuned primitives the motor is often an eccentric mass that
@@ -70,34 +65,19 @@ class MusicHapticsPlugin : FlutterPlugin {
             } else {
                 return
             }
-        // Media usage honours the system's separate media vibration switch;
-        // touch usage honours the touch feedback switch.
+        // Media usage honours the system's separate media vibration switch.
         if (Build.VERSION.SDK_INT >= 33) {
             vibrator.vibrate(
                 effect,
-                VibrationAttributes.createForUsage(
-                    if (touch) VibrationAttributes.USAGE_TOUCH else VibrationAttributes.USAGE_MEDIA,
-                ),
+                VibrationAttributes.createForUsage(VibrationAttributes.USAGE_MEDIA),
             )
         } else {
             @Suppress("DEPRECATION")
             vibrator.vibrate(
                 effect,
                 AudioAttributes.Builder()
-                    .setUsage(
-                        if (touch) {
-                            AudioAttributes.USAGE_ASSISTANCE_SONIFICATION
-                        } else {
-                            AudioAttributes.USAGE_MEDIA
-                        },
-                    )
-                    .setContentType(
-                        if (touch) {
-                            AudioAttributes.CONTENT_TYPE_SONIFICATION
-                        } else {
-                            AudioAttributes.CONTENT_TYPE_MUSIC
-                        },
-                    )
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build(),
             )
         }

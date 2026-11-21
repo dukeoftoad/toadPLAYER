@@ -5,17 +5,6 @@ allprojects {
     }
 }
 
-extra["media3Version"] = "1.11.1"
-subprojects {
-    configurations.configureEach {
-        resolutionStrategy.eachDependency {
-            if (requested.group == "androidx.media3") {
-                useVersion(rootProject.extra["media3Version"] as String)
-            }
-        }
-    }
-}
-
 subprojects {
     afterEvaluate {
         if (project.hasProperty("android")) {
