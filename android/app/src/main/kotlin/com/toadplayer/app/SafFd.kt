@@ -1,7 +1,7 @@
 package com.toadplayer.app
 
 import android.os.ParcelFileDescriptor
-import java.io.FileChannel
+import java.nio.channels.FileChannel
 import java.io.FileInputStream
 
 /**
