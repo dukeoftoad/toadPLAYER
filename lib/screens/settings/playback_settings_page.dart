@@ -10,7 +10,6 @@ import 'package:toadplayer/providers/music_player_provider.dart';
 import 'package:toadplayer/providers/settings_provider.dart';
 import 'package:toadplayer/services/autoplay_ranker.dart';
 import 'package:toadplayer/services/music_playback_deck.dart';
-import 'package:toadplayer/services/playback_deck.dart';
 import 'package:toadplayer/services/music_player_service.dart'
     show resetAutoplayLearning;
 import 'package:toadplayer/services/song_analysis.dart';
@@ -22,7 +21,6 @@ import 'package:toadplayer/utils/usb_output_status_label.dart';
 import 'package:toadplayer/widgets/animation_utils.dart';
 import 'package:toadplayer/widgets/app_alert_dialog.dart';
 import 'package:toadplayer/widgets/app_progress_indicator.dart';
-import 'package:toadplayer/widgets/app_bottom_sheet.dart';
 import 'package:toadplayer/widgets/app_icon.dart';
 import 'package:toadplayer/widgets/app_slider.dart';
 import 'package:toadplayer/widgets/app_sliver_header.dart';

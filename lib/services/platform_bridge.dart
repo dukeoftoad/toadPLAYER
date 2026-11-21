@@ -10,7 +10,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toadplayer/services/backend/backend_channel.dart';
 import 'package:toadplayer/services/download_request_payload.dart';
 import 'package:toadplayer/utils/audio_format_utils.dart';
-import 'package:toadplayer/utils/desktop_platform.dart';
 import 'package:toadplayer/utils/file_access.dart';
 import 'package:toadplayer/utils/hash_utils.dart';
 import 'package:toadplayer/utils/logger.dart';

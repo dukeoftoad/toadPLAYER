@@ -19,7 +19,6 @@ import 'package:toadplayer/screens/library_smart_screen.dart';
 import 'package:toadplayer/screens/settings/settings_screen.dart';
 import 'package:toadplayer/services/audio_file_open_service.dart';
 import 'package:toadplayer/services/platform_bridge.dart';
-import 'package:toadplayer/utils/desktop_platform.dart';
 import 'package:toadplayer/widgets/app_snack_bar.dart';
 import 'package:toadplayer/widgets/cached_cover_image.dart';
 import 'package:toadplayer/widgets/library/library_views.dart';

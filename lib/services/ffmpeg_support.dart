@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:ffmpeg_kit_flutter_new_audio/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter_new_audio/ffmpeg_kit_config.dart';
 import 'package:ffmpeg_kit_flutter_new_audio/ffprobe_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_audio/media_information.dart';
 import 'package:ffmpeg_kit_flutter_new_audio/return_code.dart';
