@@ -175,7 +175,6 @@ void main() {
     });
 
     test('set time moves a line without losing its text', () {
-      final draft = LyricsDraft.parse('[00:10.00]Line');
       final edited = LyricsDraft(
         lines: [
           LyricsDraftLine(time: const Duration(seconds: 20), text: 'Line'),

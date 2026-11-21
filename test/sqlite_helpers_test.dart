@@ -12,7 +12,7 @@ void main() {
   });
 
   Future<Database> openMemory({
-    void Function(Database db)? onCreate,
+    Future<void> Function(Database db)? onCreate,
   }) {
     return openDatabase(
       inMemoryDatabasePath,

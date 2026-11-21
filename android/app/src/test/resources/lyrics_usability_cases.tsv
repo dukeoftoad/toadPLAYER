@@ -1,0 +1,28 @@
+# Lyrics usability cases shared with the app and the native finalizer.
+# Tab separated: case name, whether the raw lyrics carry usable content,
+# and the raw lyrics with \n, \r and \t escapes.
+plain-text-lyrics	true	Plain words of a song\nwith a second line
+plain-single-line	true	One lonely line
+synced-line-with-words	true	[00:01.00]First words of the verse
+synced-voice-marked-line	true	[00:10.00]v1: Lead vocal sings
+metadata-tags-only	false	[ti:Title]\n[ar:Artist]\n[al:Album]\n[by:Someone]
+uppercase-metadata-tags-only	false	[TI:Title]\n[AR:Artist]
+extended-metadata-tags-only	false	[x-romaji:1000:YQ==]\n[x-translation:1000:Yg==]
+timestamp-without-words	false	[00:01.00]
+stacked-timestamps-without-words	false	[00:01.00][00:05.00]
+minute-second-timestamp-without-fraction-then-words	true	[1:2]Words follow a short stamp
+colon-fraction-timestamp-then-words	true	[00:01:00]Words follow a colon fraction
+inline-word-timing-only	false	<00:01.00>
+inline-word-timing-with-words	true	<00:01.00>Sung words
+word-timing-plus-voice-prefix	true	[00:10.00]<00:10.00>v1: Sing along
+voice-prefix-with-words	true	v2: Second voice line
+voice-marker-only	false	v1:
+background-vocals-with-words	true	[bg: Backing singers]
+background-vocals-empty	false	[bg:]
+metadata-plus-real-line	true	[ti:Title]\n[00:01.00]Real content follows
+writer-credit-counts-as-content	true	Written by: Someone
+crlf-plain-text	true	Verse text\r\nChorus text
+whitespace-only	false	   \n \n
+empty-string	false
+instrumental-marker	true	[instrumental:true]
+instrumental-marker-uppercase	true	[INSTRUMENTAL:TRUE]
