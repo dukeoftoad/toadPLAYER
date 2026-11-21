@@ -220,7 +220,7 @@ class AppUpdateController extends ChangeNotifier {
     await _install(id);
   }
 
-  Future<bool> _fetch() async {
+  Future<GitHubRelease?> _fetch() async {
     try {
       return await _checker.fetchLatestRelease();
     } catch (_) {

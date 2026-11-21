@@ -114,7 +114,7 @@ class GithubReleaseChecker implements AppUpdateChecker {
         ..headers['Accept'] = 'application/vnd.github+json'
         ..headers['X-GitHub-Api-Version'] = apiVersion;
       response = await http.Response.fromStream(
-        _client.send(request).timeout(timeout),
+        await _client.send(request).timeout(timeout),
       );
     } on TimeoutException {
       throw const UpdateCheckException(
