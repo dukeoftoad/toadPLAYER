@@ -48,8 +48,11 @@ jobs:
           distribution: temurin
           java-version: '25'
 
-      - name: Set up Gradle (cached dependencies and build cache)
+      - name: Set up Gradle 9.8.2 (cached distribution, dependencies and build cache)
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.8.2'
+          cache-disabled: false
 
       - name: Install Android SDK components
         run: |
@@ -122,11 +125,20 @@ jobs:
       - name: Fetch Flutter packages
         run: flutter pub get
 
+      - name: Configure Android local.properties
+        run: |
+          set -euo pipefail
+          {
+            echo "sdk.dir=$ANDROID_HOME"
+            echo "flutter.sdk=$FLUTTER_ROOT"
+          } > android/local.properties
+
       - name: Compile Android release Kotlin
+        working-directory: android
         env:
           TOADPLAYER_RUST_ANDROID_ABIS: arm64-v8a
         run: |
           set -euo pipefail
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/30.0.16248370"
-          cd android
-          ./gradlew --no-daemon :app:buildRustBackend :app:compileReleaseKotlin
+          gradle --version
+          gradle --no-daemon :app:buildRustBackend :app:compileReleaseKotlin
