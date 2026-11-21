@@ -5,6 +5,7 @@ import 'package:toadplayer/controllers/player_metadata_controller.dart';
 import 'package:toadplayer/l10n/l10n.dart';
 import 'package:toadplayer/providers/lyrics_translation_provider.dart';
 import 'package:toadplayer/providers/settings_provider.dart';
+import 'package:toadplayer/theme/sketch_theme_mark.dart';
 import 'package:toadplayer/theme/toadplayer_theme.dart';
 import 'package:toadplayer/services/lyrics_verification_store.dart';
 import 'package:toadplayer/utils/lyrics_parser.dart';
@@ -13,6 +14,8 @@ import 'package:toadplayer/widgets/app_icon.dart';
 import 'package:toadplayer/widgets/app_loading_indicator.dart';
 import 'package:toadplayer/widgets/app_snack_bar.dart';
 import 'package:toadplayer/widgets/expressive_button.dart';
+import 'package:toadplayer/widgets/sketchbook/sketch_components.dart';
+import 'package:toadplayer/widgets/sketchbook/toad_mascot.dart';
 import 'package:toadplayer/widgets/lyrics_editor_sheet.dart';
 import 'package:toadplayer/widgets/lyrics_import.dart';
 import 'package:toadplayer/widgets/lyrics_verification_sheet.dart';
@@ -122,20 +125,31 @@ class PlayerLyricsSection extends ConsumerWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        AppIcon(
-          Icons.lyrics_outlined,
-          size: 40,
-          color: colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          metadata.onlineSearchMissed
-              ? context.l10n.nowPlayingNoLyricsOnline
-              : context.l10n.nowPlayingNoLyrics,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-        ),
+        // A paper theme lets the family toad deliver the bad news himself.
+        if (context.isSketchPaper) ...[
+          const SketchToad(size: 88),
+          const SizedBox(height: 10),
+          SketchSpeechBubble(
+            text: metadata.onlineSearchMissed
+                ? context.l10n.nowPlayingNoLyricsOnline
+                : context.l10n.nowPlayingNoLyrics,
+          ),
+        ] else ...[
+          AppIcon(
+            Icons.lyrics_outlined,
+            size: 40,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            metadata.onlineSearchMissed
+                ? context.l10n.nowPlayingNoLyricsOnline
+                : context.l10n.nowPlayingNoLyrics,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+          ),
+        ],
         if (metadata.canSearchOnline) ...[
           const SizedBox(height: 16),
           ExpressiveButton(

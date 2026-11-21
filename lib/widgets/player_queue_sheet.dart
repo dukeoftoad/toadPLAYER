@@ -8,6 +8,8 @@ import 'package:toadplayer/theme/material_expressive.dart';
 import 'package:toadplayer/widgets/app_bottom_sheet.dart';
 import 'package:toadplayer/widgets/app_icon.dart';
 import 'package:toadplayer/widgets/expressive_button.dart';
+import 'package:toadplayer/theme/sketch_theme_mark.dart';
+import 'package:toadplayer/widgets/sketchbook/sketch_decor.dart';
 import 'package:toadplayer/widgets/player_playback_controls.dart';
 import 'package:toadplayer/widgets/player_queue_artwork.dart';
 import 'package:toadplayer/widgets/player_queue_dismissible.dart';
@@ -114,12 +116,18 @@ class PlayerQueueSheet extends ConsumerWidget {
         if (queue.isEmpty)
           Expanded(
             child: Center(
-              child: Text(
-                context.l10n.nowPlayingQueueEmpty,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
+              // A paper theme has the family toad wait in the empty queue.
+              child: context.isSketchPaper
+                  ? SketchEmptyState(
+                      message: context.l10n.nowPlayingQueueEmpty,
+                      mascotSize: 72,
+                    )
+                  : Text(
+                      context.l10n.nowPlayingQueueEmpty,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
             ),
           )
         else
