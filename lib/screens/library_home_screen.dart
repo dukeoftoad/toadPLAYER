@@ -22,7 +22,6 @@ import 'package:toadplayer/services/platform_bridge.dart';
 import 'package:toadplayer/utils/desktop_platform.dart';
 import 'package:toadplayer/widgets/app_snack_bar.dart';
 import 'package:toadplayer/widgets/cached_cover_image.dart';
-import 'package:toadplayer/widgets/desktop/desktop_player_bar.dart';
 import 'package:toadplayer/widgets/library/library_views.dart';
 import 'package:toadplayer/widgets/lyrics_preview_card.dart';
 import 'package:toadplayer/widgets/mini_player.dart';
@@ -116,7 +115,7 @@ class _StandalonePlayerHomeScreenState
                 ],
               ),
             ),
-            if (isDesktopPlatform) DesktopPlayerBar() else const MiniPlayer(),
+            const MiniPlayer(),
           ],
         ),
       ),

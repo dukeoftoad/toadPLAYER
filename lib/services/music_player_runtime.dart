@@ -3,13 +3,10 @@ import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:toadplayer/l10n/supported_locales.dart';
 import 'package:toadplayer/models/settings.dart';
-import 'package:toadplayer/services/alsa_output_devices.dart';
 import 'package:toadplayer/services/app_state_database.dart';
-import 'package:toadplayer/services/exclusive_output_deck.dart';
 import 'package:toadplayer/services/file_access_check.dart';
 import 'package:toadplayer/services/ffmpeg_support.dart' show FFmpegExecution;
 import 'package:toadplayer/services/autoplay_personalization.dart';
@@ -19,17 +16,13 @@ import 'package:toadplayer/services/background_favorites.dart';
 import 'package:toadplayer/services/cover_store.dart';
 import 'package:toadplayer/services/cast_output.dart';
 import 'package:toadplayer/services/cast_playback_deck.dart';
-import 'package:toadplayer/services/discord_presence_service.dart';
 import 'package:toadplayer/services/history_database.dart';
 import 'package:toadplayer/services/download_file_recovery.dart';
 import 'package:toadplayer/services/library_collections_database.dart';
 import 'package:toadplayer/services/library_database.dart';
 import 'package:toadplayer/services/listening_statistics.dart';
-import 'package:toadplayer/services/lastfm/lastfm_service.dart';
-import 'package:toadplayer/services/media_kit_playback_deck.dart';
 import 'package:toadplayer/services/media_library_browser.dart';
 import 'package:toadplayer/services/media_session_art_cache.dart';
-import 'package:toadplayer/services/media_session_desktop.dart';
 import 'package:toadplayer/services/media_session_filter.dart';
 import 'package:toadplayer/services/music_playback_deck.dart';
 import 'package:toadplayer/services/music_player_service.dart';
@@ -198,35 +191,19 @@ class PlaybackDependencies {
   /// The macOS app, which plays through AVPlayer like iOS.
   bool get isMacOS => _isMacOS ?? (isDesktopPlatform && Platform.isMacOS);
 
-  // Windows and Linux play through libmpv. Without the library they fall
-  // back to audioplayers, which has no equalizer there. macOS plays through
-  // AVPlayer and moves to libmpv for exclusive output (hog mode).
-  static PlaybackDeck _createDeck(String playerId) {
-    if (playbackEngine == PlaybackEngine.mediaKit &&
-        MediaKitPlaybackDeck.isAvailable) {
-      return MediaKitPlaybackDeck(playerId: playerId);
-    }
-    final shared = AudioplayersPlaybackDeck(playerId: playerId);
-    if (!isDesktopPlatform || defaultTargetPlatform != TargetPlatform.macOS) {
-      return shared;
-    }
-    return ExclusiveOutputDeck(
-      shared: shared,
-      createExclusive: () => MediaKitPlaybackDeck(playerId: playerId),
-      exclusiveAvailable: () => MediaKitPlaybackDeck.isAvailable,
-    );
-  }
+  // Windows and Linux played through libmpv on desktop builds; Android and
+  // iOS play through the audioplayers forks with the equalizer tap.
+  static PlaybackDeck _createDeck(String playerId) =>
+      AudioplayersPlaybackDeck(playerId: playerId);
 
   static PlaybackDeck _createCastDeck(
     CastOutput output,
     MediaItem? Function() metadata,
   ) => CastPlaybackDeck(output: output, metadata: metadata);
 
-  // Previews follow the in-app volume on desktop. Mobile previews keep
-  // playing without the equalizer.
-  static PlaybackDeck _createPreviewDeck(String playerId) => isDesktopPlatform
-      ? _createDeck(playerId)
-      : AudioplayersPlaybackDeck(playerId: playerId, equalizerAvailable: false);
+  // Mobile previews keep playing without the equalizer.
+  static PlaybackDeck _createPreviewDeck(String playerId) =>
+      AudioplayersPlaybackDeck(playerId: playerId, equalizerAvailable: false);
   static Future<AudioSession> _getAudioSession() => AudioSession.instance;
   static Future<bool> _convertAudio(List<String> arguments) async =>
       (await FFmpegExecution.arguments(arguments)).success;
@@ -271,9 +248,8 @@ class PlaybackDependencies {
   static Future<MusicPlayerHandler> _initializeAudioHandler(
     MusicPlayerHandler Function() builder,
   ) async {
-    // MPRIS on Linux and SMTC on Windows; other OSes keep the plugin and
-    // send it only the states their sessions cannot advance themselves.
-    installDesktopMediaSession();
+    // The plugin's media session advances what the platform sessions
+    // cannot; the mobile OS sessions drive their own notifications.
     installMediaSessionFilter();
     late final MusicPlayerHandler handler;
     final session = await AudioService.init(
@@ -307,8 +283,6 @@ class MusicPlayerRuntime {
   }) : _settings = settings;
 
   final PlaybackDependencies dependencies;
-  LastfmService? _lastfm;
-  LastfmService get lastfm => _lastfm ??= LastfmService();
   AutoplayPersonalization? _personalization;
   // What learning observes also teaches [taste] what plays together and
   // [ranker] how much each part of a score counts.
@@ -380,37 +354,9 @@ class MusicPlayerRuntime {
     if (!_disposed) _unplayableSongs.add((format: format, skipped: skipped));
   }
 
-  /// Feeds the exclusive output setting to the decks.
-  void _configureExclusiveOutput(AppSettings settings) {
-    final exclusive = settings.exclusiveOutput && isDesktopPlatform;
-    if (!exclusive) {
-      playbackExclusiveStatus.value = ExclusiveOutputStatus.pending;
-    } else if (!playbackExclusiveOutput.value) {
-      // Stop a playing preview before its deck would reopen the output too.
-      unawaited(exclusiveAudioHook?.call());
-    }
-    if (exclusive && defaultTargetPlatform == TargetPlatform.linux) {
-      final device = settings.exclusiveOutputDevice;
-      if (device.isNotEmpty) {
-        playbackExclusiveDevice.value = device;
-      } else {
-        // No choice yet: the first card, as ALSA's own default.
-        unawaited(
-          listAlsaOutputDevices().then((devices) {
-            if (devices.isNotEmpty && _settings.exclusiveOutputDevice.isEmpty) {
-              playbackExclusiveDevice.value = devices.first.id;
-            }
-          }),
-        );
-      }
-    }
-    playbackExclusiveOutput.value = exclusive;
-  }
-
   void configure(AppSettings settings) {
     final previous = _settings;
     _settings = settings;
-    _configureExclusiveOutput(settings);
     _songAnalysis?.configure(settings);
     _handler?.applySettings(previous);
     if (previous.playerMode == 'internal' &&
@@ -553,7 +499,6 @@ class MusicPlayerRuntime {
 
   void detach(MusicPlayerHandler handler) {
     if (!identical(_handler, handler)) return;
-    _lastfm?.bind(null);
     _unsubscribeSourceDeletion?.call();
     _unsubscribeSourceDeletion = null;
     _unsubscribeSourceMetadata?.call();
@@ -580,8 +525,6 @@ class MusicPlayerRuntime {
     try {
       // Defer even a synchronous test initializer until _initFuture is stored.
       await Future<void>.value();
-      // Desktop decks start at the in-app volume the listener left.
-      if (isDesktopPlatform) await PlaybackOutputVolumeStore.ensureRestored();
       final handler = await dependencies.initializeHandler(() {
         if (_disposed) throw StateError('This playback runtime was disposed');
         return created = MusicPlayerHandler(runtime: this);
@@ -595,17 +538,6 @@ class MusicPlayerRuntime {
       _handlers.add(handler);
       if (dependencies.isAndroid || dependencies.isIOS) {
         PlayerWidgetService.instance.bind(handler);
-      }
-      // Desktop presence goes through the Rust IPC client instead of the SDK.
-      if (dependencies.isAndroid || dependencies.isIOS || isDesktopPlatform) {
-        DiscordPresenceService.instance.bind(handler);
-      }
-      if (isDesktopPlatform) {
-        lastfm.bind(
-          handler,
-          unknownTitle: () => unknownTitle,
-          unknownArtist: () => unknownArtist,
-        );
       }
       return handler;
     } catch (error, stack) {
@@ -698,7 +630,6 @@ class MusicPlayerRuntime {
     _remoteSession?.dispose();
     _remoteSession = null;
     await _handler?.dispose();
-    await _lastfm?.close();
     try {
       await _initFuture;
     } catch (_) {

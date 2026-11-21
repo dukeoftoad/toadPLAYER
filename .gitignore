@@ -17,17 +17,10 @@ android/keystore/
 # Rust
 rust_backend/target/
 
-# iOS / macOS
+# iOS
 ios/Pods/
 ios/.symlinks/
 ios/Flutter/ephemeral/
-macos/Pods/
-macos/.symlinks/
-macos/Flutter/ephemeral/
-
-# Windows / Linux
-windows/flutter/ephemeral/
-linux/flutter/ephemeral/
 
 # IDE / OS
 .idea/

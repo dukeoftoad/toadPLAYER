@@ -28,9 +28,6 @@ import 'package:toadplayer/widgets/app_icon.dart';
 import 'package:toadplayer/widgets/app_icon_button.dart';
 import 'package:toadplayer/widgets/expressive_icon_button.dart';
 import 'package:toadplayer/widgets/audio_output_button.dart';
-import 'package:toadplayer/widgets/desktop/desktop_commands.dart'
-    show DesktopCommand, desktopTooltip;
-import 'package:toadplayer/widgets/desktop/desktop_inspector.dart';
 import 'package:toadplayer/widgets/link/link_actions.dart';
 import 'package:toadplayer/widgets/network_offline_actions.dart';
 import 'package:toadplayer/widgets/link/link_devices_sheet.dart';
@@ -107,7 +104,6 @@ class NowPlayingScreen extends ConsumerStatefulWidget {
     super.key,
     this.metadataControllerFactory,
     this.initialPage = 0,
-    this.embedded = false,
   });
 
   final PlayerMetadataController Function()? metadataControllerFactory;
@@ -115,11 +111,6 @@ class NowPlayingScreen extends ConsumerStatefulWidget {
   /// The page shown first: 0 is the player, 1 the lyrics and 2 Up Next
   /// (Toadplayer only).
   final int initialPage;
-
-  /// Shown in the desktop content pane rather than as a route. Minimizing
-  /// returns to the content, and lyrics and Up Next open in the desktop
-  /// inspector beside the player instead of replacing it.
-  final bool embedded;
 
   @override
   ConsumerState<NowPlayingScreen> createState() => _NowPlayingScreenState();
@@ -174,7 +165,6 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   void initState() {
     super.initState();
     _lyricsTranslation = ref.read(lyricsTranslationProvider.notifier);
-    if (widget.embedded) desktopInspectorPanel.addListener(_onInspectorChanged);
     _mediaItemSub = ref.listenManual<AsyncValue<MediaItem?>>(
       currentMediaItemProvider,
       (previous, next) {
@@ -253,50 +243,18 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     _scheduleLyricsControlsHide();
   }
 
-  void _onInspectorChanged() {
-    if (mounted) setState(() {});
-  }
+  /// Whether the lyrics (1) or Up Next (2) toggle shows as selected.
+  bool _showsPage(int page) => _currentPage == page;
 
-  /// Whether the lyrics (1) or Up Next (2) toggle shows as selected. The
-  /// embedded player shows them in the desktop inspector instead.
-  bool _showsPage(int page) => widget.embedded
-      ? desktopInspectorPanel.value ==
-            (page == 1
-                ? DesktopInspectorPanel.lyrics
-                : DesktopInspectorPanel.upNext)
-      : _currentPage == page;
-
-  /// Opens lyrics (1) or Up Next (2) in the desktop inspector when embedded.
-  /// Returns false when the player should switch pages itself.
-  bool _toggleInspector(int page) {
-    if (!widget.embedded) return false;
-    if (page == 1 || page == 2) {
-      toggleDesktopInspector(
-        page == 1 ? DesktopInspectorPanel.lyrics : DesktopInspectorPanel.upNext,
-      );
-    }
-    return true;
-  }
-
-  String _minimizeTooltip(BuildContext context) => desktopTooltip(
-    context,
-    context.l10n.nowPlayingMinimize,
-    DesktopCommand.dismiss,
-  );
+  String _minimizeTooltip(BuildContext context) =>
+      context.l10n.nowPlayingMinimize;
 
   void _minimize() {
-    if (widget.embedded) {
-      desktopNowPlayingOpen.value = false;
-    } else {
-      unawaited(Navigator.of(context).maybePop());
-    }
+    unawaited(Navigator.of(context).maybePop());
   }
 
   @override
   void dispose() {
-    if (widget.embedded) {
-      desktopInspectorPanel.removeListener(_onInspectorChanged);
-    }
     _artworkRoute?.readArtwork = null;
     _lyricsIdleTimer?.cancel();
     _lyricsFullscreenTimer?.cancel();
@@ -378,7 +336,6 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     // back; pausing, a page change or rotation exits it as well.
     if (_playerUiHidden &&
         _playerUiBlackout &&
-        !widget.embedded &&
         MediaQuery.orientationOf(context) == Orientation.portrait) {
       return ColoredBox(
         color: Colors.black,
@@ -519,18 +476,14 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     final lyricsFullscreen =
         _currentPage == 1 && _lyricsForceFullscreen && _lyricsAutoHideLayout;
 
-    // The embedded desktop player keeps a toolbar for its minimize button,
-    // which a route reaches by swiping down instead.
+    // The route player reaches minimize by swiping down instead.
     final double? toadplayerToolbarHeight = !toadplayer
         ? null
-        : widget.embedded
-        ? 48
         : MediaQuery.orientationOf(context) == Orientation.landscape
         ? 0
         : 36;
     final materialLandscapeArtwork =
         !toadplayer &&
-        !widget.embedded &&
         MediaQuery.orientationOf(context) == Orientation.landscape &&
         ref.watch(settingsProvider.select((s) => s.landscapeLyricsArtwork));
     final player = Scaffold(
@@ -553,8 +506,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
           toolbarHeight: toadplayerToolbarHeight ?? kToolbarHeight,
           automaticallyImplyLeading: false,
           title: toadplayer
-              ? MediaQuery.orientationOf(context) == Orientation.landscape ||
-                        widget.embedded
+              ? MediaQuery.orientationOf(context) == Orientation.landscape
                     ? null
                     : PlayerLyricsControlsVisibility(
                         hidden: _playerUiHidden || lyricsFullscreen,
@@ -579,7 +531,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                       : null,
                 ),
           centerTitle: true,
-          leading: toadplayer && !widget.embedded
+          leading: toadplayer
               ? null
               : AppIconButton(
                   key: const ValueKey('now-playing-minimize'),
@@ -647,8 +599,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                               : 0,
                           insetArtwork: !fullBleed,
                           artworkTopInset:
-                              MediaQuery.paddingOf(context).top +
-                              (widget.embedded ? toadplayerToolbarHeight! : 36),
+                              MediaQuery.paddingOf(context).top + 36,
                           artworkKeys: (
                             header: _artworkHeaderKey,
                             controls: _artworkControlsKey,
@@ -939,7 +890,6 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   );
 
   void _toggleMaterialLyrics() {
-    if (_toggleInspector(1)) return;
     setState(() {
       _currentPage = _currentPage == 1 ? 0 : 1;
       _lyricsControlsHidden = false;
@@ -960,7 +910,6 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   }
 
   void _setToadplayerPage(int page) {
-    if (_toggleInspector(page)) return;
     _lyricsFullscreenTimer?.cancel();
     setState(() {
       _currentPage = page;
@@ -1059,12 +1008,11 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   /// (its landscape player hides its own actions), and Material's portrait
   /// column or its landscape artwork beside lyrics, which shows no transport
   /// either, like Toadplayer's. Two plain panes keep the transport beside the
-  /// lyrics, and the desktop opens lyrics in the inspector.
+  /// lyrics.
   bool get _lyricsAutoHideLayout => context.isToadplayer
       ? !_landscape
-      : !widget.embedded &&
-            (MediaQuery.orientationOf(context) == Orientation.portrait ||
-                ref.read(settingsProvider).landscapeLyricsArtwork);
+      : MediaQuery.orientationOf(context) == Orientation.portrait ||
+            ref.read(settingsProvider).landscapeLyricsArtwork;
 
   bool get _canAutoHideLyricsControls =>
       _lyricsAutoHideLayout &&
@@ -1635,7 +1583,6 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   /// Opens Up Next. The Material sheet captures the theme of [context], the
   /// player's artwork scope.
   void _showQueueSheet(BuildContext context, ColorScheme colorScheme) {
-    if (_toggleInspector(2)) return;
     if (context.isToadplayer) {
       _setToadplayerPage(2);
       return;

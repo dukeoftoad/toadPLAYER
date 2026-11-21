@@ -1,34 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:toadplayer/utils/desktop_platform.dart';
 
 /// Transport state reported by a [PlaybackDeck].
 enum PlaybackDeckState { stopped, playing, paused, completed, disposed }
 
-/// The engine behind `PlaybackDependencies.createDeck`.
-enum PlaybackEngine {
-  /// audioplayers: Android, iOS and macOS, where the forks carry the
-  /// equalizer tap and Android's USB output.
-  audioplayers,
-
-  /// libmpv through media_kit: Windows and Linux.
-  mediaKit,
-}
-
-/// Forces [playbackEngine], for tests that drive one engine on any host.
-@visibleForTesting
-PlaybackEngine? debugPlaybackEngineOverride;
-
-PlaybackEngine get playbackEngine {
-  final override = debugPlaybackEngineOverride;
-  if (override != null) return override;
-  if (!isDesktopPlatform) return PlaybackEngine.audioplayers;
-  return switch (defaultTargetPlatform) {
-    TargetPlatform.windows || TargetPlatform.linux => PlaybackEngine.mediaKit,
-    _ => PlaybackEngine.audioplayers,
-  };
-}
+// The player once offered a second engine (libmpv through media_kit) for
+// desktop builds; Android and iOS have always played through the
+// audioplayers forks, which carry the equalizer tap and Android's USB
+// output, so the engine choice is gone with the desktop builds.
 
 /// In-app output gain from 0 to 1 for platforms where the app must not change
 /// the system volume (desktop). Every deck multiplies the gain it is given
@@ -44,15 +24,14 @@ Stream<double> playbackOutputVolumeChanges() =>
       listener.onCancel = () => playbackOutputVolume.removeListener(changed);
     });
 
-/// Desktop exclusive output, from the `exclusiveOutput` setting, always
-/// through libmpv: WASAPI exclusive on Windows, Core Audio hog mode on macOS
-/// (see `ExclusiveOutputDeck`), an ALSA `hw:` device on Linux. AutoMix and
-/// previews stay off while it is on, so only the main player opens the
-/// device.
+/// Desktop exclusive output, retired with the desktop builds: always false
+/// on Android and iOS, where playback goes through the system mixer. Kept as
+/// the deck contract readers (formats, gapless, AutoMix, the audio info
+/// sheet) still watch it.
 final playbackExclusiveOutput = ValueNotifier<bool>(false);
 
-/// Linux: the ALSA device [playbackExclusiveOutput] opens, as an mpv device
-/// name. Empty until one is known; the output stays shared meanwhile.
+/// The exclusive output device name, retired with the desktop builds: always
+/// empty on Android and iOS.
 final playbackExclusiveDevice = ValueNotifier<String>('');
 
 /// Whether [playbackExclusiveOutput] took the device for the current track.

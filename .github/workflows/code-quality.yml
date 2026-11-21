@@ -92,8 +92,8 @@ jobs:
         # mobile crate's in-tree unit tests reference test/fixtures JSON
         # files that were never committed (also missing on main), so its
         # lib-test target cannot compile until those fixtures exist; its
-        # behavior stays covered by the desktop and core suites plus the
-        # on-device app itself.
+        # behavior stays covered by the core suite plus the on-device app
+        # itself.
         run: cargo test --locked --workspace --exclude toadplayer-bindgen --exclude toadplayer-mobile
 
   native-tests:

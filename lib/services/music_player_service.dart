@@ -256,14 +256,12 @@ class MusicPlayerHandler extends BaseAudioHandler
     }
     if (previous.autoMix != settings.autoMix ||
         previous.autoMixOptions != settings.autoMixOptions ||
-        previous.usbBitPerfect != settings.usbBitPerfect ||
-        previous.exclusiveOutput != settings.exclusiveOutput) {
+        previous.usbBitPerfect != settings.usbBitPerfect) {
       unawaited(_autoMix.cancel());
     }
     if (previous.gaplessPlayback != settings.gaplessPlayback ||
         previous.autoMix != settings.autoMix ||
-        previous.usbBitPerfect != settings.usbBitPerfect ||
-        previous.exclusiveOutput != settings.exclusiveOutput) {
+        previous.usbBitPerfect != settings.usbBitPerfect) {
       unawaited(_gapless.cancel());
     }
     // A fade or crossfade switch invalidates any prepared transition and any

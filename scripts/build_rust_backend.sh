@@ -9,8 +9,8 @@ RUST_BACKEND_DIR="$PROJECT_DIR/rust_backend"
 PLATFORM="${1:-host}"
 
 case "$PLATFORM" in
-  host|android|ios|desktop) ;;
-  *) echo "Usage: bash scripts/build_rust_backend.sh [host|android|ios|desktop]" >&2; exit 1 ;;
+  host|android|ios) ;;
+  *) echo "Usage: bash scripts/build_rust_backend.sh [host|android|ios]" >&2; exit 1 ;;
 esac
 
 if [[ "$PLATFORM" == "android" ]]; then
@@ -29,55 +29,6 @@ cd "$RUST_BACKEND_DIR"
 export CARGO_TARGET_DIR="$RUST_BACKEND_DIR/target"
 # AES 0.9 detects ARM64 AES at runtime and retains the software fallback;
 # do not force target-feature=+aes on Android.
-
-# Desktop: the C ABI library loaded by dart:ffi (crates/desktop). It needs no
-# UniFFI bindings. Output: target/desktop/<os>/libtoadplayer_desktop.{dylib,so}.
-# The macOS app embeds it from an Xcode build phase
-# (scripts/embed_rust_backend_macos.sh); linux/CMakeLists.txt installs it.
-#
-# Windows is built by the PowerShell companion script
-# scripts/build_rust_backend_windows.ps1 (cargo build of toadplayer-desktop for
-# x86_64-pc-windows-msvc, or aarch64-pc-windows-msvc with -Target, staged as
-# target\desktop\windows\toadplayer_desktop.dll for windows/CMakeLists.txt).
-if [[ "$PLATFORM" == "desktop" ]]; then
-  case "$(uname -s)" in
-    Darwin)
-      # Same default as the host build. The Flutter macOS runner's deployment
-      # target must not be older than this.
-      export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-11.0}"
-      # C dependencies (ring) need the SDK headers. Inside Xcode, `cc` is the
-      # toolchain clang rather than the /usr/bin shim, which finds no SDK on
-      # its own; naming it here also keeps Xcode and command line builds on
-      # one Cargo cache.
-      export SDKROOT="${SDKROOT:-$(xcrun --sdk macosx --show-sdk-path)}"
-      DESKTOP_DIR="$CARGO_TARGET_DIR/desktop/macos"
-      rustup target add aarch64-apple-darwin x86_64-apple-darwin
-      for target in aarch64-apple-darwin x86_64-apple-darwin; do
-        cargo build --locked --release -p toadplayer-desktop --target "$target"
-      done
-      mkdir -p "$DESKTOP_DIR"
-      xcrun lipo -create \
-        "$CARGO_TARGET_DIR/aarch64-apple-darwin/release/libtoadplayer_desktop.dylib" \
-        "$CARGO_TARGET_DIR/x86_64-apple-darwin/release/libtoadplayer_desktop.dylib" \
-        -output "$DESKTOP_DIR/libtoadplayer_desktop.dylib"
-      # Load by rpath from the app bundle's Frameworks directory.
-      install_name_tool -id "@rpath/libtoadplayer_desktop.dylib" \
-        "$DESKTOP_DIR/libtoadplayer_desktop.dylib"
-      # install_name_tool drops the linker's ad hoc signature, and arm64
-      # refuses unsigned code. The app build re-signs with its identity.
-      codesign --force --sign - "$DESKTOP_DIR/libtoadplayer_desktop.dylib"
-      ;;
-    Linux)
-      DESKTOP_DIR="$CARGO_TARGET_DIR/desktop/linux"
-      cargo build --locked --release -p toadplayer-desktop
-      mkdir -p "$DESKTOP_DIR"
-      cp "$CARGO_TARGET_DIR/release/libtoadplayer_desktop.so" "$DESKTOP_DIR/"
-      ;;
-    *) echo "Error: use macOS or Linux for desktop builds (Windows: scripts/build_rust_backend_windows.ps1)." >&2; exit 1 ;;
-  esac
-  echo "Rust desktop library is staged in $DESKTOP_DIR."
-  exit 0
-fi
 
 case "$(uname -s)" in
   Darwin)
